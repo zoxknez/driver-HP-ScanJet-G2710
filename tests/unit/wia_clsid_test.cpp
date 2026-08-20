@@ -1,6 +1,6 @@
 // CLSID u driver/g2710.inf i u native/wia/G2710Wia.h moraju biti IDENTICNI.
 //
-// Ako se raziđu, WIA servis ne moze da instancira minidriver, a greska se vidi
+// Ako se raziidju, WIA servis ne moze da instancira minidriver, a greska se vidi
 // tek kada je uredjaj prikljucen - kod prijatelja, na daljinu, kao "skener
 // postoji ali ne radi". Zato je ovo test, a ne komentar.
 

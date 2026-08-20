@@ -13,10 +13,10 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 |---|---|
 | G2710-0 Reference truth | **završen** — Gate A i Gate B PASS |
 | G2710-1 WDK / skeleton / transport | **završen** — gate PASS |
-| G2710-2 RTS8822 core | u toku — accessor sloj, golden sekvence |
+| G2710-2 RTS8822 core | u toku — registri, DMA, motor, timing, GPIO |
 
 ```bash
-python tools/verify-reference-gates.py
+python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py
 ```
 
 ## Build

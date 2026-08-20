@@ -56,8 +56,21 @@ inline constexpr std::uint8_t kHeadAtHomeBit = 0x40;
 
 // --- zakljucavanje ---------------------------------------------------------
 
-// rts8822.c:774 SetLock
+// rts8822.c:773 SetLock - bit 2
 inline constexpr std::uint16_t kLock = 0xEE00;               // Regs[0x600]
+inline constexpr std::uint8_t kLockBit = 0x04;
+
+// --- GPIO ------------------------------------------------------------------
+
+// rts8822.c:799 Set_E950_Mode, :1086 RTS_Sensor_Type
+inline constexpr std::uint16_t kGpio0 = 0xE950;              // Regs[0x150]
+inline constexpr std::uint16_t kGpio0ModeBit = 0x0040;
+
+// rts8822.c:1087 RTS_Sensor_Type
+inline constexpr std::uint16_t kGpio1 = 0xE956;              // Regs[0x156]
+
+// rts8822.c:1096 RTS_Sensor_Type - ulaz koji nosi tip senzora
+inline constexpr std::uint16_t kGpioSense = 0xE968;          // Regs[0x168]
 
 // --- DMA -------------------------------------------------------------------
 
