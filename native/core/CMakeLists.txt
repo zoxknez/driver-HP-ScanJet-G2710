@@ -4,8 +4,12 @@ add_library(g2710_core STATIC
     device/SafetyLevel.cpp
     device/DeviceArbiter.cpp
 
+    transport/TraceRecorder.cpp
     transport/TransportProvider.cpp
     transport/UsbScanTransport.cpp
+
+    rts8822/RegisterFile.cpp
+    rts8822/Rts8822.cpp
 )
 
 add_library(G2710::Core ALIAS g2710_core)

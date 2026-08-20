@@ -6,6 +6,7 @@
 
 #include "device/DeviceArbiter.h"
 #include "device/SafetyLevel.h"
+#include "rts8822/Rts8822.h"
 #include "transport/ITransportProvider.h"
 #include "transport/UsbScanTransport.h"
 #include "G2710Profile.generated.h"
@@ -27,6 +28,7 @@ constexpr const char* kUsage =
     "\n"
     "  g2710ctl probe    [opcije]   identitet uredjaja i konfiguracija pipe-ova\n"
     "  g2710ctl regdump  [opcije]   ispis registarskog bank-a\n"
+    "  g2710ctl status   [opcije]   senzori, lampe, PWM (sve read-only)\n"
     "  g2710ctl info                ugradjeni profil i granice build-a\n"
     "\n"
     "Opcije:\n"
@@ -213,6 +215,48 @@ int cmdRegdump(ITransport& transport, const SafetyGate& gate) {
     return 0;
 }
 
+// Citanje senzora i statusa lampe. Sve je nivo 1 - nista se ne pomera i
+// nista se ne pali. Ovo je ono sto prijatelj pokrece u H2/H3 pre nego sto
+// se bilo sta drugo dozvoli.
+int cmdStatus(ITransport& transport, const SafetyGate& gate) {
+    if (const Status identified = ensureIsG2710(transport); !identified) {
+        return 6;
+    }
+
+    rts8822::Rts8822 chip{transport, gate};
+
+    auto executing = chip.isExecuting();
+    if (!executing) {
+        reportError("isExecuting", executing.error());
+        return 3;
+    }
+    std::printf("Scan u toku           %s\n", executing.value() ? "da" : "ne");
+
+    auto home = chip.isHeadAtHome();
+    if (!home) {
+        reportError("isHeadAtHome", home.error());
+        return 3;
+    }
+    std::printf("Glava na home         %s\n", home.value() ? "da" : "ne");
+
+    auto lamp = chip.lampStatus();
+    if (!lamp) {
+        reportError("lampStatus", lamp.error());
+        return 3;
+    }
+    std::printf("Flatbed lampa         %s\n", lamp.value().flatbedOn ? "gori" : "ugasena");
+    std::printf("TMA lampa             %s\n", lamp.value().tmaOn ? "gori" : "ugasena");
+
+    auto duty = chip.lampPwmDutyCycle();
+    if (!duty) {
+        reportError("lampPwmDutyCycle", duty.error());
+        return 3;
+    }
+    std::printf("PWM duty cycle        %u / 63\n", static_cast<unsigned>(duty.value()));
+
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -257,6 +301,9 @@ int main(int argc, char** argv) {
     }
     if (options.command == "regdump") {
         return cmdRegdump(*transport.value(), gate);
+    }
+    if (options.command == "status") {
+        return cmdStatus(*transport.value(), gate);
     }
 
     std::fputs(kUsage, stderr);

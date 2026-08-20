@@ -41,6 +41,13 @@ target_compile_definitions(g2710_unit_tests PRIVATE
     G2710_INF_PATH="${CMAKE_SOURCE_DIR}/driver/g2710.inf")
 gtest_discover_tests(g2710_unit_tests)
 
+# --- golden register sequence testovi --------------------------------------
+# Hvataju greske u BROJU i REDOSLEDU transfera, koje se inace vide tek na
+# hardveru. Vidi tests/golden/register_sequence_test.cpp.
+add_executable(g2710_golden_tests golden/register_sequence_test.cpp)
+target_link_libraries(g2710_golden_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
+gtest_discover_tests(g2710_golden_tests)
+
 # --- plafon bezbednosti mora biti JEDNA vrednost po binarnom fajlu ----------
 # Zato ovaj test ne linkuje G2710::Core (koji nosi PUBLIC plafon 5) nego
 # kompajlira svoju kopiju izvora sa plafonom 1. Mesanje razlicitih plafona u
