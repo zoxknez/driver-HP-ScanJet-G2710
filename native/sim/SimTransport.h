@@ -1,0 +1,84 @@
+// Minimalni RTS8822 simulator.
+//
+// OBIM: dovoljno da se dokaze transportni sloj i CLI bez hardvera. Pun
+// simulator - virtuelni motor sa mehanickim limitima, home senzor, lampe sa
+// warmup krivom, CCD koji renderuje test-metu, FailureInjector - dolazi u
+// G2710-3.
+//
+// Vazno: register bank ima STVARNU semantiku (write -> stanje), ne echo. Bez
+// toga bi Write_Byte read-modify-write ciklus iz reference "prosao" i na
+// neispravnoj implementaciji.
+
+#pragma once
+
+#include "transport/ITransport.h"
+#include "transport/ITransportProvider.h"
+
+#include <array>
+#include <cstddef>
+#include <memory>
+#include <vector>
+
+namespace g2710::sim {
+
+class SimTransport final : public ITransport {
+public:
+    SimTransport();
+
+    Status controlIn(std::uint16_t address, Command command,
+                     std::span<std::byte> buffer) override;
+    Status controlOut(std::uint16_t address, Command command,
+                      std::span<const std::byte> buffer) override;
+    std::size_t maxControlChunk() const noexcept override { return maxControlChunk_; }
+
+    Result<std::size_t> bulkRead(std::span<std::byte> buffer) override;
+    Status bulkWrite(std::span<const std::byte> buffer) override;
+
+    Result<std::uint32_t> waitEvent() override;
+
+    Status resetPipe(PipeKind pipe) override;
+    Status setTimeouts(const Timeouts& timeouts) override;
+    Result<PipeConfiguration> pipeConfiguration() override;
+
+    void cancel() noexcept override;
+    Status reopen() override;
+    bool isOpen() const noexcept override { return open_; }
+    const char* name() const noexcept override { return "sim"; }
+
+    // --- kontrola simulacije, samo za testove --------------------------
+    void setMaxControlChunk(std::size_t bytes) noexcept { maxControlChunk_ = bytes; }
+    void pressButton(std::uint32_t mask) noexcept { pendingEvent_ = mask; }
+
+    std::uint8_t peekRegister(std::uint16_t address) const noexcept;
+    void pokeRegister(std::uint16_t address, std::uint8_t value) noexcept;
+
+    int chipsetResetCount() const noexcept { return chipsetResets_; }
+    int controlInCount() const noexcept { return controlIns_; }
+    int controlOutCount() const noexcept { return controlOuts_; }
+
+private:
+    Status checkOpen(const char* context) const;
+    std::size_t registerIndex(std::uint16_t address) const noexcept;
+
+    bool open_ = true;
+    bool cancelled_ = false;
+    std::size_t maxControlChunk_ = 0;
+    Timeouts timeouts_{};
+
+    std::vector<std::uint8_t> registers_;
+    std::vector<std::uint8_t> eeprom_;
+    std::vector<std::uint8_t> dmaBuffer_;
+
+    std::uint32_t pendingEvent_ = 0;
+    int chipsetResets_ = 0;
+    int controlIns_ = 0;
+    int controlOuts_ = 0;
+};
+
+class SimTransportProvider final : public ITransportProvider {
+public:
+    Result<std::unique_ptr<ITransport>> create(const DeviceRef& ref) override;
+    const char* name() const noexcept override { return "sim"; }
+};
+
+}  // namespace g2710::sim

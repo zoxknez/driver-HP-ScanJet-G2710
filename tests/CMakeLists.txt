@@ -33,8 +33,9 @@ add_executable(g2710_unit_tests
     unit/device_arbiter_test.cpp
     unit/transport_provider_test.cpp
     unit/wia_clsid_test.cpp
+    unit/sim_transport_test.cpp
 )
-target_link_libraries(g2710_unit_tests PRIVATE G2710::Core GTest::gtest_main)
+target_link_libraries(g2710_unit_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
 target_include_directories(g2710_unit_tests PRIVATE ${CMAKE_SOURCE_DIR}/native/wia)
 target_compile_definitions(g2710_unit_tests PRIVATE
     G2710_INF_PATH="${CMAKE_SOURCE_DIR}/driver/g2710.inf")
