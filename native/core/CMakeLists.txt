@@ -8,6 +8,8 @@ add_library(g2710_core STATIC
     transport/TransportProvider.cpp
     transport/UsbScanTransport.cpp
 
+    rts8822/Dma.cpp
+    rts8822/Motor.cpp
     rts8822/RegisterFile.cpp
     rts8822/Rts8822.cpp
 )

@@ -11,3 +11,7 @@ obj/
 
 # razvojni kljucevi - nikada u repo
 driver/sign/out/
+
+# privremeni build direktorijumi provere plafona
+.build-ceiling*/
+build-safe1/

@@ -49,6 +49,14 @@ public:
     void setMaxControlChunk(std::size_t bytes) noexcept { maxControlChunk_ = bytes; }
     void pressButton(std::uint32_t mask) noexcept { pendingEvent_ = mask; }
 
+    // Pokvari sledecih N read-back operacija. Sluzi da se dokaze da
+    // verifikaciona petlja iz RTS_DMA_Write stvarno ponavlja upis, a ne da
+    // slucajno prolazi iz prvog pokusaja.
+    void corruptNextDmaReadBacks(int count) noexcept { corruptReadBacks_ = count; }
+
+    std::uint16_t dmaOperationType() const noexcept { return dmaOperationType_; }
+    std::size_t dmaLength() const noexcept { return dmaLength_; }
+
     std::uint8_t peekRegister(std::uint16_t address) const noexcept;
     void pokeRegister(std::uint16_t address, std::uint8_t value) noexcept;
 
@@ -67,7 +75,14 @@ private:
 
     std::vector<std::uint8_t> registers_;
     std::vector<std::uint8_t> eeprom_;
-    std::vector<std::uint8_t> dmaBuffer_;
+
+    // DMA memorija ZIVI izmedju enable poziva. Brisanje pri svakom enable-u
+    // bi ucinilo write-verify petlju iz RTS_DMA_Write besmislenom: citanje
+    // nazad bi uvek vracalo nule.
+    std::vector<std::uint8_t> dmaMemory_;
+    std::size_t dmaLength_ = 0;
+    std::uint16_t dmaOperationType_ = 0;
+    int corruptReadBacks_ = 0;
 
     std::uint32_t pendingEvent_ = 0;
     int chipsetResets_ = 0;

@@ -51,6 +51,23 @@ Plafon mora biti **jedna vrednost po binarnom fajlu**. Zato se
 sopstvenom kopijom `SafetyLevel.cpp` — mešanje različitih plafona u istom
 binarnom fajlu bilo bi ODR kršenje i dalo bi lažno prolazan test.
 
+Tvrdnja o odsustvu koda je **izmerena**, ne pretpostavljena:
+
+```bash
+powershell -File tools/verify-safety-ceiling.ps1
+```
+
+Skript gradi jezgro na oba plafona i poredi simbole u statičkoj biblioteci.
+Izmereno na ovoj mašini:
+
+| Simbol | plafon 5 | plafon 1 |
+|---|---|---|
+| `applyMotorCurrent` | 4 | **0** |
+| `lampStatus` (kontrola, nivo 1) | 11 | 11 |
+
+Kontrolni simbol postoji da provera ne bi prolazila zato što se ništa nije
+prevelo, umesto zato što motorni put nedostaje.
+
 ---
 
 ## 2. Gubitak veze — šta softver sme da tvrdi

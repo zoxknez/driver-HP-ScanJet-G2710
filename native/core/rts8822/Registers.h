@@ -59,4 +59,24 @@ inline constexpr std::uint8_t kHeadAtHomeBit = 0x40;
 // rts8822.c:774 SetLock
 inline constexpr std::uint16_t kLock = 0xEE00;               // Regs[0x600]
 
+// --- DMA -------------------------------------------------------------------
+
+// rts8822.c:4151 RTS_DMA_WaitReady - anketira bit 0
+inline constexpr std::uint16_t kDmaStatus = 0xEF09;          // Regs[0x709]
+inline constexpr std::uint8_t kDmaStatusReadyBit = 0x01;
+
+// --- adrese IZVAN register bank-a ------------------------------------------
+//
+// Bank pokriva 0xE800 .. 0xEF19 (0x71A bajtova). Cip ima siri adresni prostor
+// i referenca ga koristi: RTS_WaitInitEnd (rts8822.c:4181) cita 0xF910, sto je
+// van bank-a. RTS_ReadRegs / RTS_WriteRegs takve adrese NE prenose, pa im se
+// pristupa samo pojedinacno.
+
+inline constexpr std::uint16_t kInitStatus = 0xF910;         // van bank-a
+inline constexpr std::uint8_t kInitStatusDoneBit = 0x08;
+
+constexpr bool isInRegisterBank(std::uint16_t address) noexcept {
+    return address >= 0xE800 && address < 0xE800 + 0x71A;
+}
+
 }  // namespace g2710::rts8822::reg

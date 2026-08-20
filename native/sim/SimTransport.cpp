@@ -18,6 +18,10 @@ SimTransport::SimTransport()
     // Chipset id koji Chipset_Detect ocekuje; tacna adresa i vrednost se
     // zakljucavaju u G2710-2 kada se registarska mapa imenuje.
     registers_[0] = static_cast<std::uint8_t>(profile::kChipsetModelId);
+
+    // DMA je spreman odmah. Pravi cip nije, i to je razlog sto postoji
+    // RTS_DMA_WaitReady - modeliranje kasnjenja dolazi u G2710-3.
+    registers_[0x709] = 0x01;  // kDmaStatus, kDmaStatusReadyBit
 }
 
 std::size_t SimTransport::registerIndex(std::uint16_t address) const noexcept {
@@ -113,16 +117,28 @@ Status SimTransport::controlOut(std::uint16_t address, Command command,
             const auto words = static_cast<std::size_t>(buffer[3]) |
                                (static_cast<std::size_t>(buffer[4]) << 8) |
                                (static_cast<std::size_t>(buffer[5]) << 16);
-            dmaBuffer_.assign(words * 2, 0);
+            dmaLength_ = words * 2;
+            // Memorija se cuva, ne brise: read-back posle upisa mora vracati
+            // ono sto je upisano, inace verifikaciona petlja nema smisla.
+            if (dmaMemory_.size() < dmaLength_) {
+                dmaMemory_.resize(dmaLength_, 0);
+            }
             return ok();
         }
 
         case Command::DmaCancel:
-            dmaBuffer_.clear();
+            dmaLength_ = 0;
             return ok();
 
-        case Command::DmaOpType:
+        case Command::DmaOpType: {
+            if (buffer.size() != 2) {
+                return fail(ErrorCode::InvalidArgument, "sim: DMA op type ocekuje 2 bajta");
+            }
+            dmaOperationType_ = static_cast<std::uint16_t>(
+                static_cast<std::uint16_t>(buffer[0]) |
+                (static_cast<std::uint16_t>(buffer[1]) << 8));
             return ok();
+        }
 
         default:
             return fail(ErrorCode::InvalidArgument, "sim: nepodrzana komanda za upis");
@@ -133,9 +149,16 @@ Result<std::size_t> SimTransport::bulkRead(std::span<std::byte> buffer) {
     if (const Status s = checkOpen("sim: bulkRead"); !s) {
         return s.error();
     }
-    const std::size_t count = (std::min)(buffer.size(), dmaBuffer_.size());
+    const std::size_t count = (std::min)(buffer.size(), dmaMemory_.size());
     for (std::size_t i = 0; i < count; ++i) {
-        buffer[i] = static_cast<std::byte>(dmaBuffer_[i]);
+        buffer[i] = static_cast<std::byte>(dmaMemory_[i]);
+    }
+
+    // Injektovana greska: pokvari prvi bajt da bi verifikaciona petlja morala
+    // da ponovi upis.
+    if (corruptReadBacks_ > 0 && count > 0) {
+        --corruptReadBacks_;
+        buffer[0] = static_cast<std::byte>(static_cast<std::uint8_t>(buffer[0]) ^ 0xFF);
     }
     return count;
 }
@@ -144,9 +167,11 @@ Status SimTransport::bulkWrite(std::span<const std::byte> buffer) {
     if (const Status s = checkOpen("sim: bulkWrite"); !s) {
         return s;
     }
-    dmaBuffer_.resize(buffer.size());
+    if (dmaMemory_.size() < buffer.size()) {
+        dmaMemory_.resize(buffer.size(), 0);
+    }
     for (std::size_t i = 0; i < buffer.size(); ++i) {
-        dmaBuffer_[i] = static_cast<std::uint8_t>(buffer[i]);
+        dmaMemory_[i] = static_cast<std::uint8_t>(buffer[i]);
     }
     return ok();
 }
