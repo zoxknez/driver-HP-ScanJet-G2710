@@ -2,6 +2,9 @@ add_library(g2710_core STATIC
     util/Clock.cpp
     util/Error.cpp
 
+    calib/CalibrationConfig.cpp
+    calib/ShadingCalibration.cpp
+
     device/DeviceArbiter.cpp
     device/DeviceState.cpp
     device/G2710Device.cpp

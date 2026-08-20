@@ -59,6 +59,13 @@ add_executable(g2710_golden_tests
 target_link_libraries(g2710_golden_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
 gtest_discover_tests(g2710_golden_tests)
 
+# --- integracioni testovi ---------------------------------------------------
+# Kalibracija protiv simulatora koji NAMERNO gresi. Acceptance gate faze
+# G2710-5 je ovde.
+add_executable(g2710_integration_tests integration/calibration_test.cpp)
+target_link_libraries(g2710_integration_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
+gtest_discover_tests(g2710_integration_tests)
+
 # --- plafon bezbednosti mora biti JEDNA vrednost po binarnom fajlu ----------
 # Zato ovaj test ne linkuje G2710::Core (koji nosi PUBLIC plafon 5) nego
 # kompajlira svoju kopiju izvora sa plafonom 1. Mesanje razlicitih plafona u
