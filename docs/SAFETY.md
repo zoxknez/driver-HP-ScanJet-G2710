@@ -166,10 +166,36 @@ jedini način da uopšte ima smisla.
 
 ---
 
-## 5. Šta tek dolazi (G2710-4)
+## 5. `MotionGuard`
 
-`MotionGuard` — nijedna motorna operacija bez `Direction`, `ExpectedSteps`,
-`MaximumSteps`, `StartPosition`, `ExpectedEndPosition`, `Deadline`,
-`CancellationToken`, `OnUsbLost`, `EmergencyStop`.
+Nijedna motorna operacija bez `direction`, `expectedSteps`, `maximumSteps`,
+`deadline`, `CancellationToken` i hookova za `emergencyStop` i
+`isTransportAlive`. `MotionRequest` **nema podrazumevane vrednosti** za ono što
+štiti — pozivalac koji „samo hoće da pomeri glavu" mora reći koliko najviše i
+do kada, jer je alternativa `while (!home) step();` nad tuđim uređajem.
 
-Nijedan `while (!home) step();` bez zaštite ne prolazi review.
+Rok od nule se **odbija**. Kretanje bez roka je upravo ono što ovaj modul
+postoji da spreči.
+
+### Pozicija glave nije `int`
+
+`HeadPosition` razlikuje „glava je na koraku 0" od „ne znam gde je glava".
+Broj koji tiho počinje od nule posle gubitka veze je tačno ona greška koja
+pomera glavu u kraj staze. Pozicija se invalidira pri svakom prekidu, a jedina
+operacija koja je vraća je HOME — jer je tada senzor rekao gde smo, umesto da
+smo pretpostavili.
+
+Ponovno otvaranje veze **samo po sebi ne vraća poziciju**. Zato prelaz
+`TransportLost → Idle` ne postoji; oporavak ide isključivo kroz `Opened`.
+
+### Rupa koju je negativna provera otkrila
+
+Tvrdnja „kada veze nema, `emergencyStopAttempted` mora biti `false`" bila je
+testirana samo na `TransportLost` putanji. Ali guard tamo **uopšte ne stigne**
+do pokušaja zaustavljanja — vraća se ranije. Test je prolazio iz pogrešnog
+razloga: uklonio sam proveru veze iz koda i test je i dalje prolazio.
+
+Provera stvarno odlučuje na putanjama koje zaustavljanje **pokušavaju** a veza
+je već mrtva: korisnik otkaže scan, ili istekne rok, a kabl je u međuvremenu
+iščupan. Ta dva scenarija sada imaju svoje testove i oba padaju kada se provera
+ukloni.

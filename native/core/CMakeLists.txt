@@ -1,8 +1,11 @@
 add_library(g2710_core STATIC
+    util/Clock.cpp
     util/Error.cpp
 
-    device/SafetyLevel.cpp
     device/DeviceArbiter.cpp
+    device/DeviceState.cpp
+    device/MotionGuard.cpp
+    device/SafetyLevel.cpp
 
     transport/TraceRecorder.cpp
     transport/TransportProvider.cpp
