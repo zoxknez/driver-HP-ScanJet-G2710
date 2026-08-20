@@ -36,6 +36,16 @@ Nema nijedne grane koja bi mogla proizvesti drugačiji `bmRequestType` — vredn
 nije parametar nego literal u dve funkcije. Invariant ne zavisi od analize
 dostižnosti.
 
+Provera je ponovljiva, ne jednokratna:
+
+```bash
+python tools/verify-reference-gates.py
+```
+
+Skript pada ako se pojavi control transfer van dozvoljenog oblika, ako neki
+fajl zaobiđe USB sloj, ili ako `HPG2710` dispatch povuče funkciju koja nije
+ekstraktovana.
+
 **Posledica:** `usbscan.sys` kao primarni transport je potvrđen. usbscan.sys iz
 `IO_BLOCK_EX` gradi `URB_CONTROL_VENDOR_OR_CLASS_REQUEST` i smer izvodi iz
 `fTransferDirectionIn` — što tačno proizvodi `0xC0` (read) i `0x40` (write).

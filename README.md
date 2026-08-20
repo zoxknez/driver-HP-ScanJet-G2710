@@ -14,5 +14,9 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-0 Reference truth | **zavrsen** — Gate A i Gate B PASS |
 | G2710-1 WDK / skeleton / transport | nije počeo |
 
+```bash
+python tools/verify-reference-gates.py
+```
+
 Dokumentacija: [PROTOCOL-RTS8822.md](docs/PROTOCOL-RTS8822.md) ·
 [G2710-PROFILE.md](docs/G2710-PROFILE.md)
