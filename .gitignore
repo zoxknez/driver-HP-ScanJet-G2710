@@ -8,3 +8,6 @@ obj/
 *.cer
 *.cat
 .vs/
+
+# razvojni kljucevi - nikada u repo
+driver/sign/out/

@@ -1,0 +1,113 @@
+; HP ScanJet G2710 - WIA 2.0 driver package
+;
+; Transport je Microsoftov in-box usbscan.sys, povucen preko sti.inf. Ne
+; isporucujemo nijedan .sys - ceo nas kod je user-mode.
+;
+; Vidi docs/PROTOCOL-RTS8822.md za razlog izbora usbscan.sys umesto WinUSB.
+;
+; Copyright (C) 2026 G2710 project
+; GPL-2.0-or-later. Izvedeno iz hp3900 (Jonathan Bravo Lopez) - NOTICE-hp3900.md
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Image
+ClassGuid   = {6BDD1FC6-810F-11D0-BEC7-08002BE2092F}
+Provider    = %ProviderName%
+CatalogFile = g2710.cat
+DriverVer   = 08/20/2026,1.0.0.0
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13     ; DriverStore - zahtev za universal driver package
+
+[SourceDisksNames]
+1 = %DiskName%
+
+[SourceDisksFiles]
+G2710.Wia.dll = 1
+
+[Manufacturer]
+%ProviderName% = G2710.Models, NTamd64.10.0...19041
+
+; Windows 10 2004+ i Windows 11, x64.
+[G2710.Models.NTamd64.10.0...19041]
+%G2710.DeviceDesc% = G2710.Install, USB\VID_03F0&PID_2805
+
+; ---------------------------------------------------------------- install ----
+
+[G2710.Install]
+Include   = sti.inf
+Needs     = STI.USBSection
+CopyFiles = G2710.CopyFiles
+AddReg    = G2710.AddReg, G2710.DeviceData, G2710.Events
+
+[G2710.Install.Services]
+Include = sti.inf
+Needs   = STI.USBSection.Services
+
+[G2710.Install.HW]
+Include = sti.inf
+Needs   = STI.USBSection.HW
+
+[G2710.CopyFiles]
+G2710.Wia.dll
+
+; ------------------------------------------------------------- registracija ---
+; COM registracija ide kroz INF, ne kroz DllRegisterServer - PnP driver paketi
+; ne smeju zavisiti od self-registration.
+
+[G2710.AddReg]
+HKCR,CLSID\%G2710.CLSID%,,,%G2710.WiaFriendlyName%
+HKCR,CLSID\%G2710.CLSID%\InprocServer32,,,%13%\G2710.Wia.dll
+HKCR,CLSID\%G2710.CLSID%\InprocServer32,ThreadingModel,,"Both"
+
+; -------------------------------------------------------------- device data ---
+; Vrednosti koje STI/WIA servis cita da bi znao kako da opsluzi uredjaj.
+
+[G2710.DeviceData]
+HKR,,USDClass,,%G2710.CLSID%
+HKR,,Vendor,,%ProviderName%
+HKR,,Model,,%G2710.Model%
+HKR,,DeviceType,0x00010001,2            ; StiDeviceTypeScanner
+HKR,,Capabilities,0x00010001,0x33       ; generate events, notify, polling
+HKR,,ISISDriver,,""
+HKR,,TwainDS,,""
+HKR,,Server,,"local"
+HKR,,UI DLL,,""
+HKR,,ICMProfiles,,"sRGB Color Space Profile.icm"
+
+; ------------------------------------------------------------------ eventi ----
+; Tri fizicka dugmeta. Maske 0x01 / 0x02 / 0x04 dolaze iz hp3800_buttons
+; (cfg_buttons_get); mapiranje maska -> dugme se potvrdjuje u H10.
+; Dovod je interrupt pipe preko IOCTL_WAIT_ON_DEVICE_EVENT.
+
+[G2710.Events]
+HKR,Events\Scan,,,%G2710.ScanButton%
+HKR,Events\Scan,Name,,"Scan"
+HKR,Events\Scan,Desc,,%G2710.ScanButton%
+HKR,Events\Scan,Icon,,"%13%\G2710.Wia.dll,101"
+
+HKR,Events\Copy,,,%G2710.CopyButton%
+HKR,Events\Copy,Name,,"Copy"
+HKR,Events\Copy,Desc,,%G2710.CopyButton%
+HKR,Events\Copy,Icon,,"%13%\G2710.Wia.dll,102"
+
+HKR,Events\Pdf,,,%G2710.PdfButton%
+HKR,Events\Pdf,Name,,"Pdf"
+HKR,Events\Pdf,Desc,,%G2710.PdfButton%
+HKR,Events\Pdf,Icon,,"%13%\G2710.Wia.dll,103"
+
+; ------------------------------------------------------------------ stringovi -
+
+[Strings]
+ProviderName            = "G2710 Project"
+DiskName                = "HP ScanJet G2710 Driver Disk"
+G2710.DeviceDesc        = "HP ScanJet G2710"
+G2710.Model             = "ScanJet G2710"
+G2710.WiaFriendlyName   = "HP ScanJet G2710 WIA Driver"
+G2710.ScanButton        = "Scan"
+G2710.CopyButton        = "Copy"
+G2710.PdfButton         = "PDF"
+
+; MORA biti identican G2710_WIA_CLSID_STRING u native/wia/G2710Wia.h.
+G2710.CLSID             = "{2C4E8A1D-7F63-4B95-9E12-3A6D5C8B0417}"

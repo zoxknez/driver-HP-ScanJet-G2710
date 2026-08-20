@@ -54,6 +54,7 @@ endif()
 message(STATUS "G2710 build safety ceiling: ${G2710_BUILD_SAFETY_CEILING}")
 
 add_subdirectory(native/core)
+add_subdirectory(native/wia)
 
 if(G2710_BUILD_TESTS)
     enable_testing()

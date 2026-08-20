@@ -1,0 +1,8 @@
+; Bez LIBRARY direktive - ime izlaza postavlja CMake (OUTPUT_NAME), pa bi
+; LIBRARY ovde samo proizveo LNK4070 o neslaganju.
+
+EXPORTS
+    DllGetClassObject   PRIVATE
+    DllCanUnloadNow     PRIVATE
+    DllRegisterServer   PRIVATE
+    DllUnregisterServer PRIVATE
