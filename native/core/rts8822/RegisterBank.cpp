@@ -31,6 +31,47 @@ void RegisterBank::setMsb(std::size_t index, std::uint32_t value, std::size_t si
     }
 }
 
+std::uint32_t RegisterBank::getLsb(std::size_t index, std::size_t size) const {
+    if (size == 0 || size > 4) {
+        return 0;
+    }
+    std::uint32_t value = 0;
+    for (std::size_t i = size; i-- > 0;) {
+        value = (value << 8) | data_.at(index + i);
+    }
+    return value;
+}
+
+void RegisterBank::setWideBits(std::size_t index, std::uint32_t mask, std::uint32_t value) {
+    bool started = false;
+    std::size_t offset = 0;
+
+    while (mask != 0) {
+        const auto byteMask = static_cast<std::uint8_t>(mask & 0xFF);
+
+        if (!started) {
+            if (byteMask != 0) {
+                // Poravnaj na najnizi postavljen bit maske ovog bajta.
+                int shift = 0;
+                while (((byteMask >> shift) & 1) == 0) {
+                    ++shift;
+                }
+                const auto piece = static_cast<std::uint8_t>(
+                    static_cast<std::uint8_t>(value << shift) >> shift);
+                setBits(index + offset, byteMask, piece);
+                value >>= (8 - shift);
+                started = true;
+            }
+        } else {
+            setBits(index + offset, byteMask, static_cast<std::uint8_t>(value & 0xFF));
+            value >>= 8;
+        }
+
+        ++offset;
+        mask >>= 8;
+    }
+}
+
 Status RegisterBank::load(RegisterFile& registers) {
     return registers.readBank(bytes());
 }

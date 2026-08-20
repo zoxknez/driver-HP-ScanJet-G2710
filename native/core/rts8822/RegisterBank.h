@@ -59,6 +59,18 @@ public:
     // data_msb_set: isto, ali najvisi bajt prvi.
     void setMsb(std::size_t index, std::uint32_t value, std::size_t size);
 
+    // data_lsb_get: procitaj `size` bajtova, najnizi bajt prvi.
+    std::uint32_t getLsb(std::size_t index, std::size_t size) const;
+
+    // data_wide_bitset: bitfield koji se prostire preko VISE bajtova.
+    //
+    // Maska je 32-bitna i cita se bajt po bajt. Prvi bajt sa nenultom maskom
+    // uzima najnize bitove vrednosti poravnate na svoj najnizi postavljen bit;
+    // svaki sledeci uzima narednih 8 bita. Za masku 0x3FFF to znaci 8 bita u
+    // prvom bajtu i 6 u drugom - ukupno 14, sto je sirina pokazivaca na
+    // tabelu motornih koraka.
+    void setWideBits(std::size_t index, std::uint32_t mask, std::uint32_t value);
+
     std::span<const std::byte> bytes() const noexcept {
         return {reinterpret_cast<const std::byte*>(data_.data()), data_.size()};
     }
