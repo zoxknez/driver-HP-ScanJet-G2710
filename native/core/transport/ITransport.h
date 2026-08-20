@@ -47,6 +47,15 @@ struct Timeouts {
     std::chrono::milliseconds event{0};     // 0 = blokira do dogadjaja
 };
 
+// USB identitet procitan SA UREDJAJA. Svaki transport mora umeti da odgovori
+// - provera "da li je ovo stvarno G2710" ne sme zavisiti od toga koji je
+// transport u igri, jer bi inace neka putanja ostala neproverena.
+struct DeviceIdentity {
+    std::uint16_t vendorId = 0;
+    std::uint16_t productId = 0;
+    std::uint16_t bcdDevice = 0;
+};
+
 // Konfiguracija endpointa procitana sa uredjaja, ne pretpostavljena.
 // Referenca hardkoduje 0x81 / 0x02; mi to VERIFIKUJEMO na pravom uredjaju
 // (H1) umesto da verujemo na rec.
@@ -90,6 +99,10 @@ public:
     virtual Status resetPipe(PipeKind pipe) = 0;
     virtual Status setTimeouts(const Timeouts& timeouts) = 0;
     virtual Result<PipeConfiguration> pipeConfiguration() = 0;
+
+    // Ko je zaista na drugom kraju. Cita se sa uredjaja, ne pretpostavlja iz
+    // INF-a ni iz imena porta.
+    virtual Result<DeviceIdentity> identity() = 0;
 
     // Prekida sve operacije u letu. Mora biti bezbedno pozvati iz drugog
     // thread-a dok transfer traje - to je jedini nacin da cancel radi.

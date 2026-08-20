@@ -64,6 +64,7 @@ public:
     Status resetPipe(PipeKind pipe) override;
     Status setTimeouts(const Timeouts& timeouts) override;
     Result<PipeConfiguration> pipeConfiguration() override;
+    Result<DeviceIdentity> identity() override { return inner_.identity(); }
 
     void cancel() noexcept override;
     Status reopen() override;

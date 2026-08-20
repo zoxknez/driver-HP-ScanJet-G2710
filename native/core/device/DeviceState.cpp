@@ -90,9 +90,12 @@ bool isTransitionAllowed(DeviceState from, DeviceState to) noexcept {
             return to == DeviceState::Idle || to == DeviceState::Disconnected;
 
         case DeviceState::Idle:
+            // Identified je povratak koji se lako previdi: klijent oslobadja
+            // ekskluzivnu sesiju a ne zatvara uredjaj. Upravo to se desava
+            // kada WIA zavrsi a TWAIN dolazi na red.
             return to == DeviceState::WarmingUp || to == DeviceState::Homing ||
                    to == DeviceState::Calibrating || to == DeviceState::Scanning ||
-                   to == DeviceState::Disconnected;
+                   to == DeviceState::Identified || to == DeviceState::Disconnected;
 
         case DeviceState::WarmingUp:
         case DeviceState::Homing:

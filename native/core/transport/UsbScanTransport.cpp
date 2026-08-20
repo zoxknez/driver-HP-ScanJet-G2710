@@ -487,7 +487,7 @@ Result<PipeConfiguration> UsbScanTransport::pipeConfiguration() {
     return config;
 }
 
-Result<UsbScanTransport::DeviceIdentity> UsbScanTransport::identity() {
+Result<DeviceIdentity> UsbScanTransport::identity() {
     DEVICE_DESCRIPTOR raw;
     ZeroMemory(&raw, sizeof(raw));
     unsigned long returned = 0;

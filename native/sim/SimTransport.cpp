@@ -23,6 +23,17 @@ SimTransport::SimTransport()
     // DMA je spreman odmah. Pravi cip nije, i to je razlog sto postoji
     // RTS_DMA_WaitReady - modeliranje kasnjenja dolazi u G2710-3.
     registers_[0x709] = 0x01;  // kDmaStatus, kDmaStatusReadyBit
+
+    identity_.vendorId = profile::kUsbVendorId;
+    identity_.productId = profile::kUsbProductId;
+    identity_.bcdDevice = 0x0100;
+}
+
+Result<DeviceIdentity> SimTransport::identity() {
+    if (const Status s = checkOpen("sim: identity"); !s) {
+        return s.error();
+    }
+    return identity_;
 }
 
 std::size_t SimTransport::registerIndex(std::uint16_t address) const noexcept {

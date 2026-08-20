@@ -15,7 +15,8 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-1 WDK / skeleton / transport | **završen** — gate PASS |
 | G2710-2 RTS8822 core | **završen** — gate PASS |
 | G2710-3 Device simulator | motor, lampe, CCD, otkazi — nedostaje scan putanja |
-| G2710-4 State machine / MotionGuard | u toku |
+| G2710-4 State machine / MotionGuard | **završen** |
+| G2710-5 Kalibracija | sledeći |
 
 ```bash
 python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py

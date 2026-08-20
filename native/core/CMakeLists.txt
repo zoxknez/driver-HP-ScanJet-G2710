@@ -4,6 +4,7 @@ add_library(g2710_core STATIC
 
     device/DeviceArbiter.cpp
     device/DeviceState.cpp
+    device/G2710Device.cpp
     device/MotionGuard.cpp
     device/SafetyLevel.cpp
 

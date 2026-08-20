@@ -43,6 +43,7 @@ public:
     Status resetPipe(PipeKind pipe) override;
     Status setTimeouts(const Timeouts& timeouts) override;
     Result<PipeConfiguration> pipeConfiguration() override;
+    Result<DeviceIdentity> identity() override;
 
     void cancel() noexcept override;
     Status reopen() override;
@@ -51,6 +52,9 @@ public:
 
     // --- kontrola simulacije, samo za testove --------------------------
     void setMaxControlChunk(std::size_t bytes) noexcept { maxControlChunk_ = bytes; }
+
+    // Predstavi se kao neki drugi uredjaj - da provera identiteta ima sta da odbije.
+    void setIdentity(DeviceIdentity identity) noexcept { identity_ = identity; }
     void pressButton(std::uint32_t mask) noexcept { pendingEvent_ = mask; }
 
     // Pokvari sledecih N read-back operacija. Sluzi da se dokaze da
@@ -132,6 +136,7 @@ private:
     std::uint16_t dmaOperationType_ = 0;
     int corruptReadBacks_ = 0;
 
+    DeviceIdentity identity_{};
     std::uint32_t pendingEvent_ = 0;
     int chipsetResets_ = 0;
     int controlIns_ = 0;

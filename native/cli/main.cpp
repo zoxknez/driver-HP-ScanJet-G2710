@@ -4,7 +4,7 @@
 // TransportProvider, isti DeviceArbiter, isti SafetyGate. Ono sto ovde radi,
 // radi i tamo - i obrnuto.
 
-#include "device/DeviceArbiter.h"
+#include "device/G2710Device.h"
 #include "device/SafetyLevel.h"
 #include "rts8822/Rts8822.h"
 #include "transport/ITransportProvider.h"
@@ -153,47 +153,16 @@ int cmdProbe(ITransport& transport, const SafetyGate& gate) {
     return 0;
 }
 
-// Nijedna vendor komanda ne sme otici uredjaju koji nije G2710.
+// Provera identiteta vise NIJE ovde.
 //
-// \\.\Usbscan0 je deljeno ime - na masini moze biti bilo koji uredjaj vezan za
-// usbscan.sys. Na razvojnoj masini je to bio HP LaserJet MFP M139-M142, cija
-// je skener funkcija takodje pod klasom Image. Vendor request 0x04 sa G2710
-// registarskom semantikom poslat tudjem uredjaju je tacno ona vrsta poteza
-// koju ovaj projekat inace zabranjuje sebi.
-//
-// Citanje descriptor-a i pipe konfiguracije je bezbedno (read-only, standardni
-// USB); vendor transferi nisu. Zato ova provera stoji izmedju njih.
-//
-// Pripada G2710Device u G2710-4; ovde je jer je potreba stvarna vec sada.
-Status ensureIsG2710(ITransport& transport) {
-    auto* usbscan = dynamic_cast<UsbScanTransport*>(&transport);
-    if (usbscan == nullptr) {
-        return ok();  // simulator ili replay
-    }
-
-    auto id = usbscan->identity();
-    if (!id) {
-        return id.error();
-    }
-    if (id.value().vendorId != profile::kUsbVendorId ||
-        id.value().productId != profile::kUsbProductId) {
-        std::fprintf(stderr,
-                     "odbijeno: uredjaj na ovom portu je %04X:%04X, a ne G2710 (%04X:%04X).\n"
-                     "Vendor komande se ne salju tudjem uredjaju.\n",
-                     id.value().vendorId, id.value().productId,
-                     profile::kUsbVendorId, profile::kUsbProductId);
-        return fail(ErrorCode::DeviceNotFound, "ensureIsG2710");
-    }
-    return ok();
-}
+// Ranije je stajala u CLI-ju, sto je znacilo da svaki drugi klijent - WIA,
+// TWAIN, aplikacija - moze da je zaobidje. Sada je u G2710Device::identify(),
+// pa vazi za sve. CLI je samo jos jedan klijent, ne izuzetak.
 
 int cmdRegdump(ITransport& transport, const SafetyGate& gate) {
     if (const Status allowed = gate.require(SafetyLevel::ReadOnly, "regdump"); !allowed) {
         reportError("regdump", allowed.error());
         return 2;
-    }
-    if (const Status identified = ensureIsG2710(transport); !identified) {
-        return 6;
     }
 
     std::vector<std::byte> bank(static_cast<std::size_t>(profile::kRegisterBankLength));
@@ -219,9 +188,6 @@ int cmdRegdump(ITransport& transport, const SafetyGate& gate) {
 // nista se ne pali. Ovo je ono sto prijatelj pokrece u H2/H3 pre nego sto
 // se bilo sta drugo dozvoli.
 int cmdStatus(ITransport& transport, const SafetyGate& gate) {
-    if (const Status identified = ensureIsG2710(transport); !identified) {
-        return 6;
-    }
 
     rts8822::Rts8822 chip{transport, gate};
 
@@ -290,20 +256,53 @@ int main(int argc, char** argv) {
                               ? DeviceRef::defaultUsbScan()
                               : DeviceRef::devicePath(options.devicePath);
 
-    auto transport = TransportProvider::create(ref);
-    if (!transport) {
-        reportError("otvaranje uredjaja", transport.error());
+    DeviceOptions deviceOptions;
+    deviceOptions.safety = gate;
+    deviceOptions.clientName = "g2710ctl";
+
+    auto device = G2710Device::open(ref, deviceOptions);
+    if (!device) {
+        reportError("otvaranje uredjaja", device.error());
         return 3;
     }
+    G2710Device& scanner = *device.value();
 
+    // `probe` je jedina komanda koja radi i na neidentifikovanom uredjaju -
+    // njena svrha je upravo da kaze STA je na drugom kraju. Sve ostalo trazi
+    // potvrdjen identitet, jer salje vendor komande.
     if (options.command == "probe") {
-        return cmdProbe(*transport.value(), gate);
+        return cmdProbe(scanner.transport(), gate);
     }
+
+    if (const Status identified = scanner.identify(); !identified) {
+        if (identified.error().code == ErrorCode::DeviceNotFound) {
+            std::fprintf(stderr,
+                         "odbijeno: uredjaj na ovom portu je %04X:%04X, a ne G2710 (%04X:%04X).\n"
+                         "Vendor komande se ne salju tudjem uredjaju.\n",
+                         scanner.identity().vendorId, scanner.identity().productId,
+                         profile::kUsbVendorId, profile::kUsbProductId);
+            return 6;
+        }
+        reportError("identify", identified.error());
+        return 4;
+    }
+
+    if (const Status started = scanner.begin(); !started) {
+        if (started.error().code == ErrorCode::Busy) {
+            const std::string owner = scanner.currentOwner();
+            std::fprintf(stderr, "uredjaj trenutno koristi %s\n",
+                         owner.empty() ? "drugi klijent" : owner.c_str());
+            return 7;
+        }
+        reportError("begin", started.error());
+        return 4;
+    }
+
     if (options.command == "regdump") {
-        return cmdRegdump(*transport.value(), gate);
+        return cmdRegdump(scanner.transport(), gate);
     }
     if (options.command == "status") {
-        return cmdStatus(*transport.value(), gate);
+        return cmdStatus(scanner.transport(), gate);
     }
 
     std::fputs(kUsage, stderr);

@@ -60,12 +60,7 @@ public:
     void setMaxControlChunk(std::size_t bytes) noexcept;
 
     // Sirovi USB device descriptor preko IOCTL_GET_DEVICE_DESCRIPTOR.
-    struct DeviceIdentity {
-        std::uint16_t vendorId = 0;
-        std::uint16_t productId = 0;
-        std::uint16_t bcdDevice = 0;
-    };
-    Result<DeviceIdentity> identity();
+    Result<DeviceIdentity> identity() override;
 
 private:
     UsbScanTransport(void* handle, HandleOwnership ownership, DeviceRef ref);
