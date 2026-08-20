@@ -6,6 +6,7 @@ add_library(g2710_core STATIC
     calib/ShadingCalibration.cpp
 
     image/LineOffset.cpp
+    image/PixelFormat.cpp
 
     device/DeviceArbiter.cpp
     device/DeviceState.cpp
