@@ -48,6 +48,14 @@ inline constexpr std::uint8_t kLampPwmLevelBit = 0x40;
 // rts8822.c:2550 Lamp_PWM_DutyCycle_Set, drugi upis
 inline constexpr std::uint16_t kLampPwmExtra = 0xE9E0;       // Regs[0x1E0]
 
+// rts8822.c:10771 Lamp_Status_Set - bira KOJA lampa je aktivna.
+//
+// PAZNJA: ovo NIJE isti bajt koji Lamp_Status_Get cita u BL-03A grani.
+// Set upisuje Regs[0x155] bit 0x10, a Get (BL-03A) testira Regs[0x154] bit
+// 0x10 - dva razlicita bajta. Vidi docs/REFERENCE-DEFECTS.md.
+inline constexpr std::uint16_t kLampSelect = 0xE955;         // Regs[0x155]
+inline constexpr std::uint8_t kLampSelectTmaBit = 0x10;
+
 // --- pozicija glave --------------------------------------------------------
 
 // rts8822.c:3817 Head_IsAtHome

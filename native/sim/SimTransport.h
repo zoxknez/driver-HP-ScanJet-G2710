@@ -111,6 +111,11 @@ private:
     // Prepisi stanje motora i lampi u odgovarajuce registre pre citanja.
     void mirrorHardwareIntoRegisters() noexcept;
 
+    // Suprotan smer: upis u KONTROLNI registar mora stvarno delovati na
+    // simulirani hardver. Bez ovoga bi preslikavanje odmah pregazilo upis, pa
+    // bi kontrola lampe izgledala kao da ne radi.
+    void applyRegisterWritesToHardware() noexcept;
+
     // Primeni zakazani otkaz, ako ga ima.
     Status applyFault(TransferKind kind, const char* context);
 

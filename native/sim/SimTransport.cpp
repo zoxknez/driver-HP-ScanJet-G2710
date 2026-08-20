@@ -67,9 +67,7 @@ void SimTransport::mirrorHardwareIntoRegisters() noexcept {
         motor_.isAtHome() ? (headByte | reg::kHeadAtHomeBit)
                           : (headByte & static_cast<std::uint8_t>(~reg::kHeadAtHomeBit)));
 
-    // Status lampi. RTS8822BL-03A trazi i bit u kLampStatus i selektor u
-    // kLampMode za TMA - preslikavamo oba, inace bi Lamp_Status_Get grana za
-    // nas cipset bila neproverljiva.
+    // Status lampi.
     auto& lampByte = registers_[registerIndex(reg::kLampStatus)];
     lampByte = static_cast<std::uint8_t>(
         flatbedLamp_.isOn() ? (lampByte | reg::kLampStatusFlbBit)
@@ -78,14 +76,39 @@ void SimTransport::mirrorHardwareIntoRegisters() noexcept {
         tmaLamp_.isOn() ? (lampByte | reg::kLampStatusTmaBit)
                         : (lampByte & static_cast<std::uint8_t>(~reg::kLampStatusTmaBit)));
 
-    auto& modeByte = registers_[registerIndex(reg::kLampMode)];
-    modeByte = static_cast<std::uint8_t>(
-        tmaLamp_.isOn() ? (modeByte | (reg::kLampModeTmaSelectBit & 0xFF))
-                        : (modeByte & static_cast<std::uint8_t>(~(reg::kLampModeTmaSelectBit & 0xFF))));
+    // kLampMode (Regs[0x154]) se NAMERNO ne dira.
+    //
+    // Lamp_Status_Get u BL-03A grani testira bas taj bajt za TMA, ali ga
+    // NIJEDNA funkcija u referenci ne upisuje - Lamp_Status_Set pise
+    // Regs[0x155]. To je defekt D2 iz docs/REFERENCE-DEFECTS.md.
+    //
+    // Simulator koji bi ovde sintetisao bit ucinio bi Get i Set prividno
+    // saglasnim i sakrio otvoreno pitanje koje H3 mora da razresi. Zato se
+    // defekt REPRODUKUJE: posle setLamp(Tma, true), lampStatus() prijavljuje
+    // TMA kao ugasenu, tacno kao sto bi se ponasala referenca.
 
     // PWM duty cycle koji je engine postavio vraca se kao stvarno stanje.
     auto& pwmByte = registers_[registerIndex(reg::kLampPwm)];
     flatbedLamp_.setDutyCycle(static_cast<std::uint8_t>(pwmByte & reg::kLampPwmDutyMask));
+}
+
+void SimTransport::applyRegisterWritesToHardware() noexcept {
+    namespace reg = g2710::rts8822::reg;
+
+    // Bitovi u kLampStatus PALE lampu; preslikavanje ih posle samo potvrdjuje.
+    const std::uint8_t lampByte = registers_[registerIndex(reg::kLampStatus)];
+
+    if ((lampByte & reg::kLampStatusFlbBit) != 0) {
+        flatbedLamp_.turnOn();
+    } else {
+        flatbedLamp_.turnOff();
+    }
+
+    if ((lampByte & reg::kLampStatusTmaBit) != 0) {
+        tmaLamp_.turnOn();
+    } else {
+        tmaLamp_.turnOff();
+    }
 }
 
 Status SimTransport::applyFault(TransferKind kind, const char* context) {
@@ -151,6 +174,7 @@ Status SimTransport::controlOut(std::uint16_t address, Command command,
                     registers_[index] = static_cast<std::uint8_t>(buffer[i]);
                 }
             }
+            applyRegisterWritesToHardware();
             return ok();
         }
 

@@ -16,7 +16,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-2 RTS8822 core | **završen** — gate PASS |
 | G2710-3 Device simulator | motor, lampe, CCD, otkazi — nedostaje scan putanja |
 | G2710-4 State machine / MotionGuard | **završen** |
-| G2710-5 Kalibracija | sledeći |
+| G2710-5 Kalibracija | u toku — lampa i warmup |
 
 ```bash
 python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py
@@ -44,4 +44,5 @@ powershell -File driver/sign/sign-package.ps1 -PackageDir build/package
 
 Dokumentacija: [PROTOCOL-RTS8822.md](docs/PROTOCOL-RTS8822.md) ·
 [G2710-PROFILE.md](docs/G2710-PROFILE.md) · [SAFETY.md](docs/SAFETY.md) ·
-[SIGNING.md](docs/SIGNING.md)
+[SIGNING.md](docs/SIGNING.md) ·
+[REFERENCE-DEFECTS.md](docs/REFERENCE-DEFECTS.md)

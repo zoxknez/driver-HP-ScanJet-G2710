@@ -403,21 +403,33 @@ TEST_F(SimulatedDevice, LampStatusRegisterFollowsTheLamp) {
     EXPECT_FALSE(status.value().tmaOn);
 }
 
-TEST_F(SimulatedDevice, TmaNeedsBothStatusBitAndModeSelector) {
-    // Grana za RTS8822BL-03A trazi oba. Simulator preslikava oba, pa je ta
-    // grana stvarno proverena umesto da se oslanja na jedan bit.
+TEST_F(SimulatedDevice, TmaStatusReproducesTheReferenceDefect) {
+    // Grana za RTS8822BL-03A trazi I bit u kLampStatus I selektor u kLampMode.
+    // Ali selektor koji ona cita (Regs[0x154]) referenca nikada ne upisuje -
+    // Lamp_Status_Set pise Regs[0x155]. Vidi D2 u docs/REFERENCE-DEFECTS.md.
+    //
+    // Simulator to REPRODUKUJE umesto da izgladi: upaljena TMA lampa se preko
+    // Lamp_Status_Get NE vidi kao upaljena. Kada bi ovaj test poceo da pada,
+    // znacilo bi da je neko "popravio" jednu stranu bez hardverske potvrde.
     device.tmaLamp().turnOn();
 
     auto status = chip.lampStatus();
     ASSERT_TRUE(status.hasValue());
-    EXPECT_TRUE(status.value().tmaOn);
+    EXPECT_FALSE(status.value().tmaOn)
+        << "TMA se vidi kao upaljena - defekt D2 je zaglagjen bez potvrde sa hardvera";
 
-    // Obrisi selektor rezima; sam statusni bit vise nije dovoljan.
-    device.pokeRegister(rts8822::reg::kLampMode, 0x00);
-    device.tmaLamp().turnOff();
+    // Statusni bit JESTE postavljen; samo selektor nedostaje.
+    EXPECT_NE(device.peekRegister(rts8822::reg::kLampStatus) &
+                  rts8822::reg::kLampStatusTmaBit,
+              0);
+
+    // Ako se selektor rucno postavi, grana proradi - cime je dokazano da je
+    // problem bas u tome ko upisuje koji bajt, a ne u nasoj implementaciji.
+    device.pokeRegister(rts8822::reg::kLampMode,
+                        static_cast<std::uint8_t>(rts8822::reg::kLampModeTmaSelectBit));
     status = chip.lampStatus();
     ASSERT_TRUE(status.hasValue());
-    EXPECT_FALSE(status.value().tmaOn);
+    EXPECT_TRUE(status.value().tmaOn);
 }
 
 TEST_F(SimulatedDevice, InjectedTransportLossSurfacesAsSuch) {

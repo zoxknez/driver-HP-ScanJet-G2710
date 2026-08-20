@@ -14,6 +14,7 @@ add_library(g2710_core STATIC
 
     rts8822/Dma.cpp
     rts8822/Gpio.cpp
+    rts8822/Lamp.cpp
     rts8822/Motor.cpp
     rts8822/MotorSteps.cpp
     rts8822/RegisterBank.cpp
