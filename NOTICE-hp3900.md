@@ -23,7 +23,9 @@ Popunjava se kako moduli nastaju. Format: naš fajl ← hp3900 izvor.
 |---|---|---|
 | `docs/PROTOCOL-RTS8822.md` | `hp3900_usb.c`, `hp3900_rts8822.c` | analiza, ne kod |
 | `docs/G2710-PROFILE.md` | `hp3900_config.c`, `hp3900_types.c`, `hp3900_sane.c` | analiza, ne kod |
-| `native/core/device/G2710Profile.generated.h` | `hp3800_*` familija u `hp3900_config.c` | generisano |
+| `native/core/device/G2710Profile.generated.h` | `hp3800_*` + `cfg_*_get` tabele u `hp3900_config.c`, `hp3900_types.c` | generisano alatom |
+| `tools/hp3900_parse.py` | — | nas parser, ne izvedeni rad |
+| `tools/extract-hp3900-profile.py` | — | nas generator, ne izvedeni rad |
 
 ## SANE link exception
 

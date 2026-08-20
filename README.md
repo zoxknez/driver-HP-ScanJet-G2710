@@ -11,7 +11,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 
 | Faza | Stanje |
 |---|---|
-| G2710-0 Reference truth | u toku — Gate B **PASS** |
+| G2710-0 Reference truth | **zavrsen** — Gate A i Gate B PASS |
 | G2710-1 WDK / skeleton / transport | nije počeo |
 
 Dokumentacija: [PROTOCOL-RTS8822.md](docs/PROTOCOL-RTS8822.md) ·

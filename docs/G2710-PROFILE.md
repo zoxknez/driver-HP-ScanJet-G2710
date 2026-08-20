@@ -49,8 +49,10 @@ Praktične posledice:
 | Optička rezolucija senzora | **2400** dpi | `config.c:644` |
 | Rezolucija motora | **1200** dpi | `config.c:594` |
 | Tip motora | `MT_OUTPUTSTATE` | `config.c:594` |
-| Motor freq / speed | `30` / `800` | `config.c:594` |
-| basemove / highmove / parkmove | `1` / `0` / `0` | `config.c:594` |
+| `pwmFrequency` | `30` | `config.c:594` |
+| `baseSpeedPps` | `800` | `config.c:594` |
+| `baseSpeedMotorMove` / `highSpeedMotorMove` / `parkHomeMotorMove` | `1` / `0` / `0` | `config.c:594` |
+| `changeMotorCurrent` | `TRUE` | `config.c:594` |
 | Spectrum clock generator | enable `1`, mode `1`, clock `0` | `config.c:542` |
 
 ### CCD geometrija — ulaz za `LineOffsetCorrector`
@@ -177,22 +179,77 @@ potvrđuje u H10.
 
 ---
 
-## 5. Preostalo za ekstrakciju (`tools/extract-hp3900-profile.py`)
+## 5. Ekstrakcija — završena
 
-Tabele koje treba mehanički prevesti u `G2710Profile.generated.h`:
+`tools/extract-hp3900-profile.py` (+ `tools/hp3900_parse.py`) generiše
+`native/core/device/G2710Profile.generated.h`. Regeneracija je idempotentna;
+header se **ne uređuje ručno**.
 
-- [ ] `hp3800_scanmodes` — pun `st_scanmode` red po (usb, scantype, colormode, res)
-- [ ] `hp3800_timing_get` — CCD timing profili (`timing` indeks iz scanmodes)
-- [ ] `hp3800_motor` + `hp3800_motormove` — motorne krive i profili kretanja
-- [ ] `hp3800_gainoffset` — ADC gain/offset
-- [ ] `hp3800_refvoltages` — vrts / vrms / vrbs
-- [ ] `hp3800_vrefs` — SER / LER po rezoluciji
-- [ ] `hp3800_offset` — left/width za offset kalibraciju
-- [ ] `hp3800_effectivepixel` — efektivni pikseli po rezoluciji
-- [ ] `hp3800_wrefs` + `hp3800_shading_cut` — white refs i shading cut
-- [ ] `hp3800_checkstable` + `hp3800_fixedpwm` — warmup kriterijum i PWM lampe
-- [ ] `hp3800_calibreflective` — flatbed kalibracioni parametri
-- [ ] `srt_hp3800_scanparam_get` + `srt_hp3800_platform_get`
+| Tabela | Izlaz | Redova |
+|---|---|---|
+| `cfg_device_get` / `cfg_chipset_model_get` | `kUsbVendorId`, `kUsbProductId`, `kChipsetModelId` | — |
+| `cfg_sensor_get` | `kSensor` | 1 |
+| `cfg_motor_get` | `kMotor` | 1 |
+| `cfg_buttons_get` | `kButtons` | 1 |
+| `cfg_sscg_get` | `kSscg` | 1 |
+| `cfg_constrains_get` | `kConstraints` | 1 |
+| `cfg_autoref_get` | `kAutoRef` | 1 |
+| `hp3800_refvoltages` | `kRefVoltages` | 2 |
+| `hp3800_offset` | `kOffsets` | 5 |
+| `hp3800_effectivepixel` | `kEffectivePixels` | 6 |
+| `hp3800_gainoffset` | `kGainOffsets` | 2 |
+| `hp3800_checkstable` | `kCheckStable` | 3 |
+| `hp3800_fixedpwm` | `kFixedPwm` | 2 |
+| `hp3800_vrefs` | `kVrefs` | 5 |
+| `hp3800_scanmodes` | `kScanModes` | **60** |
+| `hp3800_timing_get` | `kTimings` | **20** |
+| `hp3800_motormove` | `kMotorMoves` | 2 |
+| `hp3800_motor` | `kMotorCurves` | **12** |
+| `hp3800_shading_cut` | `kShadingCuts` | 5 |
+| `hp3800_wrefs` | `kWhiteRefs` + `kWhiteRefReflective` | 5 |
+| `hp3800_calibreflective` | `kCalibReflective` | **80** |
+| `hp3800_calibtransparent` | `kCalibTransparent` | 80 |
+| `hp3800_calibnegative` | `kCalibNegative` | 80 |
+| `srt_hp3800_scanparam_get` | `kScanParams` | 19 |
+| `srt_hp3800_platform_get` | `kPlatformParams` | 3 |
+| enum `fcsec6` | `enum class CalibOption` | 207 |
 
-TMA grane (`hp3800_calibtransparent`, `hp3800_calibnegative`, `ST_TA`, `ST_NEG`)
-ekstraktuju se u tabele ali se **ne aktiviraju** u 1.0 — odluka iz MASTER plana.
+### Motorne krive — dekodiranje
+
+Referenca ih drži kao **flat `SANE_Int` stream od 11498 vrednosti** sa
+terminatorima, ne kao tabelu:
+
+```
+[mri, msi, skiplinecount, motorbackstep]
+[curvetype, curvename, v1 .. vN, 0]   × 7 segmenata
+-2                                     kraj jedne krive, sledi jos jedna
+-1                                     kraj svih
+```
+
+Dekodovano u 12 krivih × 7 segmenata (`ACC`/`DEC` × `NORMALSCAN`/`PARKHOME`/
+`SMEARING`/`BUFFERFULL`). Ta uniformnost je sama po sebi provera ispravnosti
+dekodiranja.
+
+### CCD timing — zašto `double`
+
+`cphp1` / `cphp2` u referenci su `double` jer nose **36-bitne maske faza**
+clock-a linijskog senzora (npr. `68719476735` = `0xFFFFFFFFF`), što ne staje u
+32-bitni `int`. Transkripcija zadržava `double` radi vernosti; vrednosti su
+egzaktno predstavljive (< 2⁵³).
+
+### Verifikacija
+
+`tests/unit/profile_generated_test.cpp` — sve provere su compile-time, pa
+kompajliranje **jeste** test. Pokriva identitet, transport konstante, CCD
+geometriju, veličine tabela, i tri unakrsne provere koje bi uhvatile tiho
+pomeranje pri regeneraciji:
+
+- svaki `motorCurve` indeks iz `kScanModes` pada u opseg `kMotorCurves` (ili `-1`)
+- svaki `timing` indeks pada u opseg `kTimings`
+- nijedan segment motorne krive nije prazan
+
+plus dve provere koje zaključavaju nalaze iz §3: nijedan native mod nije ispod
+100 dpi, i lineart nema native 2400.
+
+TMA tabele (`kCalibTransparent`, `kCalibNegative`, `ST_TA`, `ST_NEG` redovi)
+su ekstraktovane ali se **ne aktiviraju** u 1.0 — odluka iz MASTER plana.
