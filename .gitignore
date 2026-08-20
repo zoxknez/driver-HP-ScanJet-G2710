@@ -1,0 +1,10 @@
+build/
+build-x86/
+out/
+bin/
+obj/
+*.user
+*.pfx
+*.cer
+*.cat
+.vs/
