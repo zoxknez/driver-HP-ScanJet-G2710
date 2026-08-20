@@ -11,6 +11,10 @@
 
 #pragma once
 
+#include "FailureInjector.h"
+#include "VirtualCcd.h"
+#include "VirtualLamp.h"
+#include "VirtualMotor.h"
 #include "transport/ITransport.h"
 #include "transport/ITransportProvider.h"
 
@@ -57,8 +61,40 @@ public:
     std::uint16_t dmaOperationType() const noexcept { return dmaOperationType_; }
     std::size_t dmaLength() const noexcept { return dmaLength_; }
 
+    // --- simulirani hardver --------------------------------------------
+    //
+    // Stanje ovih komponenti se PRESLIKAVA u registre pri svakom citanju, pa
+    // ga engine vidi kroz iste adrese kao na pravom uredjaju - ne kroz neki
+    // poseban testni kanal koji u produkciji ne postoji.
+
+    VirtualMotor& motor() noexcept { return motor_; }
+    const VirtualMotor& motor() const noexcept { return motor_; }
+
+    VirtualLamp& flatbedLamp() noexcept { return flatbedLamp_; }
+    const VirtualLamp& flatbedLamp() const noexcept { return flatbedLamp_; }
+
+    VirtualLamp& tmaLamp() noexcept { return tmaLamp_; }
+    const VirtualLamp& tmaLamp() const noexcept { return tmaLamp_; }
+
+    VirtualCcd& ccd() noexcept { return ccd_; }
+    const VirtualCcd& ccd() const noexcept { return ccd_; }
+
+    FailureInjector& faults() noexcept { return faults_; }
+
+    // Pomeri simulirano vreme. Zagrevanje lampe zavisi iskljucivo od ovoga,
+    // ne od sistemskog sata - testovi su zato trenutni i deterministicki.
+    void advanceTime(std::uint32_t milliseconds) noexcept;
+
     std::uint8_t peekRegister(std::uint16_t address) const noexcept;
     void pokeRegister(std::uint16_t address, std::uint8_t value) noexcept;
+
+    // Da li registar odrazava STANJE HARDVERA umesto da bude obicna memorija.
+    //
+    // Home senzor i status lampi se ne mogu proizvoljno upisati ni na pravom
+    // uredjaju - vrednost dolazi iz mehanike, ne iz onoga sto je upisano.
+    // Preslikavanje ih prepisuje pri svakom citanju, pa test koji ocekuje
+    // round-trip kroz njih testira pogresnu stvar.
+    static bool isHardwareBackedRegister(std::uint16_t address) noexcept;
 
     int chipsetResetCount() const noexcept { return chipsetResets_; }
     int controlInCount() const noexcept { return controlIns_; }
@@ -67,6 +103,18 @@ public:
 private:
     Status checkOpen(const char* context) const;
     std::size_t registerIndex(std::uint16_t address) const noexcept;
+
+    // Prepisi stanje motora i lampi u odgovarajuce registre pre citanja.
+    void mirrorHardwareIntoRegisters() noexcept;
+
+    // Primeni zakazani otkaz, ako ga ima.
+    Status applyFault(TransferKind kind, const char* context);
+
+    VirtualMotor motor_;
+    VirtualLamp flatbedLamp_;
+    VirtualLamp tmaLamp_;
+    VirtualCcd ccd_;
+    FailureInjector faults_;
 
     bool open_ = true;
     bool cancelled_ = false;

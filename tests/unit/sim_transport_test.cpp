@@ -137,8 +137,13 @@ TEST(SimTransport, ReadThroughNonReadableCommandIsRejected) {
     EXPECT_EQ(status.error().code, ErrorCode::InvalidArgument);
 }
 
-TEST(SimTransport, FullRegisterBankRoundTrips) {
+TEST(SimTransport, FullRegisterBankRoundTripsExceptHardwareBackedBytes) {
     // 1818 bajtova u jednom transferu - isto sto RTS_WriteRegs radi.
+    //
+    // Nekoliko registara NIJE memorija nego stanje hardvera: home senzor i
+    // status lampi dolaze iz mehanike, ne iz onoga sto je upisano. Ni na
+    // pravom uredjaju se kroz njih ne moze proci round-trip, pa se izuzimaju -
+    // ocekivati suprotno znacilo bi testirati pogresnu stvar.
     SimTransport sim;
     const auto length = static_cast<std::size_t>(profile::kRegisterBankLength);
 
@@ -154,8 +159,16 @@ TEST(SimTransport, FullRegisterBankRoundTrips) {
     ASSERT_TRUE(sim.controlIn(static_cast<std::uint16_t>(profile::kRegisterBankBase),
                               Command::RegisterRead, readBack).hasValue());
 
+    int skipped = 0;
     for (std::size_t i = 0; i < length; ++i) {
+        const auto address =
+            static_cast<std::uint16_t>(profile::kRegisterBankBase + i);
+        if (SimTransport::isHardwareBackedRegister(address)) {
+            ++skipped;
+            continue;
+        }
         ASSERT_EQ(static_cast<std::uint8_t>(readBack[i]), pattern[i])
             << "razlika na offsetu " << i;
     }
+    EXPECT_GT(skipped, 0) << "nijedan registar nije hardverski - preslikavanje ne radi";
 }

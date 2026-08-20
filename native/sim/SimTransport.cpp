@@ -1,6 +1,7 @@
 #include "SimTransport.h"
 
 #include "G2710Profile.generated.h"
+#include "rts8822/Registers.h"
 
 #include <algorithm>
 #include <cstring>
@@ -40,12 +41,59 @@ Status SimTransport::checkOpen(const char* context) const {
     return ok();
 }
 
+void SimTransport::advanceTime(std::uint32_t milliseconds) noexcept {
+    flatbedLamp_.advance(milliseconds);
+    tmaLamp_.advance(milliseconds);
+}
+
+void SimTransport::mirrorHardwareIntoRegisters() noexcept {
+    namespace reg = g2710::rts8822::reg;
+
+    // Home senzor. Engine ovo cita preko Head_IsAtHome; simulacija ne sme
+    // imati poseban kanal koji u produkciji ne postoji.
+    auto& headByte = registers_[registerIndex(reg::kHeadSensor)];
+    headByte = static_cast<std::uint8_t>(
+        motor_.isAtHome() ? (headByte | reg::kHeadAtHomeBit)
+                          : (headByte & static_cast<std::uint8_t>(~reg::kHeadAtHomeBit)));
+
+    // Status lampi. RTS8822BL-03A trazi i bit u kLampStatus i selektor u
+    // kLampMode za TMA - preslikavamo oba, inace bi Lamp_Status_Get grana za
+    // nas cipset bila neproverljiva.
+    auto& lampByte = registers_[registerIndex(reg::kLampStatus)];
+    lampByte = static_cast<std::uint8_t>(
+        flatbedLamp_.isOn() ? (lampByte | reg::kLampStatusFlbBit)
+                            : (lampByte & static_cast<std::uint8_t>(~reg::kLampStatusFlbBit)));
+    lampByte = static_cast<std::uint8_t>(
+        tmaLamp_.isOn() ? (lampByte | reg::kLampStatusTmaBit)
+                        : (lampByte & static_cast<std::uint8_t>(~reg::kLampStatusTmaBit)));
+
+    auto& modeByte = registers_[registerIndex(reg::kLampMode)];
+    modeByte = static_cast<std::uint8_t>(
+        tmaLamp_.isOn() ? (modeByte | (reg::kLampModeTmaSelectBit & 0xFF))
+                        : (modeByte & static_cast<std::uint8_t>(~(reg::kLampModeTmaSelectBit & 0xFF))));
+
+    // PWM duty cycle koji je engine postavio vraca se kao stvarno stanje.
+    auto& pwmByte = registers_[registerIndex(reg::kLampPwm)];
+    flatbedLamp_.setDutyCycle(static_cast<std::uint8_t>(pwmByte & reg::kLampPwmDutyMask));
+}
+
+Status SimTransport::applyFault(TransferKind kind, const char* context) {
+    if (const auto error = faults_.nextFault(kind)) {
+        return fail(*error, context);
+    }
+    return ok();
+}
+
 Status SimTransport::controlIn(std::uint16_t address, Command command,
                                std::span<std::byte> buffer) {
     if (const Status s = checkOpen("sim: controlIn"); !s) {
         return s;
     }
+    if (const Status s = applyFault(TransferKind::ControlIn, "sim: controlIn"); !s) {
+        return s;
+    }
     ++controlIns_;
+    mirrorHardwareIntoRegisters();
 
     switch (command) {
         case Command::RegisterRead: {
@@ -76,6 +124,9 @@ Status SimTransport::controlIn(std::uint16_t address, Command command,
 Status SimTransport::controlOut(std::uint16_t address, Command command,
                                 std::span<const std::byte> buffer) {
     if (const Status s = checkOpen("sim: controlOut"); !s) {
+        return s;
+    }
+    if (const Status s = applyFault(TransferKind::ControlOut, "sim: controlOut"); !s) {
         return s;
     }
     ++controlOuts_;
@@ -149,6 +200,9 @@ Result<std::size_t> SimTransport::bulkRead(std::span<std::byte> buffer) {
     if (const Status s = checkOpen("sim: bulkRead"); !s) {
         return s.error();
     }
+    if (const Status s = applyFault(TransferKind::BulkRead, "sim: bulkRead"); !s) {
+        return s.error();
+    }
     const std::size_t count = (std::min)(buffer.size(), dmaMemory_.size());
     for (std::size_t i = 0; i < count; ++i) {
         buffer[i] = static_cast<std::byte>(dmaMemory_[i]);
@@ -167,6 +221,9 @@ Status SimTransport::bulkWrite(std::span<const std::byte> buffer) {
     if (const Status s = checkOpen("sim: bulkWrite"); !s) {
         return s;
     }
+    if (const Status s = applyFault(TransferKind::BulkWrite, "sim: bulkWrite"); !s) {
+        return s;
+    }
     if (dmaMemory_.size() < buffer.size()) {
         dmaMemory_.resize(buffer.size(), 0);
     }
@@ -178,6 +235,9 @@ Status SimTransport::bulkWrite(std::span<const std::byte> buffer) {
 
 Result<std::uint32_t> SimTransport::waitEvent() {
     if (const Status s = checkOpen("sim: waitEvent"); !s) {
+        return s.error();
+    }
+    if (const Status s = applyFault(TransferKind::Event, "sim: waitEvent"); !s) {
         return s.error();
     }
     if (pendingEvent_ == 0) {
@@ -214,6 +274,12 @@ Status SimTransport::reopen() {
     open_ = true;
     cancelled_ = false;
     return ok();
+}
+
+bool SimTransport::isHardwareBackedRegister(std::uint16_t address) noexcept {
+    namespace reg = g2710::rts8822::reg;
+    return address == reg::kHeadSensor || address == reg::kLampStatus ||
+           address == reg::kLampMode;
 }
 
 std::uint8_t SimTransport::peekRegister(std::uint16_t address) const noexcept {
