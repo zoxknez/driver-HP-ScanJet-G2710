@@ -1,0 +1,52 @@
+include(FetchContent)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.17.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(googletest)
+
+# GoogleTest se ne gradi pod nasim /W4 /WX.
+if(MSVC)
+    foreach(target gtest gtest_main gmock gmock_main)
+        if(TARGET ${target})
+            target_compile_options(${target} PRIVATE /W0 /WX-)
+        endif()
+    endforeach()
+endif()
+
+include(GoogleTest)
+
+# --- profil: sve provere su compile-time, pa kompajliranje JESTE test -------
+add_executable(g2710_profile_test unit/profile_generated_test.cpp)
+target_link_libraries(g2710_profile_test PRIVATE G2710::Core)
+add_test(NAME profile_generated COMMAND g2710_profile_test)
+
+# --- jedinicni testovi jezgra ----------------------------------------------
+add_executable(g2710_unit_tests
+    unit/safety_level_test.cpp
+    unit/result_test.cpp
+    unit/device_arbiter_test.cpp
+    unit/transport_provider_test.cpp
+)
+target_link_libraries(g2710_unit_tests PRIVATE G2710::Core GTest::gtest_main)
+gtest_discover_tests(g2710_unit_tests)
+
+# --- plafon bezbednosti mora biti JEDNA vrednost po binarnom fajlu ----------
+# Zato ovaj test ne linkuje G2710::Core (koji nosi PUBLIC plafon 5) nego
+# kompajlira svoju kopiju izvora sa plafonom 1. Mesanje razlicitih plafona u
+# istom binarnom fajlu bilo bi ODR krsenje i dalo bi lazno prolazan test.
+add_executable(g2710_safety_ceiling1_test
+    unit/safety_ceiling1_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/core/device/SafetyLevel.cpp
+    ${CMAKE_SOURCE_DIR}/native/core/util/Error.cpp
+)
+target_include_directories(g2710_safety_ceiling1_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/native/core)
+target_compile_definitions(g2710_safety_ceiling1_test PRIVATE
+    G2710_BUILD_SAFETY_CEILING=1)
+add_test(NAME safety_ceiling_1 COMMAND g2710_safety_ceiling1_test)

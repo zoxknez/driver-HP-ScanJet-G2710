@@ -11,12 +11,18 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 
 | Faza | Stanje |
 |---|---|
-| G2710-0 Reference truth | **zavrsen** — Gate A i Gate B PASS |
-| G2710-1 WDK / skeleton / transport | nije počeo |
+| G2710-0 Reference truth | **završen** — Gate A i Gate B PASS |
+| G2710-1 WDK / skeleton / transport | u toku — build, transport, arbiter, safety |
 
 ```bash
 python tools/verify-reference-gates.py
 ```
 
+## Build
+
+```bash
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 && cmake --build build --config Release && ctest --test-dir build -C Release
+```
+
 Dokumentacija: [PROTOCOL-RTS8822.md](docs/PROTOCOL-RTS8822.md) ·
-[G2710-PROFILE.md](docs/G2710-PROFILE.md)
+[G2710-PROFILE.md](docs/G2710-PROFILE.md) · [SAFETY.md](docs/SAFETY.md)
