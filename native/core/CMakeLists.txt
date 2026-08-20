@@ -7,6 +7,7 @@ add_library(g2710_core STATIC
 
     image/LineOffset.cpp
     image/PixelFormat.cpp
+    image/Resize.cpp
 
     device/DeviceArbiter.cpp
     device/DeviceState.cpp

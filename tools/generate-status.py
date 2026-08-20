@@ -55,7 +55,8 @@ PHASES = [
     ("G2710-5", "Kalibracija", [
         "golden/lamp_test.cpp", "integration/calibration_test.cpp"]),
     ("G2710-6", "Obrada slike", [
-        "golden/line_offset_test.cpp", "golden/pixel_format_test.cpp"]),
+        "golden/line_offset_test.cpp", "golden/pixel_format_test.cpp",
+        "golden/resize_test.cpp"]),
     ("G2710-7", "Planer i tabela mogucnosti", [
         "golden/scan_planner_test.cpp"]),
 ]

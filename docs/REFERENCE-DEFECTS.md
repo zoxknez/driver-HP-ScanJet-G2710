@@ -139,6 +139,50 @@ zaključanu i tabelu prelivanja i činjenicu da odsecanje daje nulu.
 
 ---
 
+## D4 — `Resize_Increase` u lineart režimu meša indeks bita sa vrednošću bita
+
+**Zahvaćeno:** nijedna rezolucija koju G2710 nudi. Zapisano jer je ista
+funkcija na dohvat ruke i lako je posegnuti za njom.
+
+`rts8822.c:6040`, lineart grana `Resize_Increase`:
+
+```c
+bit = (((0x80 >> cont) & *from_buffer) != 0) ? 1 : 0;
+...
+if ((((myres - sres) * lfad8) + (bit * sres)) > to_resolution)
+  *to_buffer |= (0x80 >> bit);          /* <- bit je 0 ili 1, ne pozicija */
+
+bit++;
+if (bit == 8) { bit = 0; to_buffer++; *to_buffer = 0; }
+```
+
+`bit` je istovremeno **vrednost** izvornog piksela (`0` ili `1`, dodeljena
+gore) i **pozicija** u izlaznom bajtu (`0x80 >> bit`, pa `bit++` i poređenje sa
+osam). Dve različite veličine u jednoj promenljivoj. Posledica: izlaz može
+upisati samo bitove 0 i 1 svakog bajta, a brojač koji treba da napreduje do
+osam prepisuje se svakim novim izvornim pikselom.
+
+Ista grana ima i `cont` inicijalizovan na `1` a poređen sa `8`, pa se izvorni
+bajt pomera za jednu poziciju pomereno.
+
+Nepovezano sa D3 — ovo je greška u čistom softverskom resampleru, bez ikakve
+veze sa hardverom.
+
+### Zašto nas ne pogađa
+
+`Resize_Increase` se poziva samo kada je tražena rezolucija **veća** od
+najveće koju tabela ima (`RTS_Scanner_SetupScan`, `rts8822.c:1693`). Za G2710
+je 2400 dpi i najveća native i najveća ponuđena, pa je grana nedostižna.
+
+### Kako se rešava kod nas
+
+Ne portuje se. `native/core/image/Resize.cpp` sadrži **samo** smanjivanje —
+vodoravno iz `Resize_Decrease` i uspravno iz `Read_ResizeBlock`. Planer koji
+bi ipak zatražio `ResizeType::Increase` naleteo bi na `InvalidArgument` iz
+`resizeLineDown`, a ne na tiho pokvarenu sliku.
+
+---
+
 ## Zašto flatbed nije zahvaćen
 
 D1 i D2 tiču se isključivo TMA putanje. Flatbed koristi bit `0x40` u
@@ -146,6 +190,8 @@ D1 i D2 tiču se isključivo TMA putanje. Flatbed koristi bit `0x40` u
 
 D3 ne pogađa flatbed do 600 dpi, što je obim koji 1.0 obećava. Pogađa upravo
 1200 i 2400, koje su i inače `HARDWARE-VALIDATED = DEFERRED`.
+
+D4 je na putanji koju G2710 nikada ne uzima.
 
 ## Šta ovo znači za plan
 

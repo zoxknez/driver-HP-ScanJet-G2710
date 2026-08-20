@@ -88,7 +88,9 @@ def main() -> int:
     if problems:
         print("")
         for problem in problems:
-            print("  " + problem)
+            # Poruka o ne-ASCII znaku ne sme sama da padne na ne-ASCII konzoli.
+            # Windows terminal je cesto cp1252; ispis se zato osigurava ovde.
+            print("  " + problem.encode("ascii", "backslashreplace").decode("ascii"))
         print("")
         print("NEUSPEH: %d problema" % len(problems))
         return 1
