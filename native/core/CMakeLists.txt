@@ -18,6 +18,9 @@ add_library(g2710_core STATIC
     transport/TransportProvider.cpp
     transport/UsbScanTransport.cpp
 
+    scan/Capabilities.cpp
+    scan/ScanPlanner.cpp
+
     rts8822/Dma.cpp
     rts8822/Gpio.cpp
     rts8822/Lamp.cpp

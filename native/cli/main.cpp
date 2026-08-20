@@ -7,6 +7,8 @@
 #include "device/G2710Device.h"
 #include "device/SafetyLevel.h"
 #include "rts8822/Rts8822.h"
+#include "scan/Capabilities.h"
+#include "scan/ScanPlanner.h"
 #include "transport/ITransportProvider.h"
 #include "transport/UsbScanTransport.h"
 #include "G2710Profile.generated.h"
@@ -18,6 +20,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <vector>
 
 using namespace g2710;
 
@@ -42,6 +45,7 @@ struct Options {
     std::string transport = "usbscan";
     std::wstring devicePath;
     SafetyLevel requested = SafetyLevel::ReadOnly;
+    bool json = false;
 };
 
 bool parse(int argc, char** argv, Options* out) {
@@ -54,7 +58,9 @@ bool parse(int argc, char** argv, Options* out) {
         const std::string arg = argv[i];
         const bool hasNext = (i + 1) < argc;
 
-        if (arg == "--transport" && hasNext) {
+        if (arg == "--json") {
+            out->json = true;
+        } else if (arg == "--transport" && hasNext) {
             out->transport = argv[++i];
         } else if (arg == "--device" && hasNext) {
             const std::string value = argv[++i];
@@ -105,6 +111,97 @@ int cmdInfo(const SafetyGate& gate) {
                 gate.wasClamped() ? "   (spusteno na plafon build-a)" : "");
     std::printf("  Motor path          %s\n",
                 G2710_MOTOR_PATH_COMPILED ? "kompajliran" : "NIJE kompajliran");
+    return 0;
+}
+
+// Tabela mogucnosti. Ne dodiruje uredjaj - sve je staticki racun, pa radi i
+// kada skenera nema. Odatle se generise docs/STATUS.md.
+int cmdCapabilities(bool asJson) {
+    using namespace g2710::scan;
+
+    struct Row {
+        const ResolutionCapability* capability;
+        bool planned;
+        ScanPlan plan;
+    };
+
+    std::vector<Row> rows;
+    for (const auto& capability : flatbedResolutions()) {
+        ScanRequest request;
+        request.resolution = capability.dpi;
+        request.colorMode = image::ColorMode::Color;
+        request.allowUnqualified = true;  // dijagnostika sme; WIA i TWAIN ne
+
+        Row row{&capability, false, {}};
+        if (auto plan = planScan(request)) {
+            row.planned = true;
+            row.plan = plan.value();
+        }
+        rows.push_back(row);
+    }
+
+    const std::vector<int> advertisable = advertisableResolutions();
+
+    if (!asJson) {
+        std::printf("Flatbed rezolucije\n");
+        std::printf("  %6s  %-7s  %-19s  %-6s  %-9s  %s\n",
+                    "dpi", "izvor", "status", "native", "poravnanje", "napomena");
+        for (const auto& row : rows) {
+            std::printf("  %6d  %-7s  %-19s  %-6d  %-9s  %s\n",
+                        row.capability->dpi, toString(row.capability->origin),
+                        toString(row.capability->level),
+                        row.planned ? row.plan.nativeResolution : 0,
+                        row.planned ? (row.plan.useHardwareAlignment ? "hardver" : "softver")
+                                    : "-",
+                        row.capability->note);
+        }
+        std::printf("\nDubine\n");
+        for (const auto& depth : depthCapabilities()) {
+            std::printf("  %6d  %-19s  %s\n", depth.bits, toString(depth.level), depth.note);
+        }
+        std::printf("\nOglasava se kroz WIA i TWAIN: ");
+        if (advertisable.empty()) {
+            std::printf("nista - nijedna vrednost jos nije hardverski potvrdjena\n");
+        } else {
+            for (std::size_t i = 0; i < advertisable.size(); ++i) {
+                std::printf("%s%d", i == 0 ? "" : ", ", advertisable[i]);
+            }
+            std::printf("\n");
+        }
+        return 0;
+    }
+
+    std::printf("{\n");
+    std::printf("  \"device\": \"%04X:%04X\",\n", profile::kUsbVendorId, profile::kUsbProductId);
+    std::printf("  \"resolutions\": [\n");
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        const auto& row = rows[i];
+        std::printf("    {\"dpi\": %d, \"origin\": \"%s\", \"level\": \"%s\", "
+                    "\"sourceDpi\": %d, \"nativeDpi\": %d, \"resize\": \"%s\", "
+                    "\"alignment\": \"%s\", \"advertisable\": %s, \"note\": \"%s\"}%s\n",
+                    row.capability->dpi, toString(row.capability->origin),
+                    toString(row.capability->level), row.capability->sourceDpi,
+                    row.planned ? row.plan.nativeResolution : 0,
+                    row.planned ? toString(row.plan.resize) : "-",
+                    row.planned ? (row.plan.useHardwareAlignment ? "hardware" : "software") : "-",
+                    row.capability->advertisable() ? "true" : "false",
+                    row.capability->note,
+                    i + 1 == rows.size() ? "" : ",");
+    }
+    std::printf("  ],\n");
+    std::printf("  \"depths\": [\n");
+    const auto depths = depthCapabilities();
+    for (std::size_t i = 0; i < depths.size(); ++i) {
+        std::printf("    {\"bits\": %d, \"level\": \"%s\", \"note\": \"%s\"}%s\n",
+                    depths[i].bits, toString(depths[i].level), depths[i].note,
+                    i + 1 == depths.size() ? "" : ",");
+    }
+    std::printf("  ],\n");
+    std::printf("  \"advertisable\": [");
+    for (std::size_t i = 0; i < advertisable.size(); ++i) {
+        std::printf("%s%d", i == 0 ? "" : ", ", advertisable[i]);
+    }
+    std::printf("]\n}\n");
     return 0;
 }
 
@@ -241,6 +338,10 @@ int main(int argc, char** argv) {
 
     if (options.command == "info") {
         return cmdInfo(gate);
+    }
+
+    if (options.command == "capabilities") {
+        return cmdCapabilities(options.json);
     }
 
     std::unique_ptr<TransportProvider::ScopedTestProvider> simGuard;
