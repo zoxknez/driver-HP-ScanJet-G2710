@@ -72,17 +72,90 @@ zato nikad ne bi pročitao kao uključen, čak i da D1 ne postoji.
 
 ---
 
+## D3 — hardversko poravnanje redova se preliva **baš na 1200 i 2400 dpi**
+
+**Zahvaćeno:** 1200 i 2400 dpi, sve boje. Do 600 dpi nema problema.
+
+Ovo je najozbiljnija stavka i verovatno **konkretan mehanizam** iza komentara
+`/* 1200 and 2400 dpi are disabled until problems are solved */`.
+
+RTS8822 ume da poravna razmaknute R/G/B redove u hardveru. `RTS_Setup_Line_Distances`
+(`rts8822.c:8701`) upisuje pet vrednosti:
+
+```c
+data_bitset (&Regs[0x149], 0x3f, myevenodddist);
+data_bitset (&Regs[0x14a], 0x3f, mylinedistance);
+data_bitset (&Regs[0x14b], 0x3f, mylinedistance + myevenodddist);
+data_bitset (&Regs[0x14c], 0x3f, mylinedistance * 2);
+data_bitset (&Regs[0x14d], 0x3f, (mylinedistance * 2) + myevenodddist);
+```
+
+Maska je `0x3F` — **šest bita, najviše 63**.
+
+Za G2710 je `line_distance = 64` na senzorskih 2400 dpi, pa je
+`mylinedistance = 64 * res / 2400`:
+
+| Rezolucija | `0x14A` | `0x14B` | `0x14C` | `0x14D` | Staje u 6 bita |
+|---|---|---|---|---|---|
+| 100 | 2 | 2 | 4 | 4 | da |
+| 150 | 4 | 4 | 8 | 8 | da |
+| 300 | 8 | 8 | 16 | 16 | da |
+| 600 | 16 | 16 | 32 | 32 | da |
+| **1200** | 32 | 32 | **64** | **64** | **ne** |
+| **2400** | **64** | **72** | **128** | **136** | **ne** |
+
+`data_bitset` ne proverava opseg. Za masku `0x3F` radi
+`(*address & 0xC0) | (data & 0x3F)`, pa:
+
+- na **1200 dpi** `64 & 0x3F == 0` → pomak **plavog** kanala postaje nula
+- na **2400 dpi** i zeleni ispada (`64 → 0`), plavi takođe (`128 → 0`),
+  a `72 → 8` i `136 → 8`
+
+Rezultat je da plava (i na 2400 zelena) ravan ostaje **nepomerena**, pa slika
+dobija obojene rubove — tačno simptom koji bi se opisao kao „1200 i 2400 ne
+rade kako treba".
+
+Granica je oštra i pada **između 600 i 1200 dpi**, što se poklapa sa listom
+rezolucija koje backend izlaže (`50, 75, 100, 150, 200, 300, 600`).
+
+### Šta ovo znači
+
+Ovo je **hipoteza sa konkretnom aritmetikom**, ne dokaz. Moguće je da čip ima
+šire polje nego što maska sugeriše, ili da postoji drugi registar koji
+referenca ne koristi. Ali je proverljiva, i daje H8 nešto određeno da izmeri
+umesto „probaj 1200 dpi i vidi".
+
+Ako se potvrdi, rešenje je poznato: `ARRANGELINE` za G2710 je `FIX_BY_HARD`
+(`srt_hp3800_scanparam_get` daje 1), a referenca podržava i `FIX_BY_SOFT`, gde
+se poravnanje radi u softveru i nema šestobitno ograničenje. Naš
+`LineOffsetCorrector` je upravo taj put.
+
+### Kako se rešava kod nas
+
+`hardwareAlignmentSupported()` **odbija** rezoluciju čije vrednosti ne staju,
+umesto da ih tiho odseče. `LineOffsetCorrector` radi isto poravnanje u
+softveru, bez ograničenja. Testovi u `tests/golden/line_offset_test.cpp` drže
+zaključanu i tabelu prelivanja i činjenicu da odsecanje daje nulu.
+
+---
+
 ## Zašto flatbed nije zahvaćen
 
-Obe stavke tiču se isključivo TMA putanje. Flatbed koristi bit `0x40` u
-`0xE946`, koji `Set` i `Get` tretiraju **saglasno** u obe grane. Obim 1.0 je
-netaknut.
+D1 i D2 tiču se isključivo TMA putanje. Flatbed koristi bit `0x40` u
+`0xE946`, koji `Set` i `Get` tretiraju **saglasno** u obe grane.
+
+D3 ne pogađa flatbed do 600 dpi, što je obim koji 1.0 obećava. Pogađa upravo
+1200 i 2400, koje su i inače `HARDWARE-VALIDATED = DEFERRED`.
 
 ## Šta ovo znači za plan
 
 MASTER plan je TMA odložio u 1.1 uz obrazloženje da je to najslabije testiran
-deo `hp3900` koda. Ove dve stavke su konkretan dokaz za tu procenu, i to baš
-na našem čipsetu.
+deo `hp3900` koda. D1 i D2 su konkretan dokaz za tu procenu, i to baš na našem
+čipsetu.
+
+D3 menja karakter rizika oko 1200/2400 dpi. Plan je govorio da ulazimo u
+„poznato pokvarenu oblast" bez znanja *zašto*. Sada postoji merljiva hipoteza
+i, ako se potvrdi, poznat put rešenja.
 
 ## Kako se rešava
 
