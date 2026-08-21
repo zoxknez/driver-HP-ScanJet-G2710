@@ -40,8 +40,7 @@ PHASES = [
     ("G2710-0", "Reference truth extraction", [
         "unit/profile_generated_test.cpp"]),
     ("G2710-1", "WDK, skeleton, transport", [
-        "unit/transport_provider_test.cpp", "unit/wia_clsid_test.cpp",
-        "unit/result_test.cpp"]),
+        "unit/transport_provider_test.cpp", "unit/result_test.cpp"]),
     ("G2710-2", "RTS8822 core", [
         "golden/register_sequence_test.cpp", "golden/dma_sequence_test.cpp",
         "golden/gpio_sequence_test.cpp", "golden/sensor_timing_test.cpp",
@@ -62,6 +61,9 @@ PHASES = [
         "golden/resize_test.cpp", "unit/pnm_writer_test.cpp"]),
     ("G2710-7", "Planer i sesija skeniranja", [
         "golden/scan_planner_test.cpp", "integration/scan_session_test.cpp"]),
+    ("G2710-9", "WIA minidriver", [
+        "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
+        "unit/wia_events_test.cpp"]),
 ]
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.
@@ -69,6 +71,7 @@ PHASES = [
 STANDALONE = {
     "unit/profile_generated_test.cpp": "profile_generated",
     "unit/safety_ceiling1_test.cpp": "safety_ceiling_1",
+    "unit/wia_capabilities_test.cpp": "wia_qualification",
 }
 
 GATE_REASONS = {
@@ -107,7 +110,13 @@ def phase_index():
 
 
 def run_ctest(build_dir, config):
-    """Vraca listu (ime, prosao) za svaki test."""
+    """Vraca listu (ime, stanje) za svaki test.
+
+    Stanje je "pass", "skip" ili "fail". Preskoceno NIJE palo: WIA testovi
+    provere se preskacu u izdanju zato sto ponuda jos nema nijednu hardverski
+    potvrdjenu rezoluciju. Brojati ih kao pad znacilo bi da izvestaj laze o
+    stanju projekta.
+    """
     handle, junit = tempfile.mkstemp(suffix=".xml")
     os.close(handle)
     try:
@@ -122,9 +131,13 @@ def run_ctest(build_dir, config):
     results = []
     for case in tree.iter("testcase"):
         name = case.get("name", "")
-        skipped = case.find("skipped") is not None
-        failed = case.find("failure") is not None or case.find("error") is not None
-        results.append((name, not failed and not skipped))
+        if case.find("failure") is not None or case.find("error") is not None:
+            state = "fail"
+        elif case.find("skipped") is not None:
+            state = "skip"
+        else:
+            state = "pass"
+        results.append((name, state))
     return results
 
 
@@ -148,13 +161,13 @@ def split_by_phase(tests, owner):
     """Grupise ctest imena po fazama; nepokriveno je greska, ne tisina."""
     grouped = {identifier: [] for identifier, _title, _sources in PHASES}
     orphans = []
-    for name, ok in tests:
+    for name, state in tests:
         key = name.split(".", 1)[0]
         identifier = owner.get(key) or owner.get(name)
         if identifier is None:
             orphans.append(name)
         else:
-            grouped[identifier].append((name, ok))
+            grouped[identifier].append((name, state))
     if orphans:
         raise SystemExit("testovi koje nijedna faza ne polaze:\n  "
                          + "\n  ".join(sorted(set(orphans))))
@@ -163,7 +176,9 @@ def split_by_phase(tests, owner):
 
 def render(tests, grouped, capabilities, hardware):
     total = len(tests)
-    passed = sum(1 for _, ok in tests if ok)
+    passed = sum(1 for _, state in tests if state == "pass")
+    skipped = sum(1 for _, state in tests if state == "skip")
+    failed = sum(1 for _, state in tests if state == "fail")
 
     lines = []
     lines.append("<!-- GENERISANO: tools/generate-status.py. Ne menjati rucno. -->")
@@ -178,22 +193,40 @@ def render(tests, grouped, capabilities, hardware):
     lines.append("")
     lines.append("## Testovi")
     lines.append("")
-    lines.append("**%d/%d prolazi.**" % (passed, total))
-    lines.append("")
-    lines.append("| Faza | Oblast | Stanje | Testovi |")
-    lines.append("|---|---|---|---|")
-    for identifier, title, _sources in PHASES:
-        matched = grouped[identifier]
-        ok = sum(1 for _, passed in matched if passed)
-        badge = "**PASS**" if matched and ok == len(matched) else "**PAO**"
-        lines.append("| %s | %s | %s | %d/%d |" % (identifier, title, badge, ok, len(matched)))
+    summary = "**%d/%d prolazi" % (passed, total)
+    if skipped:
+        summary += ", %d preskoceno" % skipped
+    if failed:
+        summary += ", %d PALO" % failed
+    lines.append(summary + ".**")
+
+    if skipped:
+        lines.append("")
+        lines.append("Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti "
+                     "preskace jer ponuda nema nijednu hardverski potvrdjenu rezoluciju; "
+                     "ista provera se izvrsava u kvalifikacionom build-u "
+                     "(`wia_qualification`).")
     lines.append("")
 
-    if total != passed:
+    lines.append("| Faza | Oblast | Stanje | Prolazi | Preskoceno |")
+    lines.append("|---|---|---|---|---|")
+    for identifier, title, _sources in PHASES:
+        matched = grouped[identifier]
+        ok = sum(1 for _, state in matched if state == "pass")
+        skip = sum(1 for _, state in matched if state == "skip")
+        bad = sum(1 for _, state in matched if state == "fail")
+
+        badge = "**PAO**" if bad else ("**PASS**" if matched else "nema testova")
+        lines.append("| %s | %s | %s | %d/%d | %s |" %
+                     (identifier, title, badge, ok, len(matched) - skip,
+                      str(skip) if skip else "-"))
+    lines.append("")
+
+    if failed:
         lines.append("Padaju:")
         lines.append("")
-        for name, ok in tests:
-            if not ok:
+        for name, state in tests:
+            if state == "fail":
                 lines.append("- `%s`" % name)
         lines.append("")
 
@@ -307,9 +340,10 @@ def main():
 
     with open(OUTPUT, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(content)
-    passed = sum(1 for _, ok in tests if ok)
-    print("docs/STATUS.md: %d/%d testova, %d rezolucija, %d oglaseno"
-          % (passed, len(tests), len(capabilities["resolutions"]),
+    passed = sum(1 for _, state in tests if state == "pass")
+    skipped = sum(1 for _, state in tests if state == "skip")
+    print("docs/STATUS.md: %d/%d testova (%d preskoceno), %d rezolucija, %d oglaseno"
+          % (passed, len(tests), skipped, len(capabilities["resolutions"]),
              len(capabilities["advertisable"])))
     return 0
 

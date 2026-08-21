@@ -8,18 +8,21 @@ Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**446/446 prolazi.**
+**464/477 prolazi, 13 preskoceno.**
 
-| Faza | Oblast | Stanje | Testovi |
-|---|---|---|---|
-| G2710-0 | Reference truth extraction | **PASS** | 1/1 |
-| G2710-1 | WDK, skeleton, transport | **PASS** | 20/20 |
-| G2710-2 | RTS8822 core | **PASS** | 111/111 |
-| G2710-3 | Simulator i akvizicija | **PASS** | 57/57 |
-| G2710-4 | Stanja, MotionGuard, arbitraza | **PASS** | 54/54 |
-| G2710-5 | Kalibracija | **PASS** | 72/72 |
-| G2710-6 | Obrada slike i izlaz | **PASS** | 79/79 |
-| G2710-7 | Planer i sesija skeniranja | **PASS** | 52/52 |
+Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer ponuda nema nijednu hardverski potvrdjenu rezoluciju; ista provera se izvrsava u kvalifikacionom build-u (`wia_qualification`).
+
+| Faza | Oblast | Stanje | Prolazi | Preskoceno |
+|---|---|---|---|---|
+| G2710-0 | Reference truth extraction | **PASS** | 1/1 | - |
+| G2710-1 | WDK, skeleton, transport | **PASS** | 18/18 | - |
+| G2710-2 | RTS8822 core | **PASS** | 111/111 | - |
+| G2710-3 | Simulator i akvizicija | **PASS** | 57/57 | - |
+| G2710-4 | Stanja, MotionGuard, arbitraza | **PASS** | 54/54 | - |
+| G2710-5 | Kalibracija | **PASS** | 72/72 | - |
+| G2710-6 | Obrada slike i izlaz | **PASS** | 79/79 | - |
+| G2710-7 | Planer i sesija skeniranja | **PASS** | 52/52 | - |
+| G2710-9 | WIA minidriver | **PASS** | 20/20 | 13 |
 
 ## Rezolucije
 

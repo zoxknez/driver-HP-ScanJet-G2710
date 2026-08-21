@@ -80,19 +80,28 @@ HKR,,ICMProfiles,,"sRGB Color Space Profile.icm"
 ; Tri fizicka dugmeta. Maske 0x01 / 0x02 / 0x04 dolaze iz hp3800_buttons
 ; (cfg_buttons_get); mapiranje maska -> dugme se potvrdjuje u H10.
 ; Dovod je interrupt pipe preko IOCTL_WAIT_ON_DEVICE_EVENT.
+;
+; PODRAZUMEVANA vrednost podkljuca je GUID DOGADJAJA, ne prikazno ime.
+; Ime ide u Name, opis u Desc. Sa imenom na mestu GUID-a STI servis ne bi
+; umeo da poveze pritisak dugmeta sa registrovanim rukovaocem, a greska se
+; vidi tek kada neko pritisne dugme - dakle u H10, na daljinu.
+;
+; GUID-ovi su WIA_EVENT_SCAN_IMAGE / _SCAN_PRINT_IMAGE / _SCAN_OCR_IMAGE
+; iz wiadef.h. native/wia/G2710Usd.cpp mora vracati BAS ove vrednosti;
+; tests/unit/wia_events_test.cpp drzi tu saglasnost.
 
 [G2710.Events]
-HKR,Events\Scan,,,%G2710.ScanButton%
+HKR,Events\Scan,,,%G2710.ScanEventGuid%
 HKR,Events\Scan,Name,,"Scan"
 HKR,Events\Scan,Desc,,%G2710.ScanButton%
 HKR,Events\Scan,Icon,,"%13%\G2710.Wia.dll,101"
 
-HKR,Events\Copy,,,%G2710.CopyButton%
+HKR,Events\Copy,,,%G2710.CopyEventGuid%
 HKR,Events\Copy,Name,,"Copy"
 HKR,Events\Copy,Desc,,%G2710.CopyButton%
 HKR,Events\Copy,Icon,,"%13%\G2710.Wia.dll,102"
 
-HKR,Events\Pdf,,,%G2710.PdfButton%
+HKR,Events\Pdf,,,%G2710.PdfEventGuid%
 HKR,Events\Pdf,Name,,"Pdf"
 HKR,Events\Pdf,Desc,,%G2710.PdfButton%
 HKR,Events\Pdf,Icon,,"%13%\G2710.Wia.dll,103"
@@ -108,6 +117,11 @@ G2710.WiaFriendlyName   = "HP ScanJet G2710 WIA Driver"
 G2710.ScanButton        = "Scan"
 G2710.CopyButton        = "Copy"
 G2710.PdfButton         = "PDF"
+
+; WIA_EVENT_SCAN_IMAGE, _SCAN_PRINT_IMAGE, _SCAN_OCR_IMAGE (wiadef.h).
+G2710.ScanEventGuid     = "{A6C5A715-8C6E-11D2-977A-0000F87A926F}"
+G2710.CopyEventGuid     = "{B441F425-8C6E-11D2-977A-0000F87A926F}"
+G2710.PdfEventGuid      = "{9D095B89-37D6-4877-AFED-62A297DC6DBE}"
 
 ; MORA biti identican G2710_WIA_CLSID_STRING u native/wia/G2710Wia.h.
 G2710.CLSID             = "{2C4E8A1D-7F63-4B95-9E12-3A6D5C8B0417}"

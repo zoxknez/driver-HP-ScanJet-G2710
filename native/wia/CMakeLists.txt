@@ -1,5 +1,8 @@
-# WIA 2.0 minidriver. Kostur do G2710-9; postoji sada da bi se signing
-# pipeline mogao dokazati (Inf2Cat zahteva da svi INF fajlovi postoje).
+# WIA 2.0 minidriver.
+#
+# Sloj odluka (WiaCapabilities) je odvojen od COM ljuske i gradi se i kao deo
+# testova - vidi tests/CMakeLists.txt. Tako se ono sto se moze pogresiti
+# testira bez ijednog COM objekta.
 #
 # Samo x64 - WIA minidriver se na x64 Windowsu ucitava kao 64-bitna
 # komponenta. TWAIN je taj koji ide i x86 i x64.
@@ -11,6 +14,9 @@ endif()
 
 add_library(g2710_wia SHARED
     G2710Wia.cpp
+    G2710Usd.cpp
+    WiaCapabilities.cpp
+    WiaEvents.cpp
     G2710Wia.def
 )
 
@@ -19,7 +25,9 @@ set_target_properties(g2710_wia PROPERTIES
     PREFIX ""
 )
 
-target_link_libraries(g2710_wia PRIVATE G2710::Core Ole32)
+# WiaGuid.lib nosi definicije WIA_EVENT_* i IID_IStiUSD. Bez nje se ti simboli
+# ne razresavaju - deklaracije u zaglavljima su samo `extern const GUID`.
+target_link_libraries(g2710_wia PRIVATE G2710::Core Ole32 WiaGuid)
 
 # Paket koji ide u potpisivanje. Skripte u driver/sign/ ocekuju INF i DLL na
 # istom mestu jer Inf2Cat radi nad direktorijumom, ne nad pojedinacnim fajlom.

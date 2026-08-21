@@ -33,6 +33,10 @@ add_executable(g2710_unit_tests
     unit/device_arbiter_test.cpp
     unit/transport_provider_test.cpp
     unit/wia_clsid_test.cpp
+    unit/wia_capabilities_test.cpp
+    unit/wia_events_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaCapabilities.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaEvents.cpp
     unit/sim_transport_test.cpp
     unit/simulator_test.cpp
     unit/motion_guard_test.cpp
@@ -42,7 +46,7 @@ add_executable(g2710_unit_tests
     unit/calibration_cache_test.cpp
     ${CMAKE_SOURCE_DIR}/native/cli/ImageOutput.cpp
 )
-target_link_libraries(g2710_unit_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
+target_link_libraries(g2710_unit_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main WiaGuid)
 target_include_directories(g2710_unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/native/wia
     ${CMAKE_SOURCE_DIR}/native/cli)
@@ -80,6 +84,27 @@ add_executable(g2710_integration_tests
 )
 target_link_libraries(g2710_integration_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
 gtest_discover_tests(g2710_integration_tests)
+
+# --- WIA kvalifikacioni build ----------------------------------------------
+# G2710_WIA_ALLOW_UNQUALIFIED je KOMPAJLERSKI prekidac, kao i BuildSafetyCeiling.
+# Dva razlicita prekidaca u istom binarnom fajlu bila bi ODR krsenje, pa
+# kvalifikaciona varijanta dobija svoju metu koja kompajlira SVOJU kopiju
+# izvora.
+#
+# Bez ovoga bi u izdanju trinaest testova provere bilo preskoceno - ponuda je
+# prazna, pa nema sta da se proverava. Ovako su obe grane pokrivene.
+# Samo test mogucnosti - on jedini zavisi od prekidaca. Test dugmadi ne zavisi,
+# pa bi ovde samo udvostrucio isto merenje.
+add_executable(g2710_wia_qualification_test
+    unit/wia_capabilities_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaCapabilities.cpp
+)
+target_link_libraries(g2710_wia_qualification_test PRIVATE G2710::Core GTest::gtest_main)
+target_include_directories(g2710_wia_qualification_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/native/wia)
+target_compile_definitions(g2710_wia_qualification_test PRIVATE
+    G2710_WIA_ALLOW_UNQUALIFIED=1)
+add_test(NAME wia_qualification COMMAND g2710_wia_qualification_test)
 
 # --- plafon bezbednosti mora biti JEDNA vrednost po binarnom fajlu ----------
 # Zato ovaj test ne linkuje G2710::Core (koji nosi PUBLIC plafon 5) nego
