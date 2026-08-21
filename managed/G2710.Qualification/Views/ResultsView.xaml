@@ -1,0 +1,165 @@
+<UserControl x:Class="G2710.Qualification.Views.ResultsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="{StaticResource PageMargin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===== sazetak ===== -->
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="22"
+                        VerticalAlignment="Center">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource PassSoft}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasFailures}" Value="True">
+                                    <Setter Property="Background"
+                                            Value="{StaticResource FailSoft}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontFamily="{StaticResource UiFont}" FontSize="20"
+                               FontWeight="Bold" HorizontalAlignment="Center"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="✓" />
+                                <Setter Property="Foreground" Value="{StaticResource Pass}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasFailures}" Value="True">
+                                        <Setter Property="Text" Value="!" />
+                                        <Setter Property="Foreground"
+                                                Value="{StaticResource Fail}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <StackPanel Grid.Column="1" Margin="16,0,16,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding SummaryLine}"
+                               Style="{StaticResource HeadingText}" />
+                    <TextBlock Text="{Binding DeviceLabel}"
+                               Style="{StaticResource SmallText}" Margin="0,4,0,0" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <Button Content="Otvori folder sa izvestajem"
+                            Style="{StaticResource SecondaryButton}"
+                            Command="{Binding OpenReportFolderCommand}" />
+
+                    <!-- Kad ZIP postoji, on je ono sto se salje; dok ne postoji,
+                         prikazuje se goli izvestaj. DeliverablePath bira sam. -->
+                    <TextBlock Text="{Binding DeliverablePath}"
+                               Style="{StaticResource SmallText}"
+                               MaxWidth="280" Margin="0,6,0,0"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding DeliverablePath}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ===== sve provere ===== -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,16,0,0" Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="{StaticResource SurfaceSunken}"
+                        CornerRadius="8,8,0,0" Padding="16,12">
+                    <TextBlock Text="Sve provere" Style="{StaticResource BodyText}"
+                               FontWeight="SemiBold" />
+                </Border>
+
+                <!-- prazno stanje: izvestaj bez ijedne provere -->
+                <TextBlock Grid.Row="1"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Text="Nema nijedne provere za prikaz.">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Checks.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Checks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="{StaticResource RowPadding}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="64" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding Id}"
+                                                   Style="{StaticResource MonoText}"
+                                                   VerticalAlignment="Center" />
+
+                                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                                            <TextBlock Text="{Binding Name}"
+                                                       Style="{StaticResource BodyText}" />
+                                            <TextBlock Text="{Binding Detail}"
+                                                       Style="{StaticResource SmallText}"
+                                                       Margin="0,2,0,0" />
+                                            <TextBlock Text="{Binding Explanation}"
+                                                       Margin="0,2,0,0"
+                                                       FontStyle="Italic">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock"
+                                                           BasedOn="{StaticResource SmallText}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger
+                                                                Binding="{Binding Explanation}"
+                                                                Value="{x:Null}">
+                                                                <Setter Property="Visibility"
+                                                                        Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="2" Style="{StaticResource Pill}"
+                                                Background="{Binding BadgeTone,
+                                                    Converter={StaticResource ToneToSoftBrush}}">
+                                            <TextBlock Text="{Binding Badge}"
+                                                       Style="{StaticResource PillText}"
+                                                       Foreground="{Binding BadgeTone,
+                                                           Converter={StaticResource ToneToBrush}}" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

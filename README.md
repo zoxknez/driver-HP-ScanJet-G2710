@@ -20,7 +20,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-6 Image pipeline | line offset, gamma, sivo, lineart, dubina |
 | G2710-7 Planer i sesija skeniranja | **završen** — `g2710ctl scan` daje sliku |
 | G2710-9 WIA minidriver | `IStiUSD` + `IWiaMiniDrv` — čeka H11 na hardveru |
-| G2710-11 Kvalifikacija | `g2710ctl qualify` — H-provere i JSON izveštaj |
+| G2710-11 Kvalifikacioni paket | **završen** — wizard, instalacija, dijagnostika, ZIP |
 
 ```bash
 python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py
@@ -59,6 +59,12 @@ Hardverska kvalifikacija (H1–H13) nad simulatorom, kao proba isporuke:
 build/native/cli/Release/g2710ctl.exe qualify --transport sim --safety-level 5 --out test-results.json
 ```
 
+Wizard koji ide prijatelju (WPF, .NET 10):
+
+```bash
+dotnet test managed/G2710.sln -c Release
+```
+
 Driver paket i potpisivanje:
 
 ```bash
@@ -67,6 +73,28 @@ powershell -File driver/sign/make-dev-cert.ps1 -Install
 
 ```bash
 powershell -File driver/sign/sign-package.ps1 -PackageDir build/package
+```
+
+## Paket za testiranje na hardveru
+
+Jedna komanda pravi ZIP koji se šalje: wizard, `g2710ctl`, potpisan drajver,
+`install.ps1`, `collect-diagnostics.ps1` i uputstvo na srpskom.
+
+```bash
+powershell -File tools/build-qualification-package.ps1 -SafetyCeiling 2
+```
+
+**Plafon bezbednosti se ugrađuje u binarni fajl, ne čita se pri pokretanju.**
+Paket sa plafonom ispod 3 uopšte nema preveden motorni kod, pa se na tuđem
+računaru ne može „otključati“. Skript to i proverava — čita `g2710ctl info` iz
+sveže izgrađenog binarnog fajla i odbija da spakuje nešto drugo nego što je
+traženo.
+
+Tvrdnja da motorni kod zaista nedostaje meri se posebno, nad simbolima u
+biblioteci:
+
+```bash
+powershell -File tools/verify-safety-ceiling.ps1
 ```
 
 Dokumentacija: [PROTOCOL-RTS8822.md](docs/PROTOCOL-RTS8822.md) ·

@@ -1,0 +1,46 @@
+<UserControl x:Class="G2710.Qualification.Views.StepIndicator"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             Margin="0,0,0,18">
+
+    <!--
+        Korak u bocnoj traci. Tri stanja: predstoji, tekuci, zavrsen.
+
+        Bez treceg stanja korisnik ne vidi dokle je stigao, pa svaki ekran
+        izgleda kao prvi.
+    -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border x:Name="Bubble" Grid.Column="0" Style="{StaticResource StepNumber}"
+                Background="#FF33404D">
+            <TextBlock x:Name="BubbleText"
+                       Text="{Binding Number, ElementName=Root}"
+                       FontFamily="{StaticResource UiFont}"
+                       FontSize="{StaticResource SmallSize}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextOnDarkMuted}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+
+        <StackPanel Grid.Column="1" Margin="12,0,0,0">
+            <TextBlock x:Name="TitleText"
+                       Text="{Binding Title, ElementName=Root}"
+                       FontFamily="{StaticResource UiFont}"
+                       FontSize="{StaticResource BodySize}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextOnDarkMuted}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding Description, ElementName=Root}"
+                       FontFamily="{StaticResource UiFont}"
+                       FontSize="{StaticResource SmallSize}"
+                       Foreground="#FF66727F"
+                       TextWrapping="Wrap"
+                       Margin="0,2,0,0" />
+        </StackPanel>
+    </Grid>
+</UserControl>

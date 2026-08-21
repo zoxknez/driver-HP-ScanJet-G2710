@@ -4,9 +4,11 @@
 Tri izvora, i nijedan nije rucno kucan:
 
   1. ctest      sta je zaista zeleno u ovom trenutku
-  2. g2710ctl capabilities --json
+  2. dotnet test
+                isto, za wizard koji ide prijatelju
+  3. g2710ctl capabilities --json
                 sta binarni fajl zaista tvrdi da ume
-  3. qualification/test-results.json
+  4. qualification/test-results.json
                 sta je hardver zaista potvrdio; ako fajla nema, treca kolona
                 ostaje prazna i to je tacan opis stanja
 
@@ -68,6 +70,14 @@ PHASES = [
         "unit/qualification_test.cpp"]),
 ]
 
+# gtest suite-ovi se citaju iz izvora; xunit klase nemaju ekvivalentan zapis u
+# C++ fajlu, pa se imena klasa navode ovde. Ako se klasa preimenuje, njeni
+# testovi postaju siroceta i alat pada - isto kao za gtest.
+MANAGED_SUITES = {
+    "ReportTests": "G2710-11",
+    "WizardFlowTests": "G2710-11",
+}
+
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.
 # `profile_generated` je compile-time provera: kompajliranje JESTE test.
 STANDALONE = {
@@ -108,6 +118,7 @@ def phase_index():
             standalone = STANDALONE.get(source)
             if standalone:
                 owner[standalone] = identifier
+    owner.update(MANAGED_SUITES)
     return owner
 
 
@@ -140,6 +151,52 @@ def run_ctest(build_dir, config):
         else:
             state = "pass"
         results.append((name, state))
+    return results
+
+
+MANAGED_SOLUTION = os.path.join(ROOT, "managed", "G2710.sln")
+
+
+def run_managed_tests(config):
+    """Rezultati wizarda, u istom obliku kao ctest: (ime, stanje).
+
+    Wizard je deo isporuke koliko i jezgro - covek koji testira skener vidi
+    bas njega. Da se ovi testovi ne broje, faza G2710-11 bi u izvestaju stajala
+    sa osam provera umesto sa svima, i to bi izgledalo kao manjak koda a ne kao
+    manjak brojanja.
+    """
+    if not os.path.exists(MANAGED_SOLUTION):
+        return []
+
+    handle, trx = tempfile.mkstemp(suffix=".trx")
+    os.close(handle)
+    os.unlink(trx)  # dotnet trazi da fajl ne postoji
+    try:
+        completed = subprocess.run(
+            ["dotnet", "test", MANAGED_SOLUTION, "-c", config, "--nologo",
+             "--logger", "trx;LogFileName=" + trx],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        if not os.path.exists(trx):
+            raise SystemExit("dotnet test nije proizveo izvestaj:\n"
+                             + completed.stdout[-2000:] + completed.stderr[-2000:])
+        tree = ElementTree.parse(trx)
+    finally:
+        if os.path.exists(trx):
+            os.unlink(trx)
+
+    # TRX koristi imenski prostor; pretraga ide po lokalnom imenu da se ne
+    # oslanjamo na tacnu verziju sheme.
+    results = []
+    for element in tree.iter():
+        if not element.tag.endswith("}UnitTestResult"):
+            continue
+        outcome = element.get("outcome", "")
+        state = {"Passed": "pass", "NotExecuted": "skip"}.get(outcome, "fail")
+        name = element.get("testName", "")
+        # "G2710.Qualification.Tests.WizardFlowTests.NestoTamo" -> "WizardFlowTests.NestoTamo"
+        parts = name.rsplit(".", 2)
+        results.append((".".join(parts[-2:]) if len(parts) >= 2 else name, state))
     return results
 
 
@@ -188,8 +245,8 @@ def render(tests, grouped, capabilities, hardware):
     lines.append("# STATUS")
     lines.append("")
     lines.append("Jedini izvor istine o tome sta je dokazano. Sve u ovom fajlu potice "
-                 "iz `ctest`, iz `g2710ctl capabilities --json` i iz izvestaja "
-                 "hardverske kvalifikacije - nista nije upisano rucno.")
+                 "iz `ctest`, iz `dotnet test`, iz `g2710ctl capabilities --json` i "
+                 "iz izvestaja hardverske kvalifikacije - nista nije upisano rucno.")
     lines.append("")
     lines.append("Uredjaj: `%s`" % capabilities["device"])
     lines.append("")
@@ -323,7 +380,7 @@ def main():
     arguments = parser.parse_args()
 
     build_dir = os.path.join(ROOT, arguments.build_dir)
-    tests = run_ctest(build_dir, arguments.config)
+    tests = run_ctest(build_dir, arguments.config)         + run_managed_tests(arguments.config)
     capabilities = run_capabilities(build_dir, arguments.config)
     hardware = load_hardware_results()
     grouped = split_by_phase(tests, phase_index())

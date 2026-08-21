@@ -1,0 +1,98 @@
+<UserControl x:Class="G2710.Qualification.Views.QuestionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="{StaticResource PageMargin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource Card}"
+                Background="{StaticResource AskSoft}" BorderBrush="{StaticResource Ask}">
+            <TextBlock Style="{StaticResource BodyText}"
+                       Text="Pogledajte skener dok odgovarate. Ako niste sigurni, odgovorite NE - bolje je da izvestaj kaze da nesto nije provereno nego da tvrdi pogresno." />
+        </Border>
+
+        <!--
+            Lista pitanja. Svako je kartica preko cele sirine, sa dugmadima
+            desno - tako se odgovor daje bez trazenja.
+        -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
+            <ItemsControl ItemsSource="{Binding Questions}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" Style="{StaticResource Pill}"
+                                        Background="{StaticResource SurfaceSunken}"
+                                        VerticalAlignment="Top" Margin="0,2,0,0">
+                                    <TextBlock Text="{Binding Id}"
+                                               Style="{StaticResource PillText}"
+                                               Foreground="{StaticResource TextMuted}" />
+                                </Border>
+
+                                <StackPanel Grid.Column="1" Margin="14,0,16,0">
+                                    <TextBlock Text="{Binding Question}"
+                                               Style="{StaticResource HeadingText}" />
+                                    <TextBlock Text="{Binding Name}"
+                                               Style="{StaticResource SmallText}"
+                                               Margin="0,4,0,0" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Button Content="DA"
+                                            Command="{Binding AnswerYesCommand}"
+                                            Margin="0,0,8,0">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource AnswerButton}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsYes}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource Pass}" />
+                                                        <Setter Property="Foreground"
+                                                                Value="White" />
+                                                        <Setter Property="BorderBrush"
+                                                                Value="{StaticResource Pass}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Content="NE" Command="{Binding AnswerNoCommand}">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource AnswerButton}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsNo}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource Fail}" />
+                                                        <Setter Property="Foreground"
+                                                                Value="White" />
+                                                        <Setter Property="BorderBrush"
+                                                                Value="{StaticResource Fail}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

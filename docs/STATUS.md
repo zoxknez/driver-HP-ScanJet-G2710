@@ -2,13 +2,13 @@
 
 # STATUS
 
-Jedini izvor istine o tome sta je dokazano. Sve u ovom fajlu potice iz `ctest`, iz `g2710ctl capabilities --json` i iz izvestaja hardverske kvalifikacije - nista nije upisano rucno.
+Jedini izvor istine o tome sta je dokazano. Sve u ovom fajlu potice iz `ctest`, iz `dotnet test`, iz `g2710ctl capabilities --json` i iz izvestaja hardverske kvalifikacije - nista nije upisano rucno.
 
 Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**493/506 prolazi, 13 preskoceno.**
+**539/552 prolazi, 13 preskoceno.**
 
 Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer ponuda nema nijednu hardverski potvrdjenu rezoluciju; ista provera se izvrsava u kvalifikacionom build-u (`wia_qualification`).
 
@@ -23,7 +23,7 @@ Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer po
 | G2710-6 | Obrada slike i izlaz | **PASS** | 84/84 | - |
 | G2710-7 | Planer i sesija skeniranja | **PASS** | 53/53 | - |
 | G2710-9 | WIA minidriver | **PASS** | 30/30 | 13 |
-| G2710-11 | Kvalifikacioni paket | **PASS** | 13/13 | - |
+| G2710-11 | Kvalifikacioni paket | **PASS** | 59/59 | - |
 
 ## Rezolucije
 

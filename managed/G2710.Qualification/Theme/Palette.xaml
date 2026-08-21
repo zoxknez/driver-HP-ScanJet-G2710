@@ -1,0 +1,91 @@
+<!--
+    Boje, razmaci i tipografija.
+
+    Jedno mesto, jer se inace razidju: cim se ista vrednost upise na dva mesta,
+    jedno od njih zastari. Sve u Views/ referise odavde i nista ne upisuje
+    sopstvenu boju ni margin.
+
+    Skala razmaka je 4 / 8 / 12 / 16 / 24 / 32. Nema medjuvrednosti - ekran na
+    kome je nesto "malo pomereno" izgleda nedovrseno, a razlog je uvek ovakav
+    izuzetak.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- ===== boje ===== -->
+
+    <Color x:Key="SurfaceColor">#FFFFFFFF</Color>
+    <Color x:Key="SurfaceSunkenColor">#FFF3F4F6</Color>
+    <Color x:Key="SidebarColor">#FF1F2933</Color>
+    <Color x:Key="BorderColor">#FFD8DDE3</Color>
+
+    <Color x:Key="TextColor">#FF14181D</Color>
+    <Color x:Key="TextMutedColor">#FF5B6672</Color>
+    <Color x:Key="TextOnDarkColor">#FFF4F6F8</Color>
+    <Color x:Key="TextOnDarkMutedColor">#FF94A1AE</Color>
+
+    <Color x:Key="AccentColor">#FF1B62C4</Color>
+    <Color x:Key="AccentHoverColor">#FF1750A3</Color>
+    <Color x:Key="AccentPressedColor">#FF124382</Color>
+
+    <Color x:Key="PassColor">#FF117A45</Color>
+    <Color x:Key="FailColor">#FFB3261E</Color>
+    <Color x:Key="WaitColor">#FF8A5A00</Color>
+    <Color x:Key="AskColor">#FF6F42C1</Color>
+
+    <SolidColorBrush x:Key="Surface" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceSunken" Color="{StaticResource SurfaceSunkenColor}" />
+    <SolidColorBrush x:Key="Sidebar" Color="{StaticResource SidebarColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+
+    <SolidColorBrush x:Key="Text" Color="{StaticResource TextColor}" />
+    <SolidColorBrush x:Key="TextMuted" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="TextOnDark" Color="{StaticResource TextOnDarkColor}" />
+    <SolidColorBrush x:Key="TextOnDarkMuted" Color="{StaticResource TextOnDarkMutedColor}" />
+
+    <SolidColorBrush x:Key="Accent" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHover" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentPressed" Color="{StaticResource AccentPressedColor}" />
+
+    <SolidColorBrush x:Key="Pass" Color="{StaticResource PassColor}" />
+    <SolidColorBrush x:Key="Fail" Color="{StaticResource FailColor}" />
+    <SolidColorBrush x:Key="Wait" Color="{StaticResource WaitColor}" />
+    <SolidColorBrush x:Key="Ask" Color="{StaticResource AskColor}" />
+
+    <SolidColorBrush x:Key="PassSoft" Color="#FFE6F4EC" />
+    <SolidColorBrush x:Key="FailSoft" Color="#FFFCE9E7" />
+    <SolidColorBrush x:Key="WaitSoft" Color="#FFFDF3E2" />
+    <SolidColorBrush x:Key="AskSoft" Color="#FFF1EBFA" />
+
+    <!-- ===== razmaci ===== -->
+
+    <sys:Double x:Key="Space1">4</sys:Double>
+    <sys:Double x:Key="Space2">8</sys:Double>
+    <sys:Double x:Key="Space3">12</sys:Double>
+    <sys:Double x:Key="Space4">16</sys:Double>
+    <sys:Double x:Key="Space6">24</sys:Double>
+    <sys:Double x:Key="Space8">32</sys:Double>
+
+    <Thickness x:Key="PageMargin">32,28,32,28</Thickness>
+    <Thickness x:Key="CardPadding">20,18,20,18</Thickness>
+    <Thickness x:Key="RowPadding">16,12,16,12</Thickness>
+
+    <!-- ===== tipografija ===== -->
+    <!--
+        Cetiri nivoa i nijedan vise. Peti nivo uvek zavrsi kao "skoro isto kao
+        cetvrti", i tada hijerarhija prestaje da radi.
+    -->
+
+    <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
+    <FontFamily x:Key="MonoFont">Consolas</FontFamily>
+
+    <sys:Double x:Key="TitleSize">26</sys:Double>
+    <sys:Double x:Key="HeadingSize">17</sys:Double>
+    <sys:Double x:Key="BodySize">14</sys:Double>
+    <sys:Double x:Key="SmallSize">12</sys:Double>
+
+    <CornerRadius x:Key="CardRadius">8</CornerRadius>
+    <CornerRadius x:Key="PillRadius">12</CornerRadius>
+
+</ResourceDictionary>

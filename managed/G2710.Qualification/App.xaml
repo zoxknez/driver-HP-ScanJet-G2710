@@ -1,0 +1,19 @@
+<Application x:Class="G2710.Qualification.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:G2710.Qualification"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Theme/Palette.xaml" />
+                <ResourceDictionary Source="Theme/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:BoolToVisibleConverter x:Key="BoolToVisible" />
+            <local:NotConverter x:Key="Not" />
+            <local:ToneToBrushConverter x:Key="ToneToBrush" Soft="False" />
+            <local:ToneToBrushConverter x:Key="ToneToSoftBrush" Soft="True" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
