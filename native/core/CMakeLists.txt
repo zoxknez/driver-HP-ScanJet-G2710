@@ -29,6 +29,7 @@ add_library(g2710_core STATIC
     rts8822/MotorSteps.cpp
     rts8822/RegisterBank.cpp
     rts8822/RegisterFile.cpp
+    rts8822/ScanRegisters.cpp
     rts8822/SensorTiming.cpp
     rts8822/Rts8822.cpp
 )

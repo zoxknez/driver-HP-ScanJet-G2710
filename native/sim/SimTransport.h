@@ -12,6 +12,7 @@
 #pragma once
 
 #include "FailureInjector.h"
+#include "ScanEngine.h"
 #include "VirtualCcd.h"
 #include "VirtualLamp.h"
 #include "VirtualMotor.h"
@@ -85,6 +86,10 @@ public:
 
     FailureInjector& faults() noexcept { return faults_; }
 
+    // Deo koji isporucuje sliku. Izlozen radi dijagnostike u testovima; NE
+    // sluzi za pokretanje - to ide iskljucivo kroz bit u registru 0xE800.
+    const ScanEngine& scanEngine() const noexcept { return scan_; }
+
     // Pomeri simulirano vreme. Zagrevanje lampe zavisi iskljucivo od ovoga,
     // ne od sistemskog sata - testovi su zato trenutni i deterministicki.
     void advanceTime(std::uint32_t milliseconds) noexcept;
@@ -124,6 +129,7 @@ private:
     VirtualLamp tmaLamp_;
     VirtualCcd ccd_;
     FailureInjector faults_;
+    ScanEngine scan_;
 
     bool open_ = true;
     bool cancelled_ = false;

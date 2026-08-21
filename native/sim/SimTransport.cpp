@@ -87,6 +87,15 @@ void SimTransport::mirrorHardwareIntoRegisters() noexcept {
     // defekt REPRODUKUJE: posle setLamp(Tma, true), lampStatus() prijavljuje
     // TMA kao ugasenu, tacno kao sto bi se ponasala referenca.
 
+    // Bit izvrsavanja je stanje HARDVERA, ne memorija: cip ga sam spusti kada
+    // isporuci poslednji red. Kod koji anketira RTS_WaitScanEnd zato ovde vidi
+    // kraj prolaza, bez ijednog posebnog testnog poziva.
+    auto& controlByte = registers_[registerIndex(reg::kControl)];
+    if (!scan_.running()) {
+        controlByte = static_cast<std::uint8_t>(
+            controlByte & static_cast<std::uint8_t>(~reg::kControlExecutingBit));
+    }
+
     // PWM duty cycle koji je engine postavio vraca se kao stvarno stanje.
     auto& pwmByte = registers_[registerIndex(reg::kLampPwm)];
     flatbedLamp_.setDutyCycle(static_cast<std::uint8_t>(pwmByte & reg::kLampPwmDutyMask));
@@ -108,6 +117,25 @@ void SimTransport::applyRegisterWritesToHardware() noexcept {
         tmaLamp_.turnOn();
     } else {
         tmaLamp_.turnOff();
+    }
+
+    // Bit izvrsavanja pokrece i zaustavlja skeniranje.
+    //
+    // Engine geometriju CITA IZ BANK-A, ne dobija je pozivom - isto kao cip.
+    // Zato pogresno upisana sirina ovde daje pogresnu sliku, umesto da prodje
+    // neprimeceno.
+    const bool executeBit =
+        (registers_[registerIndex(reg::kControl)] & reg::kControlExecutingBit) != 0;
+
+    if (executeBit && !scan_.running()) {
+        if (!scan_.start(registers_, motor_.position())) {
+            // Cip ne bi pokrenuo prolaz koji ne ume da protumaci; bit odmah
+            // pada nazad, pa isExecuting() kaze istinu.
+            registers_[registerIndex(reg::kControl)] &=
+                static_cast<std::uint8_t>(~reg::kControlExecutingBit);
+        }
+    } else if (!executeBit && scan_.running()) {
+        scan_.stop();
     }
 }
 
@@ -238,6 +266,12 @@ Result<std::size_t> SimTransport::bulkRead(std::span<std::byte> buffer) {
     if (const Status s = applyFault(TransferKind::BulkRead, "sim: bulkRead"); !s) {
         return s.error();
     }
+    // Dok prolaz traje, bulk kanal nosi SLIKU. To je isti endpoint kojim
+    // inace ide DMA, pa se razlikuju po tome sta je cip u tom trenutku.
+    if (scan_.running()) {
+        return scan_.read(buffer, ccd_, flatbedLamp_, motor_);
+    }
+
     const std::size_t count = (std::min)(buffer.size(), dmaMemory_.size());
     for (std::size_t i = 0; i < count; ++i) {
         buffer[i] = static_cast<std::byte>(dmaMemory_[i]);
@@ -313,8 +347,10 @@ Status SimTransport::reopen() {
 
 bool SimTransport::isHardwareBackedRegister(std::uint16_t address) noexcept {
     namespace reg = g2710::rts8822::reg;
+    // kControl je ovde zbog bita izvrsavanja: cip ga sam spusta kada isporuci
+    // poslednji red, pa upisana jedinica ne prezivljava ako prolaz ne tece.
     return address == reg::kHeadSensor || address == reg::kLampStatus ||
-           address == reg::kLampMode;
+           address == reg::kLampMode || address == reg::kControl;
 }
 
 std::uint8_t SimTransport::peekRegister(std::uint16_t address) const noexcept {

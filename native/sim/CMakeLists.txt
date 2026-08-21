@@ -5,6 +5,7 @@
 # zakazuju eksplicitno da bi testovi bili ponovljivi.
 add_library(g2710_sim STATIC
     FailureInjector.cpp
+    ScanEngine.cpp
     SimTransport.cpp
     TestTarget.cpp
     VirtualCcd.cpp

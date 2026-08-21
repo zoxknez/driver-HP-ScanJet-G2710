@@ -58,6 +58,7 @@ add_executable(g2710_golden_tests
     golden/line_offset_test.cpp
     golden/pixel_format_test.cpp
     golden/resize_test.cpp
+    golden/scan_registers_test.cpp
     golden/scan_planner_test.cpp
 )
 target_link_libraries(g2710_golden_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
@@ -66,7 +67,10 @@ gtest_discover_tests(g2710_golden_tests)
 # --- integracioni testovi ---------------------------------------------------
 # Kalibracija protiv simulatora koji NAMERNO gresi. Acceptance gate faze
 # G2710-5 je ovde.
-add_executable(g2710_integration_tests integration/calibration_test.cpp)
+add_executable(g2710_integration_tests
+    integration/calibration_test.cpp
+    integration/scan_acquisition_test.cpp
+)
 target_link_libraries(g2710_integration_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
 gtest_discover_tests(g2710_integration_tests)
 

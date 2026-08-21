@@ -184,3 +184,64 @@ control transferu**.
 | Chipset | `RTS8822BL-03A` (`RTS8822BL_03A = 0x02`) |
 | Chipset capabilities | `CAP_EEPROM` |
 | Model id u backendu | `HPG2710 = 0x07` |
+
+## 8. Geometrija skeniranja u registrima
+
+Cela oblast skeniranja stoji u registrima — ništa se ne drži sa strane. To je
+razlog zašto simulator geometriju **čita odatle**, kroz iste adrese kroz koje
+bi je čitao i čip, a ne kroz sporedni kanal koji u produkciji ne postoji.
+
+| Adresa | `Regs[]` | Značenje | Izvor |
+|---|---|---|---|
+| `0xE8B0` | `0x0B0` | leva ivica, 2 bajta | `RTS_Setup_Coords`, rts8822.c:9239 |
+| `0xE8B2` | `0x0B2` | desna ivica = levo + širina | :9242 |
+| `0xE8D0` | `0x0D0` | gornja ivica, donjih 16 bita | :9245 |
+| `0xE8D2` | `0x0D2` | donja ivica, donjih 16 bita | :9249 |
+| `0xE8D4` | `0x0D4` | niži nibl = gore[19:16], viši = dole[19:16] | :9246, :9250 |
+| `0xE812` | `0x012` | kanala po tački, maska `0xC0` | `RTS_Setup_Depth`, :8774 |
+| `0xE9CF` | `0x1CF` | dubina po kanalu, maska `0x30` | :8783 |
+| `0xEE0B` | `0x60B` | kanal je 2 bajta ako je `0x40` i nije `0x08` | :7731 |
+| `0xE8C0` | `0x0C0` | odnos rezolucija, maska `0x1F` | :9121 |
+| `0xE8D6` | `0x0D6` | dummy redovi, maska `0xF0` | :9144 |
+| `0xE949`–`0xE94D` | `0x149`–`0x14D` | pomak reda po kanalu, po 6 bita | `RTS_Setup_Line_Distances`, :8701 |
+
+### Koordinate nisu u pikselima skeniranja
+
+Ovo je najlakše prevideti mesto u celom protokolu.
+
+```
+levo_reg   = max(levo, 1) * odnos_rezolucija      pa naviše na NEPARNO
+sirina_reg = sirina * odnos_rezolucija
+gore_reg   = max(gore, 1) * dummy_redovi
+visina_reg = (Regs[0x14D] & 0x3F + visina + softverski_razmak) * dummy_redovi
+```
+
+Vodoravne koordinate su u jedinicama **senzora** (2400 dpi), ne skeniranja.
+Uspravne su u dummy redovima. Visina je uz to **produžena** za onoliko redova
+koliko poravnanje kanala pojede pre nego što prvi ispravan red izađe.
+
+Bez ove transformacije registri deluju tačno a slika ispada uža i kraća nego
+što je tražena — greška koja se vidi tek na hardveru. Prenos je u
+`rts8822::toRegisterCoordinates`.
+
+Zahtev da leva ivica bude neparna (:9159) referenca ne obrazlaže. Tiče se
+parnih i neparnih piksela senzora, gde pomeraj za jedan menja koji ADC lanac
+čita koji piksel; prenet je doslovno.
+
+### Pokretanje
+
+`RTS_Execute` (:3947) je **šest upisa** naizmenično preko `0xE813` i `0xE800`,
+i tek poslednji podiže bit `0x80`. Sekvenca se ne sme skraćivati — to je
+najlakši način da se dobije čip koji „ne počinje".
+
+`RTS_WaitScanEnd` (:3868) vraća `OK` i kada rok istekne; njegov komentar to i
+kaže: *„returns 0 if ok or timeout"*. Time se gubi razlika između završenog
+prolaza i odustajanja. Na tuđem računaru, gde jedini trag ostaje u izveštaju,
+to je baš ona razlika koja se traži — pa naš `waitScanEnd` vraća `Timeout`.
+
+### Fiksni PWM lampe je nula, i to ne znači tamu
+
+`cfg_fixedpwm_get` za G2710 vraća `0`, i `Lamp_PWM_Setup` (:2480) tu nulu
+stvarno upisuje u polje duty cycle-a. Da nula znači ugašenu lampu, referenca
+ovaj skener nikada ne bi osvetlila. Nula znači **bez PWM ograničenja**, dakle
+puna pobuda. Simulator to modelira isto.

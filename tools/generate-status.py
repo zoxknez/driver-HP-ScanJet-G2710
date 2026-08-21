@@ -45,9 +45,11 @@ PHASES = [
     ("G2710-2", "RTS8822 core", [
         "golden/register_sequence_test.cpp", "golden/dma_sequence_test.cpp",
         "golden/gpio_sequence_test.cpp", "golden/sensor_timing_test.cpp",
-        "golden/motor_sequence_test.cpp", "golden/motor_steps_test.cpp"]),
-    ("G2710-3", "Simulator uredjaja", [
-        "unit/sim_transport_test.cpp", "unit/simulator_test.cpp"]),
+        "golden/motor_sequence_test.cpp", "golden/motor_steps_test.cpp",
+        "golden/scan_registers_test.cpp"]),
+    ("G2710-3", "Simulator i akvizicija", [
+        "unit/sim_transport_test.cpp", "unit/simulator_test.cpp",
+        "integration/scan_acquisition_test.cpp"]),
     ("G2710-4", "Stanja, MotionGuard, arbitraza", [
         "unit/safety_level_test.cpp", "unit/safety_ceiling1_test.cpp",
         "unit/device_arbiter_test.cpp", "unit/motion_guard_test.cpp",

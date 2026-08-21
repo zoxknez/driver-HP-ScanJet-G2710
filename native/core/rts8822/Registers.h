@@ -29,6 +29,68 @@ inline constexpr std::uint8_t kCcdChannelsLowMask = 0xE0;  // u Regs[0x010]
 inline constexpr std::uint8_t kCcdChannelsHighMask = 0x80; // u Regs[0x013]
 inline constexpr std::uint16_t kCcdChannelsHigh = 0xE813;  // Regs[0x013]
 
+// --- geometrija skeniranja -------------------------------------------------
+//
+// rts8822.c:9229 RTS_Setup_Coords. Cela oblast skeniranja stoji u registrima -
+// nista se ne drzi sa strane. Zato simulator geometriju CITA odavde, kroz iste
+// adrese kroz koje bi je citao i cip, umesto kroz neki testni kanal koji u
+// produkciji ne postoji.
+inline constexpr std::uint16_t kScanLeft = 0xE8B0;   // Regs[0x0B0], 2 bajta
+inline constexpr std::uint16_t kScanRight = 0xE8B2;  // Regs[0x0B2], levo + sirina
+inline constexpr std::uint16_t kScanTop = 0xE8D0;    // Regs[0x0D0], 2 bajta
+inline constexpr std::uint16_t kScanBottom = 0xE8D2; // Regs[0x0D2], gore + visina
+
+// Treci bajt obe uspravne koordinate. Nizi nibl pripada vrhu, visi dnu, pa je
+// najveca uspravna koordinata 20-bitna: 0xE8D0 daje 16 bita, ovaj jos 4.
+inline constexpr std::uint16_t kScanVerticalHigh = 0xE8D4;  // Regs[0x0D4]
+inline constexpr std::uint8_t kScanTopHighMask = 0x0F;
+inline constexpr std::uint8_t kScanBottomHighMask = 0xF0;
+
+// rts8822.c:8701 RTS_Setup_Line_Distances - pomak reda po kanalu.
+//
+// Pet SESTOBITNIH polja. Sirina je razlog za D3: G2710 na 1200 dpi trazi 64 u
+// 0x14C, a 64 ne staje u sest bita. Vidi docs/REFERENCE-DEFECTS.md.
+inline constexpr std::uint16_t kLineOffsetEvenOdd = 0xE949;       // Regs[0x149]
+inline constexpr std::uint16_t kLineOffsetDistance = 0xE94A;      // Regs[0x14A]
+inline constexpr std::uint16_t kLineOffsetDistancePlus = 0xE94B;  // Regs[0x14B]
+inline constexpr std::uint16_t kLineOffsetDouble = 0xE94C;        // Regs[0x14C]
+inline constexpr std::uint16_t kLineOffsetDoublePlus = 0xE94D;    // Regs[0x14D]
+inline constexpr std::uint8_t kLineOffsetMask = 0x3F;
+
+// rts8822.c:9121 - odnos rezolucija: sensorResolution / resolution_x.
+// Za G2710 (senzor 2400): 150 dpi -> 16, 300 -> 8, 600 -> 4, 1200 -> 2, 2400 -> 1.
+// Odavde se rezolucija skeniranja moze rekonstruisati iz samih registara.
+inline constexpr std::uint16_t kResolutionRatio = 0xE8C0;  // Regs[0x0C0]
+inline constexpr std::uint8_t kResolutionRatioMask = 0x1F;
+
+// rts8822.c:9144 - broj "dummy" redova; uspravne koordinate su izrazene u
+// njima, ne u redovima slike.
+inline constexpr std::uint16_t kDummyLine = 0xE8D6;  // Regs[0x0D6]
+inline constexpr std::uint8_t kDummyLineMask = 0xF0;
+
+// rts8822.c:8774 RTS_Setup_Depth - kanala po tacki.
+inline constexpr std::uint16_t kChannelsPerDot = 0xE812;  // Regs[0x012]
+inline constexpr std::uint8_t kChannelsPerDotMask = 0xC0;
+
+// Redosled kanala unutar tacke; ista adresa, nizi bitovi. rts8822.c:9033.
+inline constexpr std::uint8_t kChannelOrder0Mask = 0x03;
+inline constexpr std::uint8_t kChannelOrder1Mask = 0x0C;
+inline constexpr std::uint8_t kChannelOrder2Mask = 0x30;
+
+// rts8822.c:8783 RTS_Setup_Depth - dubina po kanalu, u registru za shading.
+// Vrednosti odgovaraju image::DepthCode: 0=8, 1=12, 2=16, 3=lineart.
+inline constexpr std::uint16_t kDepthCode = 0xE9CF;  // Regs[0x1CF]
+inline constexpr std::uint8_t kDepthCodeMask = 0x30;
+
+// rts8822.c:7731 - dva bita koja zajedno kazu da kanal zauzima dva bajta.
+inline constexpr std::uint16_t kChannelSize = 0xEE0B;  // Regs[0x60B]
+inline constexpr std::uint8_t kChannelSizeWideBit = 0x40;
+inline constexpr std::uint8_t kChannelSizeNarrowBit = 0x08;
+
+// rts8822.c:8390 Scan_Start - prag za lineart, dve reci.
+inline constexpr std::uint16_t kThresholdLow = 0xE99E;   // Regs[0x19E]
+inline constexpr std::uint16_t kThresholdHigh = 0xE9A0;  // Regs[0x1A0]
+
 // --- lampa -----------------------------------------------------------------
 
 // rts8822.c:4104 Lamp_Status_Get

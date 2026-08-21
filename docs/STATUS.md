@@ -8,14 +8,14 @@ Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**330/330 prolazi.**
+**371/371 prolazi.**
 
 | Faza | Oblast | Stanje | Testovi |
 |---|---|---|---|
 | G2710-0 | Reference truth extraction | **PASS** | 1/1 |
 | G2710-1 | WDK, skeleton, transport | **PASS** | 20/20 |
-| G2710-2 | RTS8822 core | **PASS** | 84/84 |
-| G2710-3 | Simulator uredjaja | **PASS** | 43/43 |
+| G2710-2 | RTS8822 core | **PASS** | 111/111 |
+| G2710-3 | Simulator i akvizicija | **PASS** | 57/57 |
 | G2710-4 | Stanja, MotionGuard, arbitraza | **PASS** | 54/54 |
 | G2710-5 | Kalibracija | **PASS** | 30/30 |
 | G2710-6 | Obrada slike | **PASS** | 67/67 |

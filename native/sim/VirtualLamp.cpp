@@ -51,7 +51,12 @@ double VirtualLamp::level() const noexcept {
     const double warmed = cold + (profile_.stableLevel - cold) * warmFraction();
 
     // PWM skalira nivo; pun opseg je 0x3F.
-    const double dutyScale = static_cast<double>(duty_) / 63.0;
+    //
+    // NULA NIJE TAMA. cfg_fixedpwm_get za G2710 vraca 0, i Lamp_PWM_Setup tu
+    // nulu stvarno upisuje u registar (rts8822.c:2480). Da nula znaci ugasenu
+    // lampu, referenca ovaj skener nikada ne bi osvetlila - a osvetljava ga.
+    // Nula znaci "bez PWM ogranicenja", dakle puna pobuda.
+    const double dutyScale = duty_ == 0 ? 1.0 : static_cast<double>(duty_) / 63.0;
     return std::clamp(warmed * dutyScale, 0.0, 65535.0);
 }
 
