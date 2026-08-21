@@ -16,7 +16,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-2 RTS8822 core | **završen** — gate PASS |
 | G2710-3 Simulator i akvizicija | **završen** — simulator zaista skenira kroz bulk |
 | G2710-4 State machine / MotionGuard | **završen** |
-| G2710-5 Kalibracija | lampa, warmup, shading — gate PASS |
+| G2710-5 Kalibracija | **završen** — lampa, shading, ADC gain/offset, keš |
 | G2710-6 Image pipeline | line offset, gamma, sivo, lineart, dubina |
 | G2710-7 Planer i sesija skeniranja | **završen** — `g2710ctl scan` daje sliku |
 
