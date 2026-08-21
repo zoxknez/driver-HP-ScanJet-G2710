@@ -100,5 +100,6 @@ powershell -File tools/verify-safety-ceiling.ps1
 Dokumentacija: [PROTOCOL-RTS8822.md](docs/PROTOCOL-RTS8822.md) ·
 [G2710-PROFILE.md](docs/G2710-PROFILE.md) · [SAFETY.md](docs/SAFETY.md) ·
 [SIGNING.md](docs/SIGNING.md) ·
+[ROADMAP.md](docs/ROADMAP.md) ·
 [REFERENCE-DEFECTS.md](docs/REFERENCE-DEFECTS.md) ·
 [STATUS.md](docs/STATUS.md)
