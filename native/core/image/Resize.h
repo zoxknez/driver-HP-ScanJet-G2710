@@ -107,4 +107,48 @@ private:
     int produced_ = 0;
 };
 
+// Uspravno smanjivanje za lineart.
+//
+// Odvojena klasa jer racun NIJE isti: bitovi se ne mogu mesati, pa referenca
+// (rts8822.c:6850) meri koliko je "crnog" upalo iz oba reda i poredi sa
+// pragom. Prag je izlazna rezolucija, a ne njena polovina - isto lenient
+// pravilo kao vodoravno, iz istog razloga: tanka linija ne sme da nestane.
+class VerticalLineartResampler {
+public:
+    VerticalLineartResampler(int fromResolution, int toResolution, std::size_t widthInPixels);
+
+    int fromResolution() const noexcept { return from_; }
+    int toResolution() const noexcept { return to_; }
+    std::size_t widthInPixels() const noexcept { return width_; }
+    std::size_t bytesPerLine() const noexcept { return (width_ + 7) / 8; }
+
+    bool valid() const noexcept { return width_ > 0 && from_ > 0 && to_ > 0 && to_ <= from_; }
+
+    // Ubaci jedan pakovan red na native rezoluciji.
+    Status push(std::span<const std::uint8_t> line);
+
+    bool hasOutput() const noexcept { return ready_; }
+    Status pop(std::span<std::uint8_t> out);
+
+    int consumedLines() const noexcept { return consumed_; }
+    int producedLines() const noexcept { return produced_; }
+
+    void reset();
+
+private:
+    int from_;
+    int to_;
+    std::size_t width_;
+
+    std::vector<std::uint8_t> previous_;
+    std::vector<std::uint8_t> current_;
+    std::vector<std::uint8_t> output_;
+
+    int accumulator_ = 0;
+    bool hasPrevious_ = false;
+    bool ready_ = false;
+    int consumed_ = 0;
+    int produced_ = 0;
+};
+
 }  // namespace g2710::image

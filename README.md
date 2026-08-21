@@ -18,7 +18,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-4 State machine / MotionGuard | **završen** |
 | G2710-5 Kalibracija | lampa, warmup, shading — gate PASS |
 | G2710-6 Image pipeline | line offset, gamma, sivo, lineart, dubina |
-| G2710-7 Planer i mogućnosti | **završen** — [STATUS.md](docs/STATUS.md) se generiše |
+| G2710-7 Planer i sesija skeniranja | **završen** — `g2710ctl scan` daje sliku |
 
 ```bash
 python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py
@@ -43,6 +43,12 @@ build/native/cli/Release/g2710ctl.exe info
 
 ```bash
 build/native/cli/Release/g2710ctl.exe capabilities
+```
+
+Skeniranje nad simulatorom, bez skenera:
+
+```bash
+build/native/cli/Release/g2710ctl.exe scan --transport sim --safety-level 5 --dpi 300 --mode color --out slika.ppm
 ```
 
 Driver paket i potpisivanje:

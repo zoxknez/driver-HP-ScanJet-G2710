@@ -37,9 +37,13 @@ add_executable(g2710_unit_tests
     unit/simulator_test.cpp
     unit/motion_guard_test.cpp
     unit/device_lifecycle_test.cpp
+    unit/pnm_writer_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/cli/ImageOutput.cpp
 )
 target_link_libraries(g2710_unit_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
-target_include_directories(g2710_unit_tests PRIVATE ${CMAKE_SOURCE_DIR}/native/wia)
+target_include_directories(g2710_unit_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/native/wia
+    ${CMAKE_SOURCE_DIR}/native/cli)
 target_compile_definitions(g2710_unit_tests PRIVATE
     G2710_INF_PATH="${CMAKE_SOURCE_DIR}/driver/g2710.inf")
 gtest_discover_tests(g2710_unit_tests)
@@ -70,6 +74,7 @@ gtest_discover_tests(g2710_golden_tests)
 add_executable(g2710_integration_tests
     integration/calibration_test.cpp
     integration/scan_acquisition_test.cpp
+    integration/scan_session_test.cpp
 )
 target_link_libraries(g2710_integration_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
 gtest_discover_tests(g2710_integration_tests)

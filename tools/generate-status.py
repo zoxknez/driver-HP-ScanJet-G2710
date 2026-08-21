@@ -56,11 +56,11 @@ PHASES = [
         "unit/device_lifecycle_test.cpp"]),
     ("G2710-5", "Kalibracija", [
         "golden/lamp_test.cpp", "integration/calibration_test.cpp"]),
-    ("G2710-6", "Obrada slike", [
+    ("G2710-6", "Obrada slike i izlaz", [
         "golden/line_offset_test.cpp", "golden/pixel_format_test.cpp",
-        "golden/resize_test.cpp"]),
-    ("G2710-7", "Planer i tabela mogucnosti", [
-        "golden/scan_planner_test.cpp"]),
+        "golden/resize_test.cpp", "unit/pnm_writer_test.cpp"]),
+    ("G2710-7", "Planer i sesija skeniranja", [
+        "golden/scan_planner_test.cpp", "integration/scan_session_test.cpp"]),
 ]
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.

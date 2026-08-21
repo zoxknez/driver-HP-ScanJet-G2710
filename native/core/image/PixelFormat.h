@@ -49,6 +49,15 @@ struct LineGeometry {
 // Lineart NE koristi `depth` - jedan bit po tacki, zaokruzeno na bajt.
 LineGeometry computeLineGeometry(ColorMode mode, int depth, std::size_t widthInDots) noexcept;
 
+// Osmobitni uzorak u punu 16-bitnu skalu.
+//
+// Ponavljanje bajta, ne pomeranje: 0xFF mora dati 0xFFFF, a ne 0xFF00.
+// Sa pomeranjem najsvetliji piksel nikada ne dostigne punu skalu, pa
+// shading racuna pojacanje vece od jedan i tiho posvetli celu sliku.
+constexpr std::uint16_t widenToFullScale(std::uint8_t value) noexcept {
+    return static_cast<std::uint16_t>((value << 8) | value);
+}
+
 // --- parni i neparni pikseli -------------------------------------------------
 //
 // CCD izbacuje dva isprepletana toka. Razdvajanje i spajanje su inverzne

@@ -80,6 +80,10 @@ struct ScanFormat {
     // Prag za lineart. Ignorise se u ostalim rezimima, ali se upisuje uvek -
     // referenca ga upisuje bezuslovno u Scan_Start.
     image::LineartThreshold threshold;
+
+    // Samo za citanje: da li registar sirine kanala kaze dva bajta.
+    // setFormat() ga izvodi iz depthCode i ne cita ovo polje.
+    bool wideChannel = false;
 };
 
 // Koliko bajtova cip isporucuje po redu za datu geometriju i format.

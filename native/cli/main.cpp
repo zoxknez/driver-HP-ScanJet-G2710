@@ -6,9 +6,13 @@
 
 #include "device/G2710Device.h"
 #include "device/SafetyLevel.h"
+#include "rts8822/Lamp.h"
 #include "rts8822/Rts8822.h"
 #include "scan/Capabilities.h"
 #include "scan/ScanPlanner.h"
+#include "scan/ScanSession.h"
+
+#include "ImageOutput.h"
 #include "transport/ITransportProvider.h"
 #include "transport/UsbScanTransport.h"
 #include "G2710Profile.generated.h"
@@ -16,6 +20,9 @@
 #include "../sim/SimTransport.h"
 
 #include <chrono>
+#include <cstdarg>
+#include <io.h>
+#include <thread>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -29,16 +36,35 @@ namespace {
 constexpr const char* kUsage =
     "g2710ctl - HP ScanJet G2710 dijagnostika\n"
     "\n"
-    "  g2710ctl probe    [opcije]   identitet uredjaja i konfiguracija pipe-ova\n"
-    "  g2710ctl regdump  [opcije]   ispis registarskog bank-a\n"
-    "  g2710ctl status   [opcije]   senzori, lampe, PWM (sve read-only)\n"
-    "  g2710ctl info                ugradjeni profil i granice build-a\n"
+    "Komande:\n"
+    "  probe    [opcije]   identitet uredjaja i konfiguracija pipe-ova\n"
+    "  regdump  [opcije]   ispis registarskog bank-a\n"
+    "  status   [opcije]   senzori, lampe, PWM (sve read-only)\n"
+    "  scan     [opcije]   skeniraj u PNM fajl\n"
+    "  info                ugradjeni profil i granice build-a\n"
+    "  capabilities        tabela mogucnosti sa statusom validacije\n"
     "\n"
-    "Opcije:\n"
+    "Opste opcije:\n"
     "  --transport <usbscan|sim>    podrazumevano usbscan\n"
+    "  --device <putanja>           podrazumevano \\\\.\\Usbscan0\n"
     "  --safety-level <1..5>        zahtevani nivo; efektivni je\n"
     "                               min(BuildSafetyCeiling, zahtevani)\n"
-    "  --device <putanja>           podrazumevano \\\\.\\Usbscan0\n";
+    "  --json                       masinski citljiv izlaz (capabilities)\n"
+    "\n"
+    "Opcije komande scan:\n"
+    "  --dpi <n>                    50 75 100 150 200 300 600 1200 2400\n"
+    "  --mode <color|gray|lineart>  podrazumevano color\n"
+    "  --depth <8|16>               podrazumevano 8\n"
+    "  --out <putanja>              podrazumevano scan.ppm, .pgm ili .pbm\n"
+    "  --region <L,G,S,V>           u pikselima na trazenoj rezoluciji\n"
+    "  --gamma <broj>               1.0 je bez korekcije\n"
+    "  --warmup <ms>                cekanje posle paljenja lampe; 3000\n"
+    "  --only-advertised            odbij sve sto hardver nije potvrdio -\n"
+    "                               ono sto bi WIA i TWAIN videli\n";
+
+// Definisano nize, uz ostatak scan komande; deklarisano ovde jer ga parse()
+// koristi.
+bool parseRegion(const std::string& text, scan::ScanRegion* out);
 
 struct Options {
     std::string command;
@@ -46,6 +72,16 @@ struct Options {
     std::wstring devicePath;
     SafetyLevel requested = SafetyLevel::ReadOnly;
     bool json = false;
+
+    // scan
+    int dpi = 300;
+    image::ColorMode mode = image::ColorMode::Color;
+    int depth = 8;
+    std::string outputPath;
+    scan::ScanRegion region;
+    double gamma = 1.0;
+    bool onlyAdvertised = false;
+    int warmupMs = 3000;
 };
 
 bool parse(int argc, char** argv, Options* out) {
@@ -60,6 +96,37 @@ bool parse(int argc, char** argv, Options* out) {
 
         if (arg == "--json") {
             out->json = true;
+        } else if (arg == "--warmup" && hasNext) {
+            out->warmupMs = std::atoi(argv[++i]);
+        } else if (arg == "--only-advertised") {
+            out->onlyAdvertised = true;
+        } else if (arg == "--dpi" && hasNext) {
+            out->dpi = std::atoi(argv[++i]);
+        } else if (arg == "--depth" && hasNext) {
+            out->depth = std::atoi(argv[++i]);
+        } else if (arg == "--out" && hasNext) {
+            out->outputPath = argv[++i];
+        } else if (arg == "--gamma" && hasNext) {
+            out->gamma = std::atof(argv[++i]);
+        } else if (arg == "--mode" && hasNext) {
+            const std::string value = argv[++i];
+            if (value == "color") {
+                out->mode = image::ColorMode::Color;
+            } else if (value == "gray") {
+                out->mode = image::ColorMode::Gray;
+            } else if (value == "lineart") {
+                out->mode = image::ColorMode::Lineart;
+            } else {
+                std::fprintf(stderr, "nepoznat rezim: %s (color, gray ili lineart)\n",
+                             value.c_str());
+                return false;
+            }
+        } else if (arg == "--region" && hasNext) {
+            if (!parseRegion(argv[++i], &out->region)) {
+                std::fprintf(stderr,
+                             "oblast se pise kao --region levo,gore,sirina,visina\n");
+                return false;
+            }
         } else if (arg == "--transport" && hasNext) {
             out->transport = argv[++i];
         } else if (arg == "--device" && hasNext) {
@@ -320,6 +387,352 @@ int cmdStatus(ITransport& transport, const SafetyGate& gate) {
     return 0;
 }
 
+// --- scan -------------------------------------------------------------------
+
+// Grupisan ispis: naslov pa parovi ime/vrednost poravnati u kolonu. CLI je
+// prvo mesto na kome prijatelj vidi da li nesto radi, pa se cita kao izvestaj,
+// ne kao dnevnik.
+void printSection(const char* title) {
+    std::printf("\n%s\n", title);
+}
+
+void printField(const char* name, const char* format, ...) {
+    std::printf("  %-20s ", name);
+    va_list args;
+    va_start(args, format);
+    std::vprintf(format, args);
+    va_end(args);
+    std::printf("\n");
+}
+
+std::string formatBytes(std::size_t bytes) {
+    char buffer[64];
+    if (bytes >= 1024u * 1024u) {
+        std::snprintf(buffer, sizeof(buffer), "%.1f MB (%zu bajta)",
+                      static_cast<double>(bytes) / (1024.0 * 1024.0), bytes);
+    } else if (bytes >= 1024u) {
+        std::snprintf(buffer, sizeof(buffer), "%.1f kB (%zu bajta)",
+                      static_cast<double>(bytes) / 1024.0, bytes);
+    } else {
+        std::snprintf(buffer, sizeof(buffer), "%zu bajta", bytes);
+    }
+    return buffer;
+}
+
+// Da li izlaz ide u terminal.
+//
+// Vazno je: `\r` prepisuje red samo u terminalu. U preusmerenom izlazu bi
+// svaki red ostao, pa bi prolaz od tri hiljade redova ostavio dve stotine
+// kilobajta smeca umesto jedne trake.
+bool stdoutIsTerminal() {
+    return _isatty(_fileno(stdout)) != 0;
+}
+
+// Traka napretka.
+//
+// Stanje je u strukturi, ne u statickim promenljivama: dva prolaza u istom
+// procesu moraju krenuti od nule, inace drugi ne bi ispisao nista.
+struct Progress {
+    int total = 0;
+    int lastStep = -1;
+    int lastDecile = -1;
+    bool terminal = false;
+
+    void begin(int totalLines) {
+        total = totalLines;
+        lastStep = -1;
+        lastDecile = -1;
+        terminal = stdoutIsTerminal();
+    }
+
+    void update(int done) {
+        constexpr int kWidth = 38;
+        constexpr int kSteps = 200;  // najvise toliko crtanja po prolazu
+
+        const double fraction = total > 0 ? static_cast<double>(done) / total : 0.0;
+        const int percent = static_cast<int>(fraction * 100.0);
+
+        if (!terminal) {
+            // Bez terminala `\r` ne prepisuje red, pa bi svaki red ostao.
+            // Javlja se samo kada predje na sledecih deset odsto.
+            const int decile = percent / 10;
+            if (decile != lastDecile) {
+                lastDecile = decile;
+                std::printf("  %3d%%  %d/%d redova\n", percent, done, total);
+            }
+            return;
+        }
+
+        const int step = total > 0 ? (done * kSteps) / total : kSteps;
+        if (step == lastStep) {
+            return;
+        }
+        lastStep = step;
+
+        const int filled = static_cast<int>(fraction * kWidth);
+        std::printf("\r  [");
+        for (int i = 0; i < kWidth; ++i) {
+            std::putchar(i < filled ? '#' : '.');
+        }
+        std::printf("] %3d%%  %d/%d redova", percent, done, total);
+        std::fflush(stdout);
+    }
+
+    void finish(int done) {
+        update(done);
+        if (terminal) {
+            std::printf("\n");
+        }
+    }
+
+    // Zatvori traku pre poruke o gresci, da se ne slepe u isti red.
+    void interrupt() const {
+        if (terminal) {
+            std::printf("\n");
+        }
+    }
+};
+
+bool parseRegion(const std::string& text, scan::ScanRegion* out) {
+    int values[4] = {0, 0, 0, 0};
+    std::size_t start = 0;
+
+    for (int i = 0; i < 4; ++i) {
+        const std::size_t comma = text.find(',', start);
+        const bool last = (i == 3);
+
+        // Cetvrti deo nema zarez iza sebe, prva tri ga moraju imati.
+        if (last != (comma == std::string::npos)) {
+            return false;
+        }
+
+        const std::string part =
+            text.substr(start, last ? std::string::npos : comma - start);
+        if (part.empty()) {
+            return false;
+        }
+        values[i] = std::atoi(part.c_str());
+        if (!last) {
+            start = comma + 1;
+        }
+    }
+
+    out->left = values[0];
+    out->top = values[1];
+    out->width = values[2];
+    out->height = values[3];
+    return true;
+}
+
+int cmdScan(G2710Device& scanner, const Options& options) {
+    using namespace g2710::scan;
+
+    // Planiranje je cist racun i ne dira uredjaj; greske se vide pre nego sto
+    // se bilo sta pokrene.
+    ScanRequest request;
+    request.resolution = options.dpi;
+    request.colorMode = options.mode;
+    request.depth = options.depth;
+    request.region = options.region;
+    request.allowUnqualified = !options.onlyAdvertised;
+
+    auto planned = planScan(request);
+    if (!planned) {
+        std::fprintf(stderr, "plan: %s", toString(planned.error().code));
+        if (planned.error().context[0] != '\0') {
+            std::fprintf(stderr, " (%s)", planned.error().context);
+        }
+        std::fputc('\n', stderr);
+        if (options.onlyAdvertised) {
+            std::fprintf(stderr,
+                         "\nRezim --only-advertised nudi samo hardverski potvrdjene\n"
+                         "rezolucije, a nijedna to jos nije. Izostavi taj prekidac za\n"
+                         "dijagnosticko skeniranje.\n");
+        }
+        return 8;
+    }
+    const ScanPlan& plan = planned.value();
+
+    const ResolutionCapability* capability = findResolution(options.dpi);
+    const bool qualified = capability != nullptr && capability->advertisable();
+
+    printSection("Plan skeniranja");
+    printField("Trazeno", "%d dpi, %s, %d bita po kanalu", plan.requestedResolution,
+               toString(options.mode), options.depth);
+    printField("Skenira se na", "%d dpi (%s)", plan.nativeResolution,
+               plan.resize == ResizeType::None ? "native" : "pa se smanjuje");
+    printField("Oblast", "%d x %d px na (%d, %d)", plan.requestedRegion.width,
+               plan.requestedRegion.height, plan.requestedRegion.left, plan.requestedRegion.top);
+    if (plan.resize != ResizeType::None) {
+        printField("Na hardveru", "%d x %d px", plan.nativeRegion.width, plan.nativeRegion.height);
+    }
+    printField("Red na hardveru", "%zu bajta", plan.hardwareLine.bytesPerLine);
+    printField("Red na izlazu", "%zu bajta", plan.outputLine.bytesPerLine);
+    printField("Poravnanje kanala", "%s",
+               plan.tableMode != image::ColorMode::Color
+                   ? "nije potrebno (jedan kanal)"
+                   : (plan.useHardwareAlignment ? "hardversko" : "softversko"));
+    if (!plan.useHardwareAlignment && plan.softwareLineDistance > 0) {
+        printField("Razmak redova", "%d redova, lookahead %d", plan.softwareLineDistance,
+                   plan.alignmentLookahead);
+    }
+    printField("Timing profil", "%d", plan.timingIndex);
+    printField("Motorna kriva", "%s",
+               plan.motorCurveIndex >= 0 ? std::to_string(plan.motorCurveIndex).c_str()
+                                         : "nema u tabeli");
+
+    ScanOptions scanOptions;
+    if (options.gamma > 0.0 && options.gamma != 1.0) {
+        scanOptions.gamma = image::makeGammaTable(options.gamma);
+    }
+
+    rts8822::RegisterFile registers{scanner.transport()};
+    ScanSession session{registers, scanner.safety(), plan, std::move(scanOptions)};
+
+    // Lampa mora goreti pre prolaza; sesija to i proverava, ali paljenje je
+    // posao pozivaoca - isto kao na uredjaju, gde Scan_Start pretpostavlja da
+    // je Lamp_Warmup vec prosao.
+    printSection("Lampa");
+    rts8822::Lamp lamp{registers, scanner.safety()};
+
+    if (const Status lit = lamp.setLamp(rts8822::LampKind::Flatbed, true); !lit) {
+        if (lit.error().code == ErrorCode::SafetyViolation) {
+            std::fprintf(stderr,
+                         "odbijeno: paljenje lampe trazi nivo 2, a efektivni je %s.' + N + '",
+                         toString(scanner.safety().effective()));
+            return 10;
+        }
+        reportError("paljenje lampe", lit.error());
+        return 10;
+    }
+    if (const Status pwm = lamp.setupPwm(rts8822::LampKind::Flatbed); !pwm) {
+        reportError("PWM lampe", pwm.error());
+        return 10;
+    }
+
+    rts8822::Rts8822 chip{scanner.transport(), scanner.safety()};
+    const auto lampState = chip.lampStatus();
+    const auto duty = chip.lampPwmDutyCycle();
+
+    printField("Flatbed", "%s",
+               lampState && lampState.value().flatbedOn ? "gori" : "NE GORI");
+    printField("PWM duty", "%s",
+               duty ? (duty.value() == 0 ? "0 (bez ogranicenja, kao u profilu)"
+                                         : std::to_string(duty.value()).c_str())
+                    : "nepoznat");
+
+    if (options.warmupMs > 0) {
+        printField("Zagrevanje", "%d ms", options.warmupMs);
+        std::this_thread::sleep_for(std::chrono::milliseconds(options.warmupMs));
+    } else {
+        printField("Zagrevanje", "preskoceno (--warmup 0)");
+    }
+    printField("Stabilizacija", "%s",
+               "nije merena - Lamp_PWM_CheckStable trazi GetOneLineInfo");
+
+    printSection("Obrada");
+    printField("Shading", "%s",
+               session.shadingApplied()
+                   ? "primenjen"
+                   : "NIJE primenjen - kalibracija nije pokrenuta");
+    printField("Gamma", "%s", session.gammaApplied() ? "primenjena" : "nije primenjena");
+    printField("Sivo iz", "%s",
+               options.mode == image::ColorMode::Color ? "-" : "crvenog kanala (kao referenca)");
+
+    if (!qualified) {
+        std::printf("\n  UPOZORENJE   %d dpi nije hardverski potvrdjeno.\n", options.dpi);
+        std::printf("               WIA i TWAIN ovu rezoluciju ne nude. Vidi docs/STATUS.md.\n");
+        if (capability != nullptr && capability->note[0] != '\0') {
+            std::printf("               %s\n", capability->note);
+        }
+    }
+
+    // Podrazumevano ime prati rezim, da se .ppm i .pgm ne pomesaju.
+    std::string outputPath = options.outputPath;
+    if (outputPath.empty()) {
+        outputPath = std::string("scan.") + cli::pnmExtension(options.mode);
+    }
+
+    auto writer = cli::PnmWriter::create(outputPath, options.mode, options.depth,
+                                         plan.requestedRegion.width, plan.requestedRegion.height);
+    if (!writer) {
+        reportError("izlazni fajl", writer.error());
+        return 9;
+    }
+    std::unique_ptr<cli::PnmWriter> output{writer.value()};
+
+    if (const Status begun = session.begin(); !begun) {
+        if (begun.error().code == ErrorCode::SafetyViolation) {
+            std::fprintf(stderr,
+                         "\nodbijeno: skeniranje trazi nivo 5, a efektivni je %s.\n"
+                         "Dodaj --safety-level 5 (i proveri BuildSafetyCeiling kroz `info`).\n",
+                         toString(scanner.safety().effective()));
+            return 10;
+        }
+        reportError("pokretanje prolaza", begun.error());
+        return 10;
+    }
+
+    printSection("Skeniranje");
+    std::printf("  u %s\n", outputPath.c_str());
+
+    const auto startTime = std::chrono::steady_clock::now();
+    std::vector<std::uint8_t> line(session.outputBytesPerLine(), 0);
+
+    Progress progress;
+    progress.begin(session.expectedOutputLines());
+
+    for (;;) {
+        auto more = session.nextLine(line, scanner.cancellation());
+        if (!more) {
+            progress.interrupt();
+            reportError("citanje reda", more.error());
+            (void)session.abort();
+            return 11;
+        }
+        if (!more.value()) {
+            break;
+        }
+        if (const Status written = output->writeLine(line); !written) {
+            progress.interrupt();
+            reportError("upis reda", written.error());
+            (void)session.abort();
+            return 12;
+        }
+
+        progress.update(session.statistics().outputLinesProduced);
+    }
+    progress.finish(session.statistics().outputLinesProduced);
+
+    const Status closed = output->close();
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - startTime);
+
+    const ScanStatistics& stats = session.statistics();
+
+    printSection("Rezultat");
+    printField("Fajl", "%s   %s", outputPath.c_str(), output->formatName());
+    printField("Redova upisano", "%d od %d", output->linesWritten(), session.expectedOutputLines());
+    printField("Hardverskih redova", "%d", stats.hardwareLinesRead);
+    if (stats.alignmentLinesConsumed > 0) {
+        printField("Pojelo poravnanje", "%d redova", stats.alignmentLinesConsumed);
+    }
+    if (stats.resampleLinesConsumed > 0) {
+        printField("Pojelo smanjivanje", "%d redova", stats.resampleLinesConsumed);
+    }
+    printField("Procitano", "%s", formatBytes(stats.bytesRead).c_str());
+    printField("Trajanje", "%.1f s", static_cast<double>(elapsed.count()) / 1000.0);
+
+    if (!closed) {
+        std::printf("\n");
+        reportError("zatvaranje fajla", closed.error());
+        return 13;
+    }
+
+    std::printf("\n");
+    return 0;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -404,6 +817,9 @@ int main(int argc, char** argv) {
     }
     if (options.command == "status") {
         return cmdStatus(scanner.transport(), gate);
+    }
+    if (options.command == "scan") {
+        return cmdScan(scanner, options);
     }
 
     std::fputs(kUsage, stderr);

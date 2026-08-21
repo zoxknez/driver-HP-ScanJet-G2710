@@ -243,4 +243,83 @@ Status VerticalResampler::pop(std::span<std::uint16_t> out) {
     return ok();
 }
 
+// --- uspravno, lineart --------------------------------------------------------
+
+VerticalLineartResampler::VerticalLineartResampler(int fromResolution, int toResolution,
+                                                   std::size_t widthInPixels)
+    : from_(fromResolution), to_(toResolution), width_(widthInPixels) {
+    if (valid()) {
+        previous_.assign(bytesPerLine(), 0);
+        current_.assign(bytesPerLine(), 0);
+        output_.assign(bytesPerLine(), 0);
+    }
+}
+
+void VerticalLineartResampler::reset() {
+    std::fill(previous_.begin(), previous_.end(), std::uint8_t{0});
+    std::fill(current_.begin(), current_.end(), std::uint8_t{0});
+    std::fill(output_.begin(), output_.end(), std::uint8_t{0});
+    accumulator_ = 0;
+    hasPrevious_ = false;
+    ready_ = false;
+    consumed_ = 0;
+    produced_ = 0;
+}
+
+Status VerticalLineartResampler::push(std::span<const std::uint8_t> line) {
+    if (!valid()) {
+        return fail(ErrorCode::InvalidArgument,
+                    "VerticalLineartResampler: neispravna konfiguracija");
+    }
+    if (line.size() != bytesPerLine()) {
+        return fail(ErrorCode::InvalidArgument,
+                    "VerticalLineartResampler: pogresna duzina reda");
+    }
+    if (ready_) {
+        return fail(ErrorCode::InvalidState,
+                    "VerticalLineartResampler: prethodni izlaz nije preuzet");
+    }
+
+    std::copy(line.begin(), line.end(), current_.begin());
+    ++consumed_;
+    accumulator_ += to_;
+
+    if (accumulator_ > from_) {
+        accumulator_ -= from_;
+        if (hasPrevious_) {
+            // rts8822.c:6853. Tezina prethodnog reda je rescount, tekuceg
+            // (from - rescount); prag je izlazna rezolucija.
+            std::fill(output_.begin(), output_.end(), std::uint8_t{0});
+            for (std::size_t pixel = 0; pixel < width_; ++pixel) {
+                std::int64_t coverage = bitAt(previous_, pixel) ? accumulator_ : 0;
+                if (bitAt(current_, pixel)) {
+                    coverage += from_ - accumulator_;
+                }
+                if (coverage > to_) {
+                    setBit(output_, pixel);
+                }
+            }
+            ready_ = true;
+            ++produced_;
+        }
+    }
+
+    previous_.swap(current_);
+    hasPrevious_ = true;
+    return ok();
+}
+
+Status VerticalLineartResampler::pop(std::span<std::uint8_t> out) {
+    if (!ready_) {
+        return fail(ErrorCode::InvalidState, "VerticalLineartResampler: nema spremnog reda");
+    }
+    if (out.size() != bytesPerLine()) {
+        return fail(ErrorCode::InvalidArgument,
+                    "VerticalLineartResampler: pogresna duzina izlaza");
+    }
+    std::copy(output_.begin(), output_.end(), out.begin());
+    ready_ = false;
+    return ok();
+}
+
 }  // namespace g2710::image

@@ -21,6 +21,7 @@ add_library(g2710_core STATIC
 
     scan/Capabilities.cpp
     scan/ScanPlanner.cpp
+    scan/ScanSession.cpp
 
     rts8822/Dma.cpp
     rts8822/Gpio.cpp

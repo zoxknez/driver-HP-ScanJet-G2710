@@ -195,6 +195,29 @@ Status ScanRegisters::setFormat(const ScanFormat& format) {
         return s;
     }
 
+    // Sirina kanala. rts8822.c:9190 postavlja bit 0x40, :9194 obara 0x08;
+    // citanje na :7731 trazi oba uslova.
+    //
+    // Bez ovog upisa cip isporucuje OSAM bita ma sta pisalo u polju dubine,
+    // pa bi 16-bitni prolaz tiho dao pogresne podatke.
+    const bool wide = format.depthCode == image::DepthCode::Bits16 ||
+                      format.depthCode == image::DepthCode::Bits12;
+
+    auto channelSize = registers_.readByte(reg::kChannelSize);
+    if (!channelSize) {
+        return channelSize.error();
+    }
+    std::uint8_t sizeByte = channelSize.value();
+    if (wide) {
+        sizeByte = static_cast<std::uint8_t>(sizeByte | reg::kChannelSizeWideBit);
+        sizeByte = static_cast<std::uint8_t>(sizeByte & ~reg::kChannelSizeNarrowBit);
+    } else {
+        sizeByte = static_cast<std::uint8_t>(sizeByte & ~reg::kChannelSizeWideBit);
+    }
+    if (const Status s = registers_.writeByte(reg::kChannelSize, sizeByte); !s) {
+        return s;
+    }
+
     // rts8822.c:8390 - referenca oba praga upisuje bezuslovno, i u rezimima
     // gde se ne koriste. Preneto doslovno.
     if (const Status s = registers_.writeWord(
@@ -228,7 +251,14 @@ Result<ScanFormat> ScanRegisters::format() {
         return low.error();
     }
 
+    auto channelSize = registers_.readByte(reg::kChannelSize);
+    if (!channelSize) {
+        return channelSize.error();
+    }
+
     ScanFormat result;
+    result.wideChannel = (channelSize.value() & reg::kChannelSizeWideBit) != 0 &&
+                         (channelSize.value() & reg::kChannelSizeNarrowBit) == 0;
     result.channelsPerDot = bitsetGet(channels.value(), reg::kChannelsPerDotMask);
     result.depthCode =
         static_cast<image::DepthCode>(bitsetGet(depth.value(), reg::kDepthCodeMask));

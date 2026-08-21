@@ -8,7 +8,7 @@ Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**371/371 prolazi.**
+**404/404 prolazi.**
 
 | Faza | Oblast | Stanje | Testovi |
 |---|---|---|---|
@@ -18,8 +18,8 @@ Uredjaj: `03F0:2805`
 | G2710-3 | Simulator i akvizicija | **PASS** | 57/57 |
 | G2710-4 | Stanja, MotionGuard, arbitraza | **PASS** | 54/54 |
 | G2710-5 | Kalibracija | **PASS** | 30/30 |
-| G2710-6 | Obrada slike | **PASS** | 67/67 |
-| G2710-7 | Planer i tabela mogucnosti | **PASS** | 31/31 |
+| G2710-6 | Obrada slike i izlaz | **PASS** | 79/79 |
+| G2710-7 | Planer i sesija skeniranja | **PASS** | 52/52 |
 
 ## Rezolucije
 

@@ -16,6 +16,30 @@ using namespace g2710::image;
 
 // --- duzina reda -------------------------------------------------------------
 
+// Sirenje osmobitnog uzorka na punu skalu.
+//
+// Ponavljanje bajta, ne pomeranje. Sa `value << 8` najsvetliji piksel daje
+// 0xFF00 umesto 0xFFFF, pa shading racuna pojacanje vece od jedan i tiho
+// posvetli celu sliku - greska od 0.4% koja se u 8 bita ne vidi, a u
+// kalibraciji se nagomilava.
+TEST(WidenToFullScale, RepeatsTheByteInsteadOfShifting) {
+    EXPECT_EQ(widenToFullScale(0x00), 0x0000);
+    EXPECT_EQ(widenToFullScale(0xFF), 0xFFFF) << "puna skala mora biti dostizna";
+    EXPECT_EQ(widenToFullScale(0x80), 0x8080);
+    EXPECT_EQ(widenToFullScale(0x01), 0x0101);
+}
+
+// Suzavanje je inverzno do zaokruzivanja: sto se prosiri, mora se vratiti.
+TEST(WidenToFullScale, RoundTripsThroughReduceTo8Bit) {
+    for (int value = 0; value < 256; ++value) {
+        const std::uint16_t wide = widenToFullScale(static_cast<std::uint8_t>(value));
+        std::uint8_t narrow = 0;
+        reduceTo8Bit(std::span<const std::uint16_t>(&wide, 1),
+                     std::span<std::uint8_t>(&narrow, 1));
+        EXPECT_EQ(narrow, value) << "vrednost " << value;
+    }
+}
+
 TEST(LineGeometryTest, ColorAtEightBitsIsThreeBytesPerDot) {
     const auto geometry = computeLineGeometry(ColorMode::Color, 8, 100);
     EXPECT_EQ(geometry.bytesPerLine, 300u);
