@@ -125,6 +125,64 @@ TEST(LineOffsetHardware, BoundaryIsExactlySixtyThree) {
     EXPECT_FALSE(justOver.fitsInHardware());
 }
 
+// --- koliko redova cip mora skenirati vise ------------------------------------
+//
+// Ovo je racun koji se lako pomesa sa razmakom redova, a posledica je nema:
+// cip skenira upola manje redova nego sto korektor treba da vidi, pa ne izadje
+// NIJEDAN izlazni red. Bas to se desilo na 1200 i 2400 dpi, i nasla ga je
+// hardverska kvalifikacija, ne testovi - zato ovaj test postoji.
+
+TEST(SoftwareAlignmentPadding, IsDoubleTheDistancePlusOne) {
+    // rts8822.c:8722, grana za rezolucije do 1200.
+    //
+    // 300 dpi: razmak je 8, pa produzenje mora biti 17, ne 8.
+    EXPECT_EQ(softwareAlignmentPadding(kSensorLineDistance, kSensorEvenOdd,
+                                       kSensorResolution, 300, false, true),
+              (64 * 300) * 2 / 2400 + 1);
+
+    EXPECT_EQ(softwareAlignmentPadding(kSensorLineDistance, kSensorEvenOdd,
+                                       kSensorResolution, 1200, false, true),
+              (64 * 1200) * 2 / 2400 + 1);
+}
+
+// Produzenje MORA biti bar koliko korektoru treba da napuni cevovod.
+TEST(SoftwareAlignmentPadding, CoversWhatTheCorrectorConsumes) {
+    for (int resolution : {150, 300, 600, 1200, 2400}) {
+        const bool highResolution = resolution > 1200;
+        const LineOffsetRegisters offsets = offsetsAt(resolution);
+
+        const int padding = softwareAlignmentPadding(kSensorLineDistance, kSensorEvenOdd,
+                                                     kSensorResolution, resolution,
+                                                     highResolution, true);
+
+        LineOffsetCorrector corrector(16, offsets.lineDistance);
+        EXPECT_GT(padding, corrector.requiredLookahead())
+            << resolution << " dpi: cip skenira " << padding
+            << " dodatnih redova, a korektor trazi " << corrector.requiredLookahead();
+    }
+}
+
+// Iznad 1200 dpi referenca u racun ukljucuje i even/odd razmak.
+TEST(SoftwareAlignmentPadding, HighResolutionAddsTheEvenOddDistance) {
+    const int low = softwareAlignmentPadding(kSensorLineDistance, kSensorEvenOdd,
+                                             kSensorResolution, 2400, false, true);
+    const int high = softwareAlignmentPadding(kSensorLineDistance, kSensorEvenOdd,
+                                              kSensorResolution, 2400, true, true);
+    EXPECT_GT(high, low) << "even/odd razmak nije uracunat";
+    EXPECT_EQ(high, ((64 * 2) + 8) * 2400 / 2400 + 1);
+}
+
+TEST(SoftwareAlignmentPadding, NeverFallsBelowTwo) {
+    // Vrlo niska rezolucija: racun bi dao jedan, referenca podize na dva.
+    EXPECT_GE(softwareAlignmentPadding(1, 1, 2400, 1, false, true), 2);
+    EXPECT_EQ(softwareAlignmentPadding(0, 0, 2400, 150, false, true), 2);
+}
+
+TEST(SoftwareAlignmentPadding, RejectsNonsenseResolutions) {
+    EXPECT_EQ(softwareAlignmentPadding(64, 8, 0, 300, false, true), 0);
+    EXPECT_EQ(softwareAlignmentPadding(64, 8, 2400, 0, false, true), 0);
+}
+
 // --- softversko poravnanje ---------------------------------------------------
 
 namespace {

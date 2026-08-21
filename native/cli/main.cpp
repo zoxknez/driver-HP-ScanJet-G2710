@@ -13,6 +13,7 @@
 #include "scan/ScanSession.h"
 
 #include "ImageOutput.h"
+#include "Qualification.h"
 #include "transport/ITransportProvider.h"
 #include "transport/UsbScanTransport.h"
 #include "G2710Profile.generated.h"
@@ -21,6 +22,7 @@
 
 #include <chrono>
 #include <cstdarg>
+#include <ctime>
 #include <io.h>
 #include <thread>
 #include <cstdio>
@@ -41,6 +43,7 @@ constexpr const char* kUsage =
     "  regdump  [opcije]   ispis registarskog bank-a\n"
     "  status   [opcije]   senzori, lampe, PWM (sve read-only)\n"
     "  scan     [opcije]   skeniraj u PNM fajl\n"
+    "  qualify  [opcije]   hardverska kvalifikacija, izvestaj u JSON\n"
     "  info                ugradjeni profil i granice build-a\n"
     "  capabilities        tabela mogucnosti sa statusom validacije\n"
     "\n"
@@ -59,6 +62,11 @@ constexpr const char* kUsage =
     "  --region <L,G,S,V>           u pikselima na trazenoj rezoluciji\n"
     "  --gamma <broj>               1.0 je bez korekcije\n"
     "  --warmup <ms>                cekanje posle paljenja lampe; 3000\n"
+    "\n"
+    "Opcije komande qualify:\n"
+    "  --out <putanja>              podrazumevano test-results.json\n"
+    "  --safety-level 5             bez ovoga se provere iznad plafona\n"
+    "                               ne pokusavaju, i to se tako prijavi\n"
     "  --only-advertised            odbij sve sto hardver nije potvrdio -\n"
     "                               ono sto bi WIA i TWAIN videli\n";
 
@@ -733,6 +741,105 @@ int cmdScan(G2710Device& scanner, const Options& options) {
     return 0;
 }
 
+// --- qualify ----------------------------------------------------------------
+
+// Trenutak u ISO obliku. Modul kvalifikacije ga ne izmislja sam - da izmislja,
+// testovi mu ne bi bili deterministicki.
+std::string nowIso8601() {
+    const std::time_t now = std::time(nullptr);
+    std::tm local{};
+    if (localtime_s(&local, &now) != 0) {
+        return "nepoznato";
+    }
+    char buffer[32] = {};
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S", &local);
+    return buffer;
+}
+
+// Oznaka uredjaja za izvestaj i za kes kalibracije.
+std::string deviceIdentityString(const DeviceIdentity& identity) {
+    char buffer[32] = {};
+    std::snprintf(buffer, sizeof(buffer), "%04X-%04X", identity.vendorId, identity.productId);
+    return buffer;
+}
+
+int cmdQualify(G2710Device& scanner, const Options& options) {
+    const auto started = std::chrono::steady_clock::now();
+
+    printSection("Hardverska kvalifikacija");
+    printField("Uredjaj", "%04X:%04X", scanner.identity().vendorId,
+               scanner.identity().productId);
+    printField("Transport", "%s", scanner.transport().name());
+    printField("Plafon build-a", "%s", toString(scanner.safety().ceiling()));
+    printField("Efektivni nivo", "%s", toString(scanner.safety().effective()));
+
+    if (toInt(scanner.safety().effective()) < toInt(SafetyLevel::FullScan)) {
+        std::printf("\n  Provere iznad efektivnog nivoa se NE pokusavaju. To nije\n");
+        std::printf("  greska - paket sa nizim plafonom namerno ne dodiruje motor.\n");
+    }
+
+    const std::vector<cli::CheckResult> results = cli::runQualification(scanner);
+    const cli::QualificationSummary summary = cli::summarise(results);
+
+    printSection("Rezultati");
+    for (const cli::CheckResult& result : results) {
+        const char* mark = result.outcome == cli::CheckOutcome::Pass   ? "  OK  "
+                           : result.outcome == cli::CheckOutcome::Fail ? " PAO  "
+                           : result.outcome == cli::CheckOutcome::AsksTheUser ? " ???  "
+                                                                             : "  --  ";
+        std::printf("  [%s] %-7s %-28s %s\n", mark, result.id.c_str(), result.name.c_str(),
+                    result.detail.empty() ? result.question.c_str() : result.detail.c_str());
+    }
+
+    printSection("Sazetak");
+    printField("Proslo", "%d", summary.passed);
+    printField("Palo", "%d", summary.failed);
+    printField("Blokirano plafonom", "%d", summary.blocked);
+    printField("Ceka kod", "%d", summary.notImplemented);
+    printField("Pitanja za korisnika", "%d", summary.questions);
+
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - started);
+    printField("Trajanje", "%.1f s", static_cast<double>(elapsed.count()) / 1000.0);
+
+    if (summary.questions > 0) {
+        std::printf("\n  Pitanja na koja masina ne moze da odgovori:\n");
+        for (const cli::CheckResult& result : results) {
+            if (result.outcome == cli::CheckOutcome::AsksTheUser) {
+                std::printf("    %-7s %s\n", result.id.c_str(), result.question.c_str());
+            }
+        }
+        std::printf("\n  Odgovore upisuje wizard; ovaj alat ih samo prijavljuje.\n");
+    }
+
+    // Izvestaj se pise UVEK, i kad nesto padne - tada je najpotrebniji.
+    const std::string report =
+        cli::formatReport(results, deviceIdentityString(scanner.identity()), nowIso8601(),
+                          scanner.safety());
+
+    std::string reportPath = options.outputPath;
+    if (reportPath.empty()) {
+        reportPath = "test-results.json";
+    }
+
+    std::FILE* file = nullptr;
+    if (const errno_t error = fopen_s(&file, reportPath.c_str(), "wb");
+        error != 0 || file == nullptr) {
+        std::fprintf(stderr, "\nne mogu da upisem %s\n", reportPath.c_str());
+        return 14;
+    }
+    std::fwrite(report.data(), 1, report.size(), file);
+    std::fclose(file);
+
+    printSection("Izvestaj");
+    printField("Fajl", "%s", reportPath.c_str());
+    std::printf("\n  Prekopirajte ga u qualification/ u repozitorijumu; STATUS.md\n");
+    std::printf("  tada prikazuje treci stubac umesto \"ceka\".\n\n");
+
+    // Izlazni kod govori ishod, da ga wizard i skripte ne moraju parsirati.
+    return summary.failed == 0 ? 0 : 15;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -820,6 +927,9 @@ int main(int argc, char** argv) {
     }
     if (options.command == "scan") {
         return cmdScan(scanner, options);
+    }
+    if (options.command == "qualify") {
+        return cmdQualify(scanner, options);
     }
 
     std::fputs(kUsage, stderr);

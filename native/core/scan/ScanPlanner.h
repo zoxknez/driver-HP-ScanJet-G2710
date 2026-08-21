@@ -124,6 +124,11 @@ struct ScanPlan {
     int softwareLineDistance = 0;
     int alignmentLookahead = 0;
 
+    // Koliko DODATNIH redova cip mora skenirati da bi poravnanje imalo
+    // cime da napuni cevovod. NIJE isto sto i softwareLineDistance -
+    // vidi image::softwareAlignmentPadding.
+    int alignmentPadding = 0;
+
     const profile::ScanMode& scanMode() const;
 };
 

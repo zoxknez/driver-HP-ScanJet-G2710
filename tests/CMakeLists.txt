@@ -36,6 +36,8 @@ add_executable(g2710_unit_tests
     unit/wia_capabilities_test.cpp
     unit/wia_events_test.cpp
     unit/wia_item_context_test.cpp
+    unit/qualification_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/cli/Qualification.cpp
     ${CMAKE_SOURCE_DIR}/native/wia/WiaCapabilities.cpp
     ${CMAKE_SOURCE_DIR}/native/wia/WiaEvents.cpp
     ${CMAKE_SOURCE_DIR}/native/wia/WiaItemContext.cpp

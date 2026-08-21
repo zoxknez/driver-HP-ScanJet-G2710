@@ -38,6 +38,32 @@ LineOffsetRegisters computeLineOffsets(int sensorLineDistance,
     return registers;
 }
 
+int softwareAlignmentPadding(int sensorLineDistance, int sensorEvenOddDistance,
+                             int sensorResolution, int scanResolution, bool highResolution,
+                             bool colour) noexcept {
+    if (sensorResolution <= 0 || scanResolution <= 0) {
+        return 0;
+    }
+    if (!colour) {
+        // Sivo i lineart citaju jedan kanal; nema sta da se poravnava. Za
+        // potpunost se ipak racuna po referenci - ona i za njih vraca vrednost.
+        const int gray = (sensorLineDistance * scanResolution) / sensorResolution + 1;
+        return highResolution ? (gray < 2 ? 2 : gray) : 0;
+    }
+
+    int padding = 0;
+    if (highResolution) {
+        // rts8822.c:8732 - dvostruki razmak PLUS even/odd, pa deljenje.
+        padding = ((sensorLineDistance * 2) + sensorEvenOddDistance) * scanResolution;
+        padding = padding / sensorResolution + 1;
+    } else {
+        // rts8822.c:8722 - dvostruko PRE deljenja, pa plus jedan.
+        padding = (sensorLineDistance * scanResolution) * 2;
+        padding = padding / sensorResolution + 1;
+    }
+    return padding < 2 ? 2 : padding;
+}
+
 bool hardwareAlignmentSupported(int sensorLineDistance, int sensorEvenOddDistance,
                                 int sensorResolution, int scanResolution,
                                 bool highResolution) noexcept {

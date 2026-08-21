@@ -64,6 +64,8 @@ PHASES = [
     ("G2710-9", "WIA minidriver", [
         "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
         "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp"]),
+    ("G2710-11", "Kvalifikacioni paket", [
+        "unit/qualification_test.cpp"]),
 ]
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.

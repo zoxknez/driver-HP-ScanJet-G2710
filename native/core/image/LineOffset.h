@@ -56,6 +56,20 @@ LineOffsetRegisters computeLineOffsets(int sensorLineDistance,
                                        int sensorResolution, int scanResolution,
                                        bool highResolution) noexcept;
 
+// Koliko DODATNIH redova cip mora skenirati da bi softversko poravnanje
+// imalo cime da napuni cevovod.
+//
+// rts8822.c:8716 RTS_Setup_Line_Distances, grana FIX_BY_SOFT. Racun nije
+// isti kao razmak redova: za boju je DVOSTRUK, plus jedan, i nikada manji
+// od dva.
+//
+// Ovo se lako pomesa sa lineDistance, a posledica je nema: cip skenira
+// manje redova nego sto korektor treba da vidi, pa ne izadje NIJEDAN
+// izlazni red. Bas to se i desilo na 1200 i 2400 dpi.
+int softwareAlignmentPadding(int sensorLineDistance, int sensorEvenOddDistance,
+                             int sensorResolution, int scanResolution,
+                             bool highResolution, bool colour) noexcept;
+
 // Da li se na datoj rezoluciji sme koristiti hardversko poravnanje.
 //
 // Referenca ovo NE proverava - upisuje vrednost kroz masku 0x3F i ona se tiho

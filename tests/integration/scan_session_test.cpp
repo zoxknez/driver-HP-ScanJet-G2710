@@ -401,6 +401,14 @@ TEST_F(ScanSessionTest, SoftwareAlignmentRescuesTwelveHundredDpi) {
     const auto lines = run(session);
     ASSERT_FALSE(lines.empty());
 
+    // SVI trazeni redovi, ne "bar neki".
+    //
+    // Ranija verzija je proveravala samo da nesto izadje, pa je propustila
+    // da cip skenira upola manje redova nego sto korektor pojede. Na 8
+    // redova to je znacilo NIJEDAN izlazni red, a test je i dalje prolazio
+    // jer je trazio 400.
+    EXPECT_EQ(lines.size(), 400u) << "softversko poravnanje je pojelo redove";
+
     EXPECT_GT(session.statistics().alignmentLinesConsumed, 0)
         << "korektor mora prvo da napuni cevovod";
 
@@ -416,6 +424,25 @@ TEST_F(ScanSessionTest, SoftwareAlignmentRescuesTwelveHundredDpi) {
 }
 
 // --- prekid ---------------------------------------------------------------------
+
+// Mali prolaz na 1200 dpi je ono sto je kvar otkrilo: korektor pojede 64
+// reda, pa osam trazenih ne izadje ako cip nije skenirao dovoljno vise.
+TEST_F(ScanSessionTest, ShortPassAtTwelveHundredDpiStillDeliversEveryLine) {
+    turnLampOn();
+
+    for (int dpi : {1200, 2400}) {
+        const ScanPlan plan = makePlan(dpi, image::ColorMode::Color, 8, 64, 8);
+        ASSERT_FALSE(plan.useHardwareAlignment) << dpi;
+        ASSERT_GT(plan.alignmentPadding, plan.alignmentLookahead)
+            << dpi << " dpi: produzenje ne pokriva ono sto korektor pojede";
+
+        ScanSession session{registers, gate, plan};
+        ASSERT_TRUE(session.begin()) << dpi;
+
+        const auto lines = run(session);
+        EXPECT_EQ(lines.size(), 8u) << dpi << " dpi";
+    }
+}
 
 TEST_F(ScanSessionTest, CancellationStopsTheScan) {
     turnLampOn();

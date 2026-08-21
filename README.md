@@ -20,6 +20,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-6 Image pipeline | line offset, gamma, sivo, lineart, dubina |
 | G2710-7 Planer i sesija skeniranja | **završen** — `g2710ctl scan` daje sliku |
 | G2710-9 WIA minidriver | `IStiUSD` + `IWiaMiniDrv` — čeka H11 na hardveru |
+| G2710-11 Kvalifikacija | `g2710ctl qualify` — H-provere i JSON izveštaj |
 
 ```bash
 python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py
@@ -50,6 +51,12 @@ Skeniranje nad simulatorom, bez skenera:
 
 ```bash
 build/native/cli/Release/g2710ctl.exe scan --transport sim --safety-level 5 --dpi 300 --mode color --out slika.ppm
+```
+
+Hardverska kvalifikacija (H1–H13) nad simulatorom, kao proba isporuke:
+
+```bash
+build/native/cli/Release/g2710ctl.exe qualify --transport sim --safety-level 5 --out test-results.json
 ```
 
 Driver paket i potpisivanje:

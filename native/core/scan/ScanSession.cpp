@@ -150,7 +150,10 @@ Status ScanSession::begin() {
     scaling.dummyLine = kDummyLine;
     scaling.lineOffsetPadding =
         plan_.useHardwareAlignment ? plan_.lineOffsets.doublePlusEvenOdd : 0;
-    scaling.softwareLineDistance = plan_.softwareLineDistance;
+    // MORA biti padding, ne lineDistance. Sa lineDistance cip skenira
+    // upola manje redova nego sto korektor treba da vidi, pa ne izadje
+    // nijedan izlazni red - tacno to se desavalo na 1200 i 2400 dpi.
+    scaling.softwareLineDistance = plan_.alignmentPadding;
 
     rts8822::ScanGeometry pixels;
     pixels.left = plan_.nativeRegion.left;

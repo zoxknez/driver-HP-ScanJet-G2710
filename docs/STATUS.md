@@ -8,7 +8,7 @@ Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**474/487 prolazi, 13 preskoceno.**
+**493/506 prolazi, 13 preskoceno.**
 
 Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer ponuda nema nijednu hardverski potvrdjenu rezoluciju; ista provera se izvrsava u kvalifikacionom build-u (`wia_qualification`).
 
@@ -20,9 +20,10 @@ Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer po
 | G2710-3 | Simulator i akvizicija | **PASS** | 57/57 | - |
 | G2710-4 | Stanja, MotionGuard, arbitraza | **PASS** | 54/54 | - |
 | G2710-5 | Kalibracija | **PASS** | 72/72 | - |
-| G2710-6 | Obrada slike i izlaz | **PASS** | 79/79 | - |
-| G2710-7 | Planer i sesija skeniranja | **PASS** | 52/52 | - |
+| G2710-6 | Obrada slike i izlaz | **PASS** | 84/84 | - |
+| G2710-7 | Planer i sesija skeniranja | **PASS** | 53/53 | - |
 | G2710-9 | WIA minidriver | **PASS** | 30/30 | 13 |
+| G2710-11 | Kvalifikacioni paket | **PASS** | 13/13 | - |
 
 ## Rezolucije
 

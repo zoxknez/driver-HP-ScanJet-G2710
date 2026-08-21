@@ -211,6 +211,10 @@ Result<ScanPlan> planScan(const ScanRequest& request) {
         if (!plan.useHardwareAlignment) {
             plan.softwareLineDistance = plan.lineOffsets.lineDistance;
             plan.alignmentLookahead = plan.softwareLineDistance * 2;
+            plan.alignmentPadding = image::softwareAlignmentPadding(
+                profile::kSensor.lineDistance, profile::kSensor.evenOddDistance,
+                profile::kSensor.resolution, plan.nativeResolution, highResolution,
+                true);
         }
     }
 
