@@ -19,7 +19,7 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-5 Kalibracija | **završen** — lampa, shading, ADC gain/offset, keš |
 | G2710-6 Image pipeline | line offset, gamma, sivo, lineart, dubina |
 | G2710-7 Planer i sesija skeniranja | **završen** — `g2710ctl scan` daje sliku |
-| G2710-9 WIA minidriver | `IStiUSD` i tabela mogućnosti — `IWiaMiniDrv` je sledeći |
+| G2710-9 WIA minidriver | `IStiUSD` + `IWiaMiniDrv` — čeka H11 na hardveru |
 
 ```bash
 python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py

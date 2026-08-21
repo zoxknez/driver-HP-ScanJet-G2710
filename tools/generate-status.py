@@ -63,7 +63,7 @@ PHASES = [
         "golden/scan_planner_test.cpp", "integration/scan_session_test.cpp"]),
     ("G2710-9", "WIA minidriver", [
         "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
-        "unit/wia_events_test.cpp"]),
+        "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp"]),
 ]
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.

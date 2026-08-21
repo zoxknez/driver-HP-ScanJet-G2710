@@ -25,6 +25,7 @@
 #include <sti.h>
 #include <stiusd.h>
 
+#include "G2710MiniDrv.h"
 #include "device/G2710Device.h"
 
 #include <atomic>
@@ -77,6 +78,11 @@ private:
     // Prevodi nas ErrorCode u HRESULT i pamti ga za GetLastError.
     HRESULT recordError(const Error& error);
     HRESULT recordWin32(DWORD code, HRESULT result);
+
+    // Isti objekat nosi oba interfejsa. WIA servis do minidriver-a dolazi
+    // QueryInterface-om na USD objektu, pa transport i arbitraza ostaju
+    // zajednicki - da su dva objekta, dva bi se borila za isti uredjaj.
+    G2710MiniDrv miniDriver_{this};
 
     std::atomic<ULONG> references_{1};
 

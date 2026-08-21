@@ -35,8 +35,10 @@ add_executable(g2710_unit_tests
     unit/wia_clsid_test.cpp
     unit/wia_capabilities_test.cpp
     unit/wia_events_test.cpp
+    unit/wia_item_context_test.cpp
     ${CMAKE_SOURCE_DIR}/native/wia/WiaCapabilities.cpp
     ${CMAKE_SOURCE_DIR}/native/wia/WiaEvents.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaItemContext.cpp
     unit/sim_transport_test.cpp
     unit/simulator_test.cpp
     unit/motion_guard_test.cpp

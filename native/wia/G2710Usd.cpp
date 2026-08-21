@@ -77,6 +77,13 @@ STDMETHODIMP G2710Usd::QueryInterface(REFIID riid, void** object) {
         AddRef();
         return S_OK;
     }
+    if (riid == IID_IWiaMiniDrv) {
+        // Minidriver ne broji sopstvene reference - vlasnik je ovaj objekat.
+        // Zato se ovde broji USD, a Release na minidriver-u vraca ovde.
+        *object = static_cast<IWiaMiniDrv*>(&miniDriver_);
+        AddRef();
+        return S_OK;
+    }
     return E_NOINTERFACE;
 }
 

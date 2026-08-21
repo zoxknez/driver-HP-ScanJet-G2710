@@ -15,6 +15,9 @@ endif()
 add_library(g2710_wia SHARED
     G2710Wia.cpp
     G2710Usd.cpp
+    G2710MiniDrv.cpp
+    G2710Transfer.cpp
+    WiaItemContext.cpp
     WiaCapabilities.cpp
     WiaEvents.cpp
     G2710Wia.def
@@ -27,7 +30,7 @@ set_target_properties(g2710_wia PROPERTIES
 
 # WiaGuid.lib nosi definicije WIA_EVENT_* i IID_IStiUSD. Bez nje se ti simboli
 # ne razresavaju - deklaracije u zaglavljima su samo `extern const GUID`.
-target_link_libraries(g2710_wia PRIVATE G2710::Core Ole32 WiaGuid)
+target_link_libraries(g2710_wia PRIVATE G2710::Core Ole32 WiaGuid wiaservc)
 
 # Paket koji ide u potpisivanje. Skripte u driver/sign/ ocekuju INF i DLL na
 # istom mestu jer Inf2Cat radi nad direktorijumom, ne nad pojedinacnim fajlom.
