@@ -55,7 +55,8 @@ PHASES = [
         "unit/device_arbiter_test.cpp", "unit/motion_guard_test.cpp",
         "unit/device_lifecycle_test.cpp"]),
     ("G2710-5", "Kalibracija", [
-        "golden/lamp_test.cpp", "integration/calibration_test.cpp"]),
+        "golden/lamp_test.cpp", "integration/calibration_test.cpp",
+        "unit/adc_calibration_test.cpp", "unit/calibration_cache_test.cpp"]),
     ("G2710-6", "Obrada slike i izlaz", [
         "golden/line_offset_test.cpp", "golden/pixel_format_test.cpp",
         "golden/resize_test.cpp", "unit/pnm_writer_test.cpp"]),

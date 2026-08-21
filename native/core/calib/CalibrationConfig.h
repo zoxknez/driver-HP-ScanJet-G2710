@@ -31,6 +31,10 @@ enum class CalibrationSection {
 
 const char* toString(CalibrationSection section) noexcept;
 
+// rts8822.c:13664 - lineart dobija drugaciji ciljni faktor, upisan u kodu a ne
+// u tabeli parametara.
+inline constexpr double kGainTargetFactorLineart = 1.3;
+
 struct CalibrationConfig {
     // Pozicije kalibracionih traka, u pikselima.
     int whiteStripX = 0;
@@ -48,6 +52,10 @@ struct CalibrationConfig {
     std::array<int, kChannels> offsetOdd1{};
     std::array<int, kChannels> offsetOdd2{};
 
+    // Ciljna vrednost tamnog nivoa po kanalu, u brojacima. Referenca je pri
+    // uporedjivanju pomera za osam bita - vidi offsetTargetFor().
+    std::array<int, kChannels> offsetAvgTarget{};
+
     int referenceBitDepth = 8;
     int offsetHeight = 10;
     int offsetNSigma = 2;
@@ -62,7 +70,14 @@ struct CalibrationConfig {
 
     // Koliko redova se usrednjava pri merenju.
     int gainHeight = 10;
-    int gainTargetFactor = 80;
+
+    // TAKODJE skalirano sa 0.01 (rts8822.c:11559), iako mu ime to ne kaze.
+    // Kao ceo broj 80 formula za pojacanje ispada sto puta veca i pojacanje
+    // uvek zasiti na 31.
+    //
+    // Za lineart referenca ga postavlja na 1.3 (rts8822.c:13664) - vrednost
+    // koja NIJE iz tabele; vidi kGainTargetFactorLineart.
+    double gainTargetFactor = 0.80;
 
     // Da li je pojedini korak kalibracije uopste ukljucen.
     bool calibrateOffset1 = false;

@@ -183,6 +183,106 @@ bi ipak zatražio `ResizeType::Increase` naleteo bi na `InvalidArgument` iz
 
 ---
 
+## D5 — `Calib_AdcGain` deli celobrojno tamo gde račun traži realno
+
+**Zahvaćeno:** ADC pojačanje na svim rezolucijama, ali **tek kada se pojačanje
+pomeri sa podrazumevane četvorke**.
+
+`rts8822.c:11670`:
+
+```c
+dvalue =
+  ((((calibcfg->WRef[a] * (1 << scancfg->depth)) *
+     calibcfg->GainTargetFactor) * 0.00390625) /
+   dval[a]) * ((44 - pgain[a]) / 40);
+```
+
+Ceo izraz radi u pokretnom zarezu — `dvalue` je `double`, `GainTargetFactor` je
+`double`, `0.00390625` je `1/256`. Poslednji činilac nije: `pgain` je
+`SANE_Byte *`, pa je `44 - pgain[a]` `int`, a `40` je `int`. **Celobrojno
+deljenje.**
+
+Faktor bi trebalo da bude recipročna vrednost trenutnog pojačanja, jer je
+inverzna formula `dvalue = 44 - 40/dvalue`, dakle pojačanje je `40/(44-g)`.
+Umesto glatke krive dobija se stepenica:
+
+| `pgain` | `(44-g)/40` celobrojno | tačno |
+|---|---|---|
+| 0 | 1 | 1.100 |
+| 4 | **1** | **1.000** |
+| 5 | **0** | 0.975 |
+| 10 | 0 | 0.850 |
+
+Dve posledice:
+
+- Na **podrazumevanom pojačanju 4** razlike nema — `40/40` je tačno `1` u oba
+  računa. Zato previd nikada nije zasmetao pri prvom prolazu, i zato je
+  preživeo.
+- **Iznad četvorke faktor pada na nulu**, pa `dvalue` postaje nula, ne prelazi
+  prag `10/11`, i pojačanje se upisuje kao **nula** ma koliko signal bio slab.
+  Petlja koja pokušava da pojača slab kanal time ga ugasi.
+
+Isti oblik stoji i u sivoj grani (`rts8822.c:11800`).
+
+### Kako se rešava kod nas
+
+`computeAdcGain()` prima `GainArithmetic`. Podrazumevano je
+`Reference` — doslovan port, jer je to ono što radi drajver koji na ovom
+hardveru radi. `Corrected` računa `(44.0 - gain) / 40.0`.
+
+Koja je strana ispravna odlučuje **H7**: obe varijante se puštaju na istoj
+traci i poredi se ravnomernost belog. Do tada se ne pogađa —
+`AdcGainArithmeticTest` drži zaključanim i tabelu iznad i činjenicu da se na
+četvorci varijante poklapaju.
+
+---
+
+## D6 — `Calib_AdcOffsetRT`: deljenje nulom u grani koju G2710 ne koristi
+
+**Zahvaćeno:** nijedna rezolucija na ovom uređaju. Zapisano jer bi svaki
+pokušaj da se ta grana portuje naleteo na isto.
+
+`rts8822.c:12242`:
+
+```c
+dbValues[channel] =
+  (40 / (44 - calibdata->gain_offset.vgag2[channel])) *
+  (40 / (44 - calibdata->gain_offset.vgag1[channel]));
+```
+
+Opet celobrojno deljenje, i opet tamo gde je `dbValues` niz `double`-ova. Za
+`vgag` = 4 (vrednost iz profila za G2710) izlazi `40/40 * 40/40 = 1`. Za bilo
+koje **manje** pojačanje izlazi `40/41 = 0`, pa je `dbValues` **nula**.
+
+Ta nula se zatim koristi kao delilac (`rts8822.c:12503`):
+
+```c
+op1 = (SANE_Int) (colour / (dbValues[channel] * op3));
+```
+
+`colour / 0.0` je beskonačnost, a njeno pretvaranje u `SANE_Int` je nedefinisano
+ponašanje. A petlja pojačanje **samo smanjuje**, pa je put od 4 naniže redovna
+putanja, ne rub.
+
+### Zašto nas ne pogađa
+
+Grana se bira po `highresolution = (scancfg.sensorresolution >= 1200)`
+(`rts8822.c:12237`) — po rezoluciji **senzora**, ne skeniranja. Senzor G2710
+je 2400 dpi, pa je uslov **uvek tačan** i niskorezolucijska grana je nedostižna.
+
+Ista funkcija u visokorezolucijskoj grani čita neinicijalizovan `wvalues`
+(`rts8822.c:12360`), ali samo da bi pomerila pokazivač koji potom nigde ne
+koristi — pročitana vrednost se odbacuje.
+
+### Kako se rešava kod nas
+
+Portovana je **samo** visokorezolucijska grana, i to je u zaglavlju
+`AdcCalibration.h` eksplicitno rečeno. `dbValues` se ne računa jer ga ta grana
+ne koristi. Niskorezolucijska grana se ne portuje — ne zato što je teška, nego
+zato što je na ovom uređaju mrtva, a nosi nedefinisano ponašanje.
+
+---
+
 ## Zašto flatbed nije zahvaćen
 
 D1 i D2 tiču se isključivo TMA putanje. Flatbed koristi bit `0x40` u
@@ -191,7 +291,11 @@ D1 i D2 tiču se isključivo TMA putanje. Flatbed koristi bit `0x40` u
 D3 ne pogađa flatbed do 600 dpi, što je obim koji 1.0 obećava. Pogađa upravo
 1200 i 2400, koje su i inače `HARDWARE-VALIDATED = DEFERRED`.
 
-D4 je na putanji koju G2710 nikada ne uzima.
+D4 i D6 su na putanjama koje G2710 nikada ne uzima.
+
+D5 je jedini koji dodiruje flatbed u punom obimu 1.0 — ali tek kada se
+pojačanje pomeri sa podrazumevane četvorke, što se dešava čim kalibracija
+krene da radi svoj posao.
 
 ## Šta ovo znači za plan
 

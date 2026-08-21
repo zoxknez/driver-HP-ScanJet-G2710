@@ -38,6 +38,8 @@ add_executable(g2710_unit_tests
     unit/motion_guard_test.cpp
     unit/device_lifecycle_test.cpp
     unit/pnm_writer_test.cpp
+    unit/adc_calibration_test.cpp
+    unit/calibration_cache_test.cpp
     ${CMAKE_SOURCE_DIR}/native/cli/ImageOutput.cpp
 )
 target_link_libraries(g2710_unit_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)

@@ -78,6 +78,9 @@ Result<CalibrationConfig> loadCalibrationConfig(CalibrationSection section) {
     for (std::size_t channel = 0; channel < kChannels; ++channel) {
         config.blackReference[channel] =
             value(channelOption(CalibOption::BREFR, channel), 10);
+        // rts8822.c:11530 - podrazumevano 10, kao i u profilu za G2710.
+        config.offsetAvgTarget[channel] =
+            value(channelOption(CalibOption::OFFSETAVGTARGETR, channel), 10);
         config.offsetEven1[channel] =
             value(channelOption(CalibOption::OFFSETEVEN1R, channel), 256);
         config.offsetEven2[channel] =
@@ -109,7 +112,7 @@ Result<CalibrationConfig> loadCalibrationConfig(CalibrationSection section) {
     config.offsetAvgRatio2 = value(CalibOption::OFFSETAVGRATIO2, 0x64) * kPercentScale;
 
     config.gainHeight = value(CalibOption::GAINHEIGHT, 10);
-    config.gainTargetFactor = value(CalibOption::GAINTARGETFACTOR, 80);
+    config.gainTargetFactor = value(CalibOption::GAINTARGETFACTOR, 80) * 0.01;
 
     config.calibrateOffset1 = value(CalibOption::CALIBOFFSET1ON, 0) != 0;
     config.calibrateOffset2 = value(CalibOption::CALIBOFFSET2ON, 0) != 0;

@@ -2,6 +2,8 @@ add_library(g2710_core STATIC
     util/Clock.cpp
     util/Error.cpp
 
+    calib/AdcCalibration.cpp
+    calib/CalibrationCache.cpp
     calib/CalibrationConfig.cpp
     calib/ShadingCalibration.cpp
 

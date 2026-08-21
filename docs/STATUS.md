@@ -8,7 +8,7 @@ Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**404/404 prolazi.**
+**446/446 prolazi.**
 
 | Faza | Oblast | Stanje | Testovi |
 |---|---|---|---|
@@ -17,7 +17,7 @@ Uredjaj: `03F0:2805`
 | G2710-2 | RTS8822 core | **PASS** | 111/111 |
 | G2710-3 | Simulator i akvizicija | **PASS** | 57/57 |
 | G2710-4 | Stanja, MotionGuard, arbitraza | **PASS** | 54/54 |
-| G2710-5 | Kalibracija | **PASS** | 30/30 |
+| G2710-5 | Kalibracija | **PASS** | 72/72 |
 | G2710-6 | Obrada slike i izlaz | **PASS** | 79/79 |
 | G2710-7 | Planer i sesija skeniranja | **PASS** | 52/52 |
 
