@@ -156,7 +156,6 @@ if ($Uninstall) {
 }
 
 if (-not (Test-Path $inf)) { throw "Nema g2710.inf pored skripta ($here)" }
-if (-not (Test-Path $cer)) { throw "Nema g2710-dev.cer pored skripta ($here)" }
 
 # Stanje sistema se BELEZI, ne menja. Ako instalacija padne, iz izvestaja se
 # vidi u kakvom je stanju masina bila - a to je ceo smisao testa H1-A.
@@ -184,9 +183,16 @@ Say "      Secure Boot        $secureBoot   (ne diramo ga)"
 Say "      Memory Integrity   $memoryIntegrity"
 Say "      TESTSIGNING        $testSigning"
 
-Say '[1/3] Ubacujem sertifikat'
-$thumbprint = Install-DevCertificate -Path $cer
-Say "      otisak $thumbprint"
+if (Test-Path $cer) {
+    Say '[1/3] Ubacujem sertifikat'
+    $thumbprint = Install-DevCertificate -Path $cer
+    Say "      otisak $thumbprint"
+} else {
+    # Release paket ima katalog potpisan produkcionim sertifikatom; njegov
+    # javni sertifikat se NE dodaje lokalno samo da bi instalacija prosla.
+    Say '[1/3] Produkcioni katalog - nema lokalnog razvojnog sertifikata'
+    $thumbprint = $null
+}
 
 Say '[2/3] Ubacujem drajver u DriverStore'
 $output = & pnputil /add-driver $inf /install 2>&1

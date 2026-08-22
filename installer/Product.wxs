@@ -1,0 +1,63 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="HP ScanJet G2710" Manufacturer="G2710 Project" Version="0.1.0" UpgradeCode="A1B2C3D4-94E2-4A8A-928A-1234567890AB" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="Novija verzija HP ScanJet G2710 je već instalirana." />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="HP ScanJet G2710">
+        <Component Id="ApplicationFiles" Guid="BCA7D65D-5D39-4A46-9E77-B031A8C4E714">
+          <File Source="$(var.AppDir)\G2710.App.exe" KeyPath="yes" />
+          <File Source="$(var.AppDir)\G2710.App.dll" />
+          <File Source="$(var.AppDir)\G2710.App.deps.json" />
+          <File Source="$(var.AppDir)\G2710.App.runtimeconfig.json" />
+          <File Source="$(var.AppDir)\G2710.Interop.dll" />
+          <File Source="$(var.AppDir)\G2710.Native.dll" />
+        </Component>
+        <Directory Id="DRIVERFOLDER" Name="driver">
+          <Component Id="DriverPackage" Guid="7D720503-F9D4-4543-96D7-5B3C868A3110">
+            <File Source="$(var.DriverDir)\g2710.inf" KeyPath="yes" />
+            <File Source="$(var.DriverDir)\G2710.Wia.dll" />
+            <File Source="$(var.DriverDir)\g2710.cat" />
+            <?if $(var.IncludeDevCertificate) = 1 ?>
+            <File Source="$(var.DriverDir)\g2710-dev.cer" />
+            <?endif?>
+            <File Id="DriverInstallScript" Source="$(var.DriverDir)\install.ps1" />
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+    <!-- DSM trazi izvore ovde; Program Files nije TWAIN discovery lokacija. -->
+    <StandardDirectory Id="WindowsFolder">
+      <Directory Id="TWAIN64FOLDER" Name="twain_64">
+        <Component Id="Twain64" Guid="23A151A5-B2EC-4A9C-92CD-D7840D0B272D">
+          <!-- Open-source DSM ucitava samo *.ds iz twain_64. -->
+          <File Source="$(var.Twain64Dir)\G2710.Twain.dll" Name="G2710.Twain.ds" KeyPath="yes" />
+        </Component>
+      </Directory>
+      <Directory Id="TWAIN86FOLDER" Name="twain_32">
+        <Component Id="Twain86" Guid="C9547268-C8D5-410F-A2ED-3A8DADAE5D94">
+          <!-- Isto pravilo vazi za 32-bit DSM i twain_32. -->
+          <File Source="$(var.Twain86Dir)\G2710.Twain.dll" Name="G2710.Twain.ds" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="ProductFeature" Title="HP ScanJet G2710" Level="1">
+      <ComponentRef Id="ApplicationFiles" />
+      <ComponentRef Id="DriverPackage" />
+      <ComponentRef Id="Twain64" />
+      <ComponentRef Id="Twain86" />
+    </Feature>
+    <!-- MSI je per-machine, pa se ove akcije izvrsavaju kao LocalSystem.
+         Skript radi samo sa NASIM INF-om i sertifikatom po otisku; ne dira
+         Secure Boot, TESTSIGNING niti tudje drajvere. -->
+    <CustomAction Id="InstallDriverPackage" Directory="SystemFolder"
+                  ExeCommand="WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;[#DriverInstallScript]&quot; -Quiet"
+                  Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="RemoveDriverPackage" Directory="SystemFolder"
+                  ExeCommand="WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;[#DriverInstallScript]&quot; -Uninstall -Quiet"
+                  Execute="deferred" Impersonate="no" Return="check" />
+    <InstallExecuteSequence>
+      <Custom Action="InstallDriverPackage" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="RemoveDriverPackage" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>

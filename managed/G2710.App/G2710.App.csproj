@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>G2710.App</AssemblyName>
+    <RootNamespace>G2710.App</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\G2710.Interop\G2710.Interop.csproj" />
+    <!-- Jedna paleta za aplikaciju i kvalifikacioni wizard. -->
+    <Page Include="..\G2710.Qualification\Theme\Palette.xaml" Link="Theme\Palette.xaml" />
+    <Page Include="..\G2710.Qualification\Theme\Controls.xaml" Link="Theme\Controls.xaml" />
+  </ItemGroup>
+  <PropertyGroup>
+    <G2710Native>$(MSBuildThisFileDirectory)..\..\build\native\abi\Release\G2710.Native.dll</G2710Native>
+  </PropertyGroup>
+  <ItemGroup Condition="Exists('$(G2710Native)')">
+    <None Include="$(G2710Native)" Link="G2710.Native.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

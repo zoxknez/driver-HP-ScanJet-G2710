@@ -1,0 +1,39 @@
+<#
+.SYNOPSIS
+    Pravi ZIP za isporuku punog G2710 proizvoda.
+
+.DESCRIPTION
+    Ne pravi novu varijantu binarnih fajlova: koristi provereni build-installer
+    tok, pa ZIP sadrži upravo MSI čija su struktura, CAT potpis i TWAIN putanje
+    već provereni. Hardverski prolaz ostaje odvojen od ovog offline paketa.
+#>
+[CmdletBinding()]
+param(
+    [string]$OutputDirectory,
+    [ValidateSet('Development', 'Release')]
+    [string]$SigningMode = 'Development'
+)
+
+$ErrorActionPreference = 'Stop'
+$repo = Split-Path -Parent $PSScriptRoot
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo 'dist' }
+$stage = Join-Path $OutputDirectory 'G2710-product-stage'
+$msiOutput = Join-Path $OutputDirectory 'msi'
+
+& (Join-Path $repo 'tools\build-installer.ps1') -OutputDirectory $msiOutput -SigningMode $SigningMode
+if ($LASTEXITCODE -ne 0) { throw 'MSI build nije uspeo.' }
+$msi = Join-Path $msiOutput 'G2710-0.1.0-x64.msi'
+if (-not (Test-Path -LiteralPath $msi)) { throw "MSI nije nastao: $msi" }
+
+if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
+New-Item -ItemType Directory -Path $stage | Out-Null
+Copy-Item -LiteralPath $msi -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repo 'installer\README.md') -Destination (Join-Path $stage 'PROCITAJ-ME.md')
+$hash = Get-FileHash -Algorithm SHA256 -LiteralPath $msi
+"$($hash.Hash)  $($hash.Path | Split-Path -Leaf)" | Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Encoding ascii
+
+$zip = Join-Path $OutputDirectory "G2710-0.1.0-x64-$SigningMode.zip"
+if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
+Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $stage | Select-Object -ExpandProperty FullName) -DestinationPath $zip -CompressionLevel Optimal
+if (-not (Test-Path -LiteralPath $zip)) { throw 'ZIP nije nastao.' }
+Write-Host "Gotovo: $zip" -ForegroundColor Green

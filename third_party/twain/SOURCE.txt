@@ -1,0 +1,3 @@
+﻿TWAIN header: https://raw.githubusercontent.com/twain/twain-dsm/master/TWAIN_DSM/src/twain.h
+Preuzet: 2026-08-22T19:19:16.5771475+02:00
+Licencu i copyright pogledajte u zaglavlju twain.h i izvornom repozitorijumu.

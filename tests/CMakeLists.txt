@@ -21,6 +21,38 @@ endif()
 
 include(GoogleTest)
 
+# TWAIN harness: poziva isti DS_Entry kod bez instaliranog DSM-a. Time se
+# meri state machine i Global arbitraza na x64 i x86, a DSM ostaje samo loader.
+add_executable(g2710_twainharness_tests
+    twainharness/twain_lifecycle_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/twain/TwainDataSource.cpp
+)
+target_include_directories(g2710_twainharness_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/native/twain
+    ${CMAKE_SOURCE_DIR}/third_party/twain)
+target_link_libraries(g2710_twainharness_tests PRIVATE G2710::Core G2710::Sim GTest::gtest_main)
+target_compile_definitions(g2710_twainharness_tests PRIVATE
+    G2710_TWAIN_ALLOW_UNQUALIFIED=1)
+gtest_discover_tests(g2710_twainharness_tests)
+
+# Produkcioni DS se proverava odvojeno, bez test-prekidaca. Simulator ne sme
+# sam po sebi da ukloni H8 zabranu i pretvori neproverenu rezoluciju u ponudu.
+add_executable(g2710_twain_release_policy_tests
+    twainharness/twain_release_policy_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/twain/TwainDataSource.cpp
+)
+target_include_directories(g2710_twain_release_policy_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/native/twain
+    ${CMAKE_SOURCE_DIR}/third_party/twain)
+target_link_libraries(g2710_twain_release_policy_tests PRIVATE
+    G2710::Core G2710::Sim GTest::gtest_main)
+gtest_discover_tests(g2710_twain_release_policy_tests)
+
+# Ne linkuje DSM: LoadLibrary nad konkretnim zvanicnim TWAINDSM.dll meri
+# stvarni discovery ugovor i ostavlja build nezavisan od sistemske instalacije.
+add_executable(g2710_twaindsm_smoke twaindsmharness/dsm_discovery_smoke.cpp)
+target_include_directories(g2710_twaindsm_smoke PRIVATE ${CMAKE_SOURCE_DIR}/third_party/twain)
+
 # --- profil: sve provere su compile-time, pa kompajliranje JESTE test -------
 add_executable(g2710_profile_test unit/profile_generated_test.cpp)
 target_link_libraries(g2710_profile_test PRIVATE G2710::Core)

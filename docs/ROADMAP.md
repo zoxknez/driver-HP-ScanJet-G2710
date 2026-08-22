@@ -45,6 +45,36 @@ aplikacija, TWAIN, instalater.
 Sve što kod **namerno ne radi**, sa razlogom i uslovom pod kojim bi proradilo,
 stoji na jednom mestu — §4.
 
+### Stanje offline isporuke (S4–S10)
+
+Ovo je namerno odvojeno od hardverske kvalifikacije: sledeće je izgrađeno i
+mereno bez priključenog skenera.
+
+- `G2710.App` prolazi ceo simulator tok: otvori, warmup, preview, crop, finalni
+  scan i PNG izvoz; layout se pakuje sa `G2710.Native.dll`. Build zatim podiže
+  objavljeni EXE iz sopstvenog foldera, pa XAML/startup greška ne može ostati
+  sakrivena iza uspešnog `dotnet publish`.
+- TWAIN DS ima state machine, DSM alokatore, `DAT_IMAGEINFO`, layout, native
+  24-bit DIB i memory transfer. Harness radi nad istim Core tokom, na x64 i
+  x86. Zvanični, potpisani TWAIN DSM 2.5.1 je zatim stvarno učitao `.ds`,
+  pronašao identitet i otvorio/zatvorio DS na obe arhitekture. Poseban release
+  test dokazuje da test-simulator ne može otključati H8 rezolucije u
+  proizvodnom DS-u.
+- WiX MSI raspoređuje oba TWAIN DS fajla (`.ds` radi DSM discovery-ja), aplikaciju i WIA paket; deferred akcije
+  pozivaju provereni `pnputil`/sertifikat skript i pri instalaciji i pri
+  deinstalaciji. Struktura, katalog i potpis su provereni bez instaliranja.
+
+**Dokazano na ovoj mašini:** elevated install → provera aplikacije, WIA/TWAIN
+fajlova i razvojnog sertifikata → uninstall ostavlja nula tih fajlova,
+sertifikata i G2710 DriverStore unosa.
+
+**Još nije dokazano na ovoj mašini:** fizički uređaj i time H1–H13. To se ne
+označava kao završeno samo zato što je paket izgrađen ili DSM uspešno učita DS.
+
+Kada je administratorski token dostupan, `tools/verify-msi-install.ps1` radi
+pun install → proveru fajlova/sertifikata → uninstall → proveru čišćenja. Ne
+pokreće se iz redovnog build-a, jer namerno menja sistemsko stanje.
+
 ---
 
 ## 2. Pravila koja važe u svakoj sesiji

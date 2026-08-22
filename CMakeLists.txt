@@ -58,6 +58,7 @@ add_subdirectory(native/sim)
 add_subdirectory(native/abi)
 add_subdirectory(native/cli)
 add_subdirectory(native/wia)
+add_subdirectory(native/twain)
 
 if(G2710_BUILD_TESTS)
     enable_testing()

@@ -71,6 +71,10 @@ PHASES = [
         "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
         "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp",
         "wiaharness/wia_lifecycle_test.cpp"]),
+    ("G2710-10", "Desktop aplikacija", []),
+    ("G2710-12", "TWAIN DS jezgro i harness", [
+        "twainharness/twain_lifecycle_test.cpp",
+        "twainharness/twain_release_policy_test.cpp"]),
     ("G2710-11", "Kvalifikacioni paket", [
         "unit/qualification_test.cpp"]),
 ]
@@ -83,6 +87,12 @@ MANAGED_SUITES = {
     "WizardFlowTests": "G2710-11",
     "InteropLayoutTests": "G2710-8",
     "ScannerTests": "G2710-8",
+    "CropTransformTests": "G2710-10",
+    "ImageExportTests": "G2710-10",
+    "ScanCaptureTests": "G2710-10",
+    "SimulatorWorkflowTests": "G2710-10",
+    # xUnit za Theory prikazuje samo metod i argumente, bez imena klase.
+    "Exports_8_bit_raster": "G2710-10",
 }
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.
@@ -233,7 +243,8 @@ def split_by_phase(tests, owner):
     grouped = {identifier: [] for identifier, _title, _sources in PHASES}
     orphans = []
     for name, state in tests:
-        key = name.split(".", 1)[0]
+        # Theory ime može biti `Metod(argument: vrednost)` bez klase.
+        key = name.split(".", 1)[0].split("(", 1)[0]
         identifier = owner.get(key) or owner.get(name)
         if identifier is None:
             orphans.append(name)
