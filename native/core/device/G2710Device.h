@@ -46,6 +46,15 @@ public:
     static Result<std::unique_ptr<G2710Device>> open(const DeviceRef& ref,
                                                      DeviceOptions options = {});
 
+    // Isto, ali nad VEC napravljenim transportom.
+    //
+    // Postoji zbog dekoratora: TraceRecorder mora obaviti bas onaj transport
+    // koji ovaj uredjaj koristi, a ne sve transporte u procesu. Zamena kroz
+    // TransportProvider je globalna, pa bi dva otvorena uredjaja delila jedan
+    // trag - i drugi bi tiho pisao u tudji fajl.
+    static Result<std::unique_ptr<G2710Device>> openWith(
+        std::unique_ptr<ITransport> transport, DeviceOptions options = {});
+
     ~G2710Device();
 
     G2710Device(const G2710Device&) = delete;
@@ -101,6 +110,13 @@ public:
 
     // Prekida sve u letu. Bezbedno iz drugog thread-a.
     void cancel() noexcept;
+
+    // Otkazivanje je zavrseno; sledeci transferi su CISCENJE.
+    //
+    // Mora se pozvati pre zatvaranja prolaza posle cancel-a. Bez toga
+    // zaustavljanje cipa - koje je i samo transfer - odbija lepljivi cancel, i
+    // otkazivanje ostavlja glavu da se krece. Vidi ITransport::clearCancel.
+    void endCancellation() noexcept;
 
     // Posle gubitka veze: ponovo otvara transport i vraca se u Opened.
     //

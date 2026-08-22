@@ -134,6 +134,24 @@ Result<PipeConfiguration> TraceRecorder::pipeConfiguration() {
     return result;
 }
 
+Result<DeviceIdentity> TraceRecorder::identity() {
+    auto result = inner_.identity();
+
+    TraceEntry entry;
+    entry.kind = TraceEntry::Kind::Identity;
+    if (result) {
+        // VID i PID se smestaju u `address` i `command` jer drugih polja nema;
+        // format() ih ispisuje kao par, sto je i jedino sto od njih treba.
+        entry.address = result.value().vendorId;
+        entry.command = static_cast<Command>(result.value().productId);
+    } else {
+        entry.result = result.error().code;
+    }
+    entries_.push_back(std::move(entry));
+
+    return result;
+}
+
 void TraceRecorder::cancel() noexcept {
     TraceEntry entry;
     entry.kind = TraceEntry::Kind::Cancel;
@@ -204,6 +222,16 @@ std::string TraceRecorder::format(bool withData) const {
 
             case TraceEntry::Kind::Reopen:
                 std::snprintf(line, sizeof(line), "REOPEN\n");
+                break;
+
+            case TraceEntry::Kind::Identity:
+                if (entry.result == ErrorCode::Ok) {
+                    std::snprintf(line, sizeof(line), "IDENTITY: %04x:%04x\n",
+                                  entry.address, static_cast<unsigned>(entry.command));
+                } else {
+                    std::snprintf(line, sizeof(line), "IDENTITY: %s\n",
+                                  toString(entry.result));
+                }
                 break;
         }
         out.append(line);

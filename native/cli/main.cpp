@@ -606,7 +606,7 @@ int cmdScan(G2710Device& scanner, const Options& options) {
     if (const Status lit = lamp.setLamp(rts8822::LampKind::Flatbed, true); !lit) {
         if (lit.error().code == ErrorCode::SafetyViolation) {
             std::fprintf(stderr,
-                         "odbijeno: paljenje lampe trazi nivo 2, a efektivni je %s.' + N + '",
+                         "odbijeno: paljenje lampe trazi nivo 2, a efektivni je %s.\n",
                          toString(scanner.safety().effective()));
             return 10;
         }

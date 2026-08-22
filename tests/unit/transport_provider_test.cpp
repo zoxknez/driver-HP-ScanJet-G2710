@@ -34,6 +34,7 @@ public:
     Result<DeviceIdentity> identity() override { return DeviceIdentity{}; }
 
     void cancel() noexcept override {}
+    void clearCancel() noexcept override {}
     Status reopen() override { return ok(); }
     bool isOpen() const noexcept override { return true; }
     const char* name() const noexcept override { return "stub"; }

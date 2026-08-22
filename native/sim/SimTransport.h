@@ -47,6 +47,7 @@ public:
     Result<DeviceIdentity> identity() override;
 
     void cancel() noexcept override;
+    void clearCancel() noexcept override;
     Status reopen() override;
     bool isOpen() const noexcept override { return open_; }
     const char* name() const noexcept override { return "sim"; }

@@ -43,6 +43,7 @@ public:
     Result<PipeConfiguration> pipeConfiguration() override;
 
     void cancel() noexcept override;
+    void clearCancel() noexcept override;
     Status reopen() override;
 
     bool isOpen() const noexcept override { return handle_ != nullptr; }

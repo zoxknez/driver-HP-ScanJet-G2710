@@ -339,6 +339,10 @@ void SimTransport::cancel() noexcept {
     cancelled_ = true;
 }
 
+void SimTransport::clearCancel() noexcept {
+    cancelled_ = false;
+}
+
 Status SimTransport::reopen() {
     open_ = true;
     cancelled_ = false;

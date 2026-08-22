@@ -110,6 +110,24 @@ target_compile_definitions(g2710_wia_qualification_test PRIVATE
     G2710_WIA_ALLOW_UNQUALIFIED=1)
 add_test(NAME wia_qualification COMMAND g2710_wia_qualification_test)
 
+# --- C ABI ------------------------------------------------------------------
+# Testira se STATICKA varijanta, u istom procesu: da se ucitavao DLL, on bi
+# nosio SVOJU kopiju TransportProvider singletona i simulator iz test procesa
+# ne bi imao efekta. Ista zamka kao kod wiaharness-a.
+#
+# Test stabilnosti cita .def i zaglavlje kao TEKST, pa mu se putanje
+# prosledjuju - poredjenje izvezenog i deklarisanog nema smisla ako se oslanja
+# na iste tipove koje meri.
+add_executable(g2710_abi_tests
+    unit/abi_test.cpp
+    unit/abi_stability_test.cpp
+)
+target_link_libraries(g2710_abi_tests PRIVATE G2710::Abi GTest::gtest_main)
+target_compile_definitions(g2710_abi_tests PRIVATE
+    G2710_ABI_DEF_PATH="${CMAKE_SOURCE_DIR}/native/abi/G2710.Native.def"
+    G2710_ABI_HEADER_PATH="${CMAKE_SOURCE_DIR}/native/abi/g2710_abi.h")
+gtest_discover_tests(g2710_abi_tests)
+
 # --- wiaharness: zivotni ciklus WIA drajvera --------------------------------
 # Acceptance gate faze G2710-9.
 #

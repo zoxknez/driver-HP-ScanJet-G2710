@@ -64,6 +64,8 @@ PHASES = [
         "golden/resize_test.cpp", "unit/pnm_writer_test.cpp"]),
     ("G2710-7", "Planer i sesija skeniranja", [
         "golden/scan_planner_test.cpp", "integration/scan_session_test.cpp"]),
+    ("G2710-8", "C ABI", [
+        "unit/abi_test.cpp", "unit/abi_stability_test.cpp"]),
     ("G2710-9", "WIA minidriver", [
         "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
         "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp",

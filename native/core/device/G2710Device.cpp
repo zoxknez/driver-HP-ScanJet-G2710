@@ -31,9 +31,17 @@ Result<std::unique_ptr<G2710Device>> G2710Device::open(const DeviceRef& ref,
     if (!transport) {
         return transport.error();
     }
+    return openWith(std::move(transport).value(), std::move(options));
+}
+
+Result<std::unique_ptr<G2710Device>> G2710Device::openWith(
+    std::unique_ptr<ITransport> transport, DeviceOptions options) {
+    if (transport == nullptr) {
+        return fail(ErrorCode::InvalidArgument, "openWith(nullptr)");
+    }
 
     std::unique_ptr<G2710Device> device(
-        new G2710Device(std::move(transport).value(), std::move(options)));
+        new G2710Device(std::move(transport), std::move(options)));
 
     if (const Status s = device->arbiter_.initialize(); !s) {
         return s.error();
@@ -123,6 +131,11 @@ Result<rts8822::LampStatus> G2710Device::lampStatus() {
 void G2710Device::cancel() noexcept {
     token_.cancel();
     transport_->cancel();
+}
+
+void G2710Device::endCancellation() noexcept {
+    token_.reset();
+    transport_->clearCancel();
 }
 
 Status G2710Device::recoverFromTransportLoss() {

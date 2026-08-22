@@ -35,6 +35,13 @@ struct TraceEntry {
         PipeConfiguration,
         Cancel,
         Reopen,
+
+        // Ko je odgovorio. Nije transfer u istom smislu kao ostali, ali JESTE
+        // pitanje uredjaju - i prvo pitanje koje se postavlja kada nesto ne
+        // radi na tudjem racunaru. Ime porta je deljeno; trag koji pocinje
+        // posle identifikacije ne moze pokazati da je odgovorio tudji uredjaj,
+        // a to se na razvojnoj masini vec desilo.
+        Identity,
     };
 
     Kind kind = Kind::ControlIn;
@@ -61,10 +68,11 @@ public:
 
     Result<std::uint32_t> waitEvent() override;
 
+    void clearCancel() noexcept override { inner_.clearCancel(); }
     Status resetPipe(PipeKind pipe) override;
     Status setTimeouts(const Timeouts& timeouts) override;
     Result<PipeConfiguration> pipeConfiguration() override;
-    Result<DeviceIdentity> identity() override { return inner_.identity(); }
+    Result<DeviceIdentity> identity() override;
 
     void cancel() noexcept override;
     Status reopen() override;

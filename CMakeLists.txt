@@ -55,6 +55,7 @@ message(STATUS "G2710 build safety ceiling: ${G2710_BUILD_SAFETY_CEILING}")
 
 add_subdirectory(native/core)
 add_subdirectory(native/sim)
+add_subdirectory(native/abi)
 add_subdirectory(native/cli)
 add_subdirectory(native/wia)
 

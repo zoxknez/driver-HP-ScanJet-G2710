@@ -1,0 +1,47 @@
+; Izvezeni simboli G2710.Native.dll.
+;
+; Spisak je EKSPLICITAN, a ne __declspec sam za sebe, iz dva razloga:
+;
+;   1. Ono sto ovde nije napisano ne moze slucajno postati deo ugovora.
+;   2. tests/unit/abi_stability_test.cpp poredi ovaj spisak sa onim sto
+;      zaglavlje deklarise. Funkcija dodata u jedno a ne u drugo pada kao test,
+;      a ne kao "entry point not found" kod korisnika.
+;
+; Redosled je isti kao u g2710_abi.h, da se razlika vidi golim okom.
+;
+; Bez LIBRARY direktive namerno: ime izlaza postavlja CMake, a dva izvora
+; imena daju LNK4070.
+
+EXPORTS
+    g2710_status_name
+    g2710_abi_version
+    g2710_build_safety_ceiling
+    g2710_motor_path_compiled
+
+    g2710_open_options_init
+    g2710_open
+    g2710_close
+
+    g2710_last_error
+    g2710_last_win32
+
+    g2710_identify
+    g2710_begin
+    g2710_end
+    g2710_state
+    g2710_effective_safety_level
+    g2710_current_owner
+
+    g2710_set_log
+    g2710_warmup
+    g2710_home
+    g2710_cancel
+
+    g2710_scan_request_init
+    g2710_plan_scan
+    g2710_scan_begin
+    g2710_scan_read_line
+    g2710_scan_end
+
+    g2710_write_trace
+    g2710_trace_count

@@ -106,7 +106,22 @@ public:
 
     // Prekida sve operacije u letu. Mora biti bezbedno pozvati iz drugog
     // thread-a dok transfer traje - to je jedini nacin da cancel radi.
+    //
+    // Otkazivanje je LEPLJIVO: svaki sledeci transfer pada dok se ne pozove
+    // clearCancel(). Namerno - transfer koji je krenuo pre otkazivanja ne sme
+    // tiho uspeti posle njega.
     virtual void cancel() noexcept = 0;
+
+    // Otkazivanje je zavrseno; sledeci transferi su CISCENJE.
+    //
+    // Bez ovoga otkazivanje ostavlja uredjaj u stanju u kome se ne moze
+    // zaustaviti: zaustavljanje cipa je i samo transfer, pa ga lepljivi cancel
+    // odbija. Na simulatoru to izgleda kao greska pri zatvaranju prolaza; na
+    // pravom skeneru glava nastavlja da se krece posle "Prekini".
+    //
+    // Zove ga sloj koji zna da je otkazivanje gotovo - ne sam transport, koji
+    // ne moze znati da li je transfer koji stize ciscenje ili zakasneli posao.
+    virtual void clearCancel() noexcept = 0;
 
     // Zatvara i ponovo otvara uredjaj. Posle TransportLost pozicija glave je
     // NEPOZNATA i sloj iznad mora izvrsiti HOME pre bilo cega drugog;

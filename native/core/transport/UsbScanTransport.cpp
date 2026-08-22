@@ -515,6 +515,12 @@ void UsbScanTransport::cancel() noexcept {
     }
 }
 
+void UsbScanTransport::clearCancel() noexcept {
+    // CancelIoEx je vec prosao kroz sve sto je bilo u letu; ostaje samo nas
+    // lepljivi prekidac. Handle je i dalje upotrebljiv, pa reopen nije potreban.
+    cancelled_.store(false, std::memory_order_release);
+}
+
 Status UsbScanTransport::reopen() {
     if (ref_.kind() == DeviceRef::Kind::ExistingHandle) {
         // Handle je tudji; ne mozemo ga ponovo otvoriti. Vlasnik (STI) mora

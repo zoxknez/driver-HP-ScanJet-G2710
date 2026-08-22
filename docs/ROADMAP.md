@@ -13,10 +13,10 @@ regeneriše STATUS.
 
 | | |
 |---|---|
-| Faze završene | 0, 1, 2, 3, **4**, 5, 6, 7, **9**, 11 |
-| Faze nedirnute | 8, 10 |
+| Faze završene | 0, 1, 2, 3, 4, 5, 6, 7, **8 (ABI deo)**, 9, 11 |
+| Faze nedirnute | 8 (aplikacija), 10 |
 | Blokirano hardverom | 12, 13 |
-| Testovi | 584 — x64 538, x86 512, wizard 46 |
+| Testovi | 631 — x64 585, x86 559, wizard 46 |
 
 Faze 4 i 9 su do S1 stajale kao „završene" sa jednim neizmerenim gate-om po
 fazi. Sada su izmerene; ono što se offline ne može izmeriti imenovano je i
@@ -141,40 +141,53 @@ ne u očekivanju testa.
 
 ---
 
-### S2 · C ABI  ·  `native/abi/`
+### ~~S2 · C ABI~~ — **URAĐENO**  ·  `native/abi/`
 
-Granica preko koje .NET priča sa jezgrom. Mora biti **stabilna** — menja se
-namerno, nikad slučajno.
+Granica preko koje .NET priča sa jezgrom. **47 testova.**
 
-**Nastaje:**
-- `native/abi/g2710_abi.h` — čist C, bez ijednog C++ tipa u potpisu
-- `native/abi/G2710Abi.cpp` — implementacija nad `G2710Device` i `ScanSession`
-- `native/abi/G2710.Native.def`
-- `tests/unit/abi_test.cpp`
+**Odluke, donete pre koda i zapisane u vrhu `g2710_abi.h`:**
 
-**Funkcije** (iz MASTER plana): `g2710_open`, `g2710_close`, `g2710_identify`,
-`g2710_warmup`, `g2710_home`, `g2710_preview`, `g2710_scan_begin`,
-`g2710_scan_read_line`, `g2710_cancel`, `g2710_get_status`,
-`g2710_get_effective_safety_level`, `g2710_enable_trace`.
-
-**Odluke koje treba doneti u ovoj sesiji, ne kasnije:**
-
-| Pitanje | Predlog |
+| Pitanje | Odluka |
 |---|---|
-| Model greške | `int` kod + `g2710_last_error_message(handle)`; nijedan izuzetak ne sme preći granicu |
-| Vlasništvo memorije | pozivalac daje bafer, ABI ga puni; ABI nikad ne alocira ono što .NET oslobađa |
-| Callback-ovi | `progress` i `log`, sa `void* user`; dokumentovano da se zovu **sa radne niti** |
-| Threading | jedan handle = jedan pozivalac; paralelna upotreba je greška pozivaoca i vraća kod, ne ruši se |
-| Arbitraža | svaki `g2710_open` prolazi kroz `DeviceArbiter` |
+| Model greške | povratna vrednost + `g2710_last_error(handle)`; svaka ulazna tačka je u `guard`-u koji hvata **sve** izuzetke — .NET runtime C++ izuzetak ne može uhvatiti, proces se ruši bez traga |
+| Vlasništvo memorije | bafer daje pozivalac; `capacity 0` vraća potrebnu veličinu; premali bafer je **greška**, ne tiho skraćivanje |
+| Callback-ovi | `progress` i `log` stižu **sa radne niti**; callback koji baci izuzetak tumači se kao zahtev za prekid |
+| Threading | jedan handle = jedan pozivalac; `g2710_cancel` je **jedina** funkcija koja sme iz druge niti |
+| Verzionisanje | `size` kao prvo polje svake strukture, plus `g2710_abi_version()` |
 
-**Dodatni test koji vredi više nego što izgleda:** *ABI stability test* —
-spisak izvezenih simbola i veličine struktura se porede sa zapamćenim golden
-fajlom. Slučajna promena ABI-ja tada pada kao test, a ne kao pad aplikacije
-kod prijatelja.
+**Test stabilnosti** poredi `.def` sa zaglavljem (oba čita kao **tekst**), pamti
+offsete i veličine, i zaključava brojeve u enum-ima.
 
-**Gotovo kada:** `abi_test` vozi ceo tok (otvori → identify → warmup → home →
-scan_begin → read_line ×N → close) nad `SimTransport`, cancel u bilo kom
-trenutku ostavlja uređaj u `Idle`, i ABI stability test je zelen.
+**Dva nalaza koja je S2 iznedrila — oba ozbiljna:**
+
+**1. Otkazivanje je onemogućavalo zaustavljanje skeniranja.** `cancel()` je bio
+lepljiv u **oba** transporta — i u simulatoru i u produkcionom
+`UsbScanTransport`-u. Posle otkazivanja nijedan transfer nije prolazio,
+uključujući `warmReset()` koji zaustavlja čip. Na pravom skeneru to znači: glava
+nastavlja da se kreće posle „Prekini".
+
+Rešeno novim korakom u ugovoru — `ITransport::clearCancel()`, i
+`G2710Device::endCancellation()` iznad njega. Zove ga sloj koji **zna** da je
+otkazivanje gotovo; transport to ne može znati sam.
+
+**2. Trag nije beležio `identity()`** — jedini uređajni poziv koji je izostajao.
+A „iza deljenog imena porta je tuđi uređaj" je otkaz koji se **već desio** na
+razvojnoj mašini (HP LaserJet MFP). Dodat `TraceEntry::Kind::Identity`.
+
+**Nađeno usput:** pokvaren string u `native/cli/main.cpp` — poruka o odbijenom
+paljenju lampe završavala se doslovnim `' + N + '` umesto novim redom. Baš ta
+poruka je ono što prijatelj vidi u paketu sa plafonom 1.
+
+**Rupa u sopstvenom testu, zatvorena:** mutacija koja ubacuje polje u **sredinu**
+`g2710_open_options` nije pala — novo polje je selo u postojeći padding, pa se
+nijedan offset nije promenio. `offsetof` to načelno ne može uhvatiti. Dodata
+provera koja čita **spisak polja iz teksta zaglavlja** i poredi ga sa zapamćenim.
+
+**Ono što ABI namerno ne obećava:** `g2710_home` vraća
+`G2710_STATUS_NOT_IMPLEMENTED` sa tačnim razlogom („čeka port `Head_Relocate`"),
+a ispod nivoa 3 vraća `SAFETY_VIOLATION` — redosled provera je bitan, jer paketu
+sa plafonom 1 tačan odgovor nije „nije implementirano" nego „ovaj paket to ne
+sme".
 
 ---
 
@@ -337,11 +350,11 @@ tri postavke baš zato.
 ## 8. Redosled u jednom redu
 
 ```
-S1 gate-ovi ✓ → S2 ABI → S3 Interop → S4·S5·S6 aplikacija
+S1 gate-ovi ✓ → S2 ABI ✓ → S3 Interop → S4·S5·S6 aplikacija
    → S7·S8 TWAIN → S9 installer → S10 paket
                                       ↓
                         P1…P5  ·  H1…H13  ·  G2710-13 capability lock
 ```
 
-Preostalo: **6–9 sesija** do trenutka kada je sve što se može uraditi bez
+Preostalo: **5–8 sesija** do trenutka kada je sve što se može uraditi bez
 skenera — urađeno.
