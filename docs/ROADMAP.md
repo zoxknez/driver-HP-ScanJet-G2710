@@ -16,7 +16,7 @@ regeneriše STATUS.
 | Faze završene | 0, 1, 2, 3, 4, 5, 6, 7, **8 (ABI deo)**, 9, 11 |
 | Faze nedirnute | 8 (aplikacija), 10 |
 | Blokirano hardverom | 12, 13 |
-| Testovi | 631 — x64 585, x86 559, wizard 46 |
+| Testovi | 668 — x64 585, x86 559, wizard 46, interop 37 |
 
 Faze 4 i 9 su do S1 stajale kao „završene" sa jednim neizmerenim gate-om po
 fazi. Sada su izmerene; ono što se offline ne može izmeriti imenovano je i
@@ -191,24 +191,54 @@ sme".
 
 ---
 
-### S3 · `managed/G2710.Interop`
+### ~~S3 · `managed/G2710.Interop`~~ — **URAĐENO**
 
-**Nastaje:**
-- `managed/G2710.Interop/NativeMethods.cs` — `LibraryImport`, ne `DllImport`
-- `managed/G2710.Interop/DeviceHandle.cs` — `SafeHandle`, ne `IntPtr`
-- `managed/G2710.Interop/G2710Exception.cs`
-- `managed/G2710.Interop.Tests/`
+Most između .NET-a i jezgra. **37 testova**, svi kroz **pravu** `G2710.Native.dll`
+nad simulatorom — bez lažnjaka, jer se ono što se ovde meri (raspored struktura,
+životni vek callback-ova, `SafeHandle`) ne može izmeriti ni nad čim drugim.
 
-**Zamke koje se ovde plaćaju ako se preskoče:**
-- delegat prosleđen kao callback mora biti **držan živ** dok ga native strana
-  može pozvati; GC ga inače pokupi i to se ruši nasumično, obično kod korisnika
-- callback stiže sa native niti → sve što dira UI mora kroz dispečer
-  (isti obrazac kao `OnUiThread` u wizardu)
-- `SafeHandle` mora zatvarati uređaj i kad se aplikacija ruši
+**Delegata nema nigde.** Native strana dobija `delegate* unmanaged[Cdecl]` na
+statičku metodu, a stanje putuje kroz `user` kao `GCHandle`. Time cela klasa
+grešaka „GC je pokupio delegat koji native strana još drži" ne postoji, umesto
+da se izbegava pažnjom.
 
-**Gotovo kada:** testovi voze pravi `G2710.Native.dll` nad sim transportom iz
-.NET-a, uključujući cancel i callback pod pritiskom GC-a
-(`GC.Collect()` usred skeniranja mora biti bezopasan).
+`SafeHandle`, ne `IntPtr`: uređaj koji ostane otvoren drži ekskluzivnu bravu u
+`Global\` namespace-u. Ako aplikacija padne pre `g2710_close`, sledeći klijent
+zatiče skener koji „koristi neko drugi", bez ijednog vidljivog procesa. Critical
+finalizer je jedina odbrana koju .NET nudi.
+
+**Tri nalaza, sva tri iz testova:**
+
+**1. `ScanReadLine` je vraćao `bool`, a ishoda ima tri.** Otkazivanje se gutalo
+kao „nije greška", `done` je ostajao nula — pa je **otkazan prolaz izgledao
+identično kao isporučen red**. Aplikacija bi upisala nepotpunu sliku i nikome ne
+bi rekla da je nepotpuna. Sada `ScanLineResult { Delivered, Complete, Cancelled }`.
+
+**2. `GCHandle` je bio ukras.** `Pin` je držao `Context` i kao **polje**, pa je
+objekat bio dostupan preko upravljanog grafa bez obzira na handle. Mutacija koja
+handle menja u **slab** nije oborila nijedan test. Polje uklonjeno; kontekst se
+sada čita **kroz** handle, kao što je i pisalo da radi.
+
+**3. Test koji je to trebalo da uhvati nije merio ono što tvrdi.** Pokretao je
+`GC.Collect()` između redova, ali je zatim **ponovo registrovao** dnevnik pre
+provere — merio je svež callback umesto onog koji je preživeo sakupljanje.
+Prepravljen da grešku izazove **bez** ponovnog prijavljivanja; tek tada slabi
+handle pada.
+
+**Nađeno u alatu, ne u kodu:** `generate-status.py` je davao
+`--logger trx;LogFileName=<fajl>`. Sa jednim test projektom radi; sa dva **drugi
+prebriše prvi**, pa je STATUS tiho izgubio 46 provera i prijavio manji ukupan
+broj. Broj je i dalje izgledao verodostojno — to je i bio problem. Sada ide
+`--results-directory` i čitaju se svi izveštaji.
+
+**Mutacije:**
+
+| Mutacija | Pada |
+|---|---|
+| Otkazan red neodvojiv od isporučenog | 2 testa |
+| Izuzetak iz callback-a se guta | 1 test |
+| `SafeHandle` ne zatvara uređaj | 4 testa |
+| Slab `GCHandle` | ~~0~~ → 1 nakon ispravke iz nalaza 2 i 3 |
 
 ---
 
@@ -350,11 +380,11 @@ tri postavke baš zato.
 ## 8. Redosled u jednom redu
 
 ```
-S1 gate-ovi ✓ → S2 ABI ✓ → S3 Interop → S4·S5·S6 aplikacija
+S1 gate-ovi ✓ → S2 ABI ✓ → S3 Interop ✓ → S4·S5·S6 aplikacija
    → S7·S8 TWAIN → S9 installer → S10 paket
                                       ↓
                         P1…P5  ·  H1…H13  ·  G2710-13 capability lock
 ```
 
-Preostalo: **5–8 sesija** do trenutka kada je sve što se može uraditi bez
+Preostalo: **4–7 sesija** do trenutka kada je sve što se može uraditi bez
 skenera — urađeno.

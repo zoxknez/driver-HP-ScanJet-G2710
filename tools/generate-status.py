@@ -24,6 +24,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -80,6 +81,8 @@ PHASES = [
 MANAGED_SUITES = {
     "ReportTests": "G2710-11",
     "WizardFlowTests": "G2710-11",
+    "InteropLayoutTests": "G2710-8",
+    "ScannerTests": "G2710-8",
 }
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.
@@ -172,27 +175,32 @@ def run_managed_tests(config):
     if not os.path.exists(MANAGED_SOLUTION):
         return []
 
-    handle, trx = tempfile.mkstemp(suffix=".trx")
-    os.close(handle)
-    os.unlink(trx)  # dotnet trazi da fajl ne postoji
+    # Rezultati idu u DIREKTORIJUM, ne u jedan fajl.
+    #
+    # Prva verzija je davala `--logger trx;LogFileName=<fajl>`. Sa jednim test
+    # projektom je radila; sa dva je drugi projekat PREBRISAO prvi, pa je
+    # STATUS tiho izgubio 46 provera i prijavio manji ukupan broj nego ranije.
+    # Broj je i dalje izgledao verodostojno - to je i bio problem.
+    results_dir = tempfile.mkdtemp(prefix="g2710-trx-")
     try:
         completed = subprocess.run(
             ["dotnet", "test", MANAGED_SOLUTION, "-c", config, "--nologo",
-             "--logger", "trx;LogFileName=" + trx],
+             "--logger", "trx", "--results-directory", results_dir],
             cwd=ROOT, capture_output=True, text=True,
         )
-        if not os.path.exists(trx):
+        reports = [os.path.join(results_dir, name)
+                   for name in os.listdir(results_dir) if name.endswith(".trx")]
+        if not reports:
             raise SystemExit("dotnet test nije proizveo izvestaj:\n"
                              + completed.stdout[-2000:] + completed.stderr[-2000:])
-        tree = ElementTree.parse(trx)
+        trees = [ElementTree.parse(path) for path in reports]
     finally:
-        if os.path.exists(trx):
-            os.unlink(trx)
+        shutil.rmtree(results_dir, ignore_errors=True)
 
     # TRX koristi imenski prostor; pretraga ide po lokalnom imenu da se ne
     # oslanjamo na tacnu verziju sheme.
     results = []
-    for element in tree.iter():
+    for element in (node for tree in trees for node in tree.iter()):
         if not element.tag.endswith("}UnitTestResult"):
             continue
         outcome = element.get("outcome", "")

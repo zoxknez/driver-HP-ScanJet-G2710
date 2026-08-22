@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Isto kao u G2710.Interop: native biblioteka je x64. -->
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\G2710.Interop\G2710.Interop.csproj" />
+  </ItemGroup>
+
+  <!--
+    G2710.Native.dll pravi CMake, ne MSBuild. Ovi testovi ga STVARNO pozivaju -
+    nema laznjaka, jer se ono sto se ovde meri (raspored struktura, zivotni vek
+    callback-ova, SafeHandle) ne moze izmeriti ni nad cim drugim.
+
+    Trazi se u obe konfiguracije: razvoj gradi Debug, isporuka Release, a
+    testovi moraju raditi u oba slucaja bez podesavanja.
+
+    Stavka se deklarise IZVAN Target-a. Prvi pokusaj je bio <Content> unutar
+    Target-a sa BeforeTargets="Build" - i tiho nije radio, jer se stavke
+    kopiraju u izlaz pre nego sto taj Target stigne da ih doda. Testovi su onda
+    padali sa DllNotFoundException umesto da se izgrade.
+  -->
+  <PropertyGroup>
+    <G2710NativeRelease>$(MSBuildThisFileDirectory)..\..\build\native\abi\Release\G2710.Native.dll</G2710NativeRelease>
+    <G2710NativeDebug>$(MSBuildThisFileDirectory)..\..\build\native\abi\Debug\G2710.Native.dll</G2710NativeDebug>
+    <G2710NativePath Condition="Exists('$(G2710NativeRelease)')">$(G2710NativeRelease)</G2710NativePath>
+    <G2710NativePath Condition="'$(G2710NativePath)' == '' And Exists('$(G2710NativeDebug)')">$(G2710NativeDebug)</G2710NativePath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(G2710NativePath)' != ''">
+    <None Include="$(G2710NativePath)">
+      <Link>G2710.Native.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    Bez biblioteke build PADA, sa uputstvom. Tiho preskakanje bi ostavilo zeleno
+    stanje koje ne meri nista - a bas ovi testovi postoje zato sto se greske u
+    interop-u ne vide nigde drugde.
+  -->
+  <Target Name="RequireNativeLibrary" BeforeTargets="Build">
+    <Error Condition="'$(G2710NativePath)' == ''"
+           Text="Nema G2710.Native.dll. Izgradi je pre testova:%0A  cmake --build build --config Release --target g2710_native%0ATrazeno je na:%0A  $(G2710NativeRelease)%0A  $(G2710NativeDebug)" />
+  </Target>
+
+</Project>

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <AssemblyName>G2710.Interop</AssemblyName>
+    <RootNamespace>G2710.Interop</RootNamespace>
+
+    <!-- delegate* unmanaged[Cdecl] i UnmanagedCallersOnly. Cena je jedan
+         prekidac; dobit je da delegat koji GC pokupi dok ga native strana jos
+         moze pozvati uopste ne postoji. Vidi Callbacks.cs. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- G2710.Native.dll je x64. AnyCPU bi na 32-bitnom hostu ucitao pogresnu
+         arhitekturu i pao sa BadImageFormatException umesto sa jasnom porukom. -->
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="G2710.Interop.Tests" />
+  </ItemGroup>
+
+</Project>
