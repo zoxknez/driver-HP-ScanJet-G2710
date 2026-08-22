@@ -13,42 +13,85 @@ regeneriše STATUS.
 
 | | |
 |---|---|
-| Faze završene | 0, 1, 2, 3, 4, 5, 6, 7, **8 (ABI deo)**, 9, 11 |
-| Faze nedirnute | 8 (aplikacija), 10 |
+| Faze završene | 0, 1, 2, 3, 4, 5, 6, 7, **8 (ABI i Interop)**, 9, 11 |
+| Ostalo | 8 (aplikacija), 10 (TWAIN), installer |
 | Blokirano hardverom | 12, 13 |
-| Testovi | 668 — x64 585, x86 559, wizard 46, interop 37 |
+| Testovi | **668** — x64 585, x86 559, wizard 46, interop 37 |
+
+Kod, bez testova: **22.846 linija.**
+
+| | |
+|---|---|
+| `native/core` | 10.501 |
+| `native/wia` | 2.530 |
+| `managed/G2710.Qualification` | 2.733 |
+| `native/cli` | 1.708 |
+| `native/sim` | 1.648 |
+| `native/abi` | 1.251 |
+| `managed/G2710.Interop` | 1.124 |
+
+Testova je **11.015 linija** — skoro pola koliko i koda. To nije pedanterija
+nego posledica toga što skener nije kod nas: ono što se ne izmeri ovde, meri se
+tek na tuđem računaru, gde se ne može ni videti ni popraviti.
 
 Faze 4 i 9 su do S1 stajale kao „završene" sa jednim neizmerenim gate-om po
 fazi. Sada su izmerene; ono što se offline ne može izmeriti imenovano je i
 prebačeno na H11/H12 (§3), umesto da se prećuti.
 
-Po broju linija urađeno je oko **60%**. Po riziku više — najteže je iza nas:
-RTS8822 protokol, kalibracija, line-offset i bezbednosni model su portovani i
-izmereni. Ono što ostaje je uglavnom *površina*: ABI, dve aplikacije, TWAIN.
+Najteže je iza nas: RTS8822 protokol, kalibracija, line-offset, bezbednosni
+model i obe granice ka .NET-u. Ono što ostaje je uglavnom *površina* —
+aplikacija, TWAIN, instalater.
+
+Sve što kod **namerno ne radi**, sa razlogom i uslovom pod kojim bi proradilo,
+stoji na jednom mestu — §4.
 
 ---
 
 ## 2. Pravila koja važe u svakoj sesiji
 
 Ovo nije uvod nego lista koja se proverava pre commit-a. Svako od njih je
-nastalo iz greške koja se već desila.
+nastalo iz greške koja se **već desila**.
 
 1. **Nijedna sesija se ne zatvara crvena.** `ctest` x64 i x86, `dotnet test`,
    `verify-source-hygiene.py`, `verify-reference-gates.py`.
+
 2. **Novi kod se mutira.** Namerno se pokvari, i mora pasti *imenovani* test.
-   Test koji ne padne ne testira ono što tvrdi da testira.
-3. **`docs/STATUS.md` se regeneriše, nikad ne kuca rukom.** Nova test meta ide
+
+3. **Mutacija koja ne obori nijedan test je rupa u TESTU, ne dozvola da se
+   nastavi.** Ovo se desilo tri puta i sva tri puta je test bio taj koji je
+   ćutao:
+
+   | Mutacija | Zašto nije pala | Ishod |
+   |---|---|---|
+   | polje u sredinu `g2710_open_options` | selo u postojeći padding, nijedan offset se ne menja | dodata provera spiska polja iz teksta zaglavlja |
+   | slab `GCHandle` | `Pin` je držao objekat i kao polje | polje uklonjeno — handle je sad jedino što drži |
+   | isto, drugi put | test je **ponovo registrovao** dnevnik pre provere | provera bez ponovnog prijavljivanja |
+
+4. **Logika koja se može pogrešiti ide iza seam-a.** Ne zato što je lepše, nego
+   zato što infrastruktura često **ne radi** offline: WIA skladište osobina
+   traži servis, `wiasCreateDrvItem` ne. Granica se povlači tamo gde prestaje
+   ono što se može izmeriti — `WiaCapabilities`, `WiaTransfer`, `NativeMethods`
+   naspram `Scanner`.
+
+5. **Ishod koji ima tri vrednosti ne dobija `bool`.** `ScanReadLine` je vraćao
+   „ima još" — pa je otkazan prolaz izgledao identično kao isporučen red.
+
+6. **`docs/STATUS.md` se regeneriše, nikad ne kuca rukom.** Nova test meta ide
    u `PHASES` ili `MANAGED_SUITES` u `tools/generate-status.py`, inače
    generator pada uz spisak siročeta — i to je namerno.
-4. **WIA i TWAIN oglašavaju isključivo `HARDWARE_VALIDATED`.** Trenutno:
+
+7. **WIA i TWAIN oglašavaju isključivo `HARDWARE_VALIDATED`.** Trenutno:
    ništa. Ne popravlja se dodavanjem vrednosti nego prolaskom H8.
-5. **`third_party/hp3900-reference/` se ne kompajlira i ne `#include`-uje.**
+
+8. **`third_party/hp3900-reference/` se ne kompajlira i ne `#include`-uje.**
    Sprovodi `verify-source-hygiene.py`.
-6. **GUI se ne isporučuje kao skelet.** Pun raspored, stanja za prazno /
+
+9. **GUI se ne isporučuje kao skelet.** Pun raspored, stanja za prazno /
    učitavanje / grešku / nema uređaja, nijedno dugme bez ponašanja, ništa
    sabijeno uz levu ivicu.
-7. **Referentni defekt se reprodukuje, ne krije.** Vidi
-   [REFERENCE-DEFECTS.md](REFERENCE-DEFECTS.md).
+
+10. **Referentni defekt se reprodukuje, ne krije.** Vidi
+    [REFERENCE-DEFECTS.md](REFERENCE-DEFECTS.md).
 
 ---
 
@@ -111,7 +154,31 @@ binarnog fajla. Ostaje **H12**.
 
 **6 testova**, obe arhitekture.
 
-## 4. Sesije
+---
+
+## 4. Šta kod namerno NE obećava
+
+Jedno mesto sa svime što ne radi, i zašto. Postoji da se ne bi zaboravilo i da
+se ne bi slučajno „popravilo" tako što se doda vrednost koju niko nije izmerio.
+
+| Ne radi | Šta se umesto toga dešava | Otključava |
+|---|---|---|
+| **Povratak glave na home** | `NOT_IMPLEMENTED` sa razlogom „čeka port `Head_Relocate`" | port `Head_Relocate` / `Head_ParkHome`, pa **H4** |
+| **Orkestracija kalibracije** | prolaz radi, ali `shading_applied = 0`; slika nosi neujednačenost senzora, i to se prijavljuje | **H7** |
+| **Bilo koja rezolucija u WIA/TWAIN** | ponuda je prazna; `drvInitializeWia` odbija na vratima | **H8** |
+| **1200 / 2400 dpi kao proizvod** | kod postoji i skenira; status ostaje `IMPLEMENTED` zbog defekta D3 | **H8** |
+| **TMA / slajdovi** | `ScanSource::Tma*` postoji u planeru, vraća `NotImplementedIn10` | verzija 1.1 |
+| **Session 0 ↔ interaktivna arbitraža** | dokazano samo međuprocesno; pravi Session 0 traži Windows servis | **H12** |
+| **`GetMyDeviceHandle`** | neiskorišćen kandidat; produkciona putanja je `GetMyDevicePortName` | **H11** |
+| **WIA osobine offline** | `wiasReadPropLong` van servisa vraća `E_INVALIDARG`; testira se sve **ispod** te granice | **H11** |
+
+Svaka od ovih stavki ima tačan razlog i tačan uslov. Nijedna nije „nismo
+stigli" — svaka je „nemamo čime to da izmerimo, a pretpostavljati na tuđem
+uređaju je upravo ono što ovaj projekat ne radi".
+
+---
+
+## 5. Sesije
 
 Svaka sesija je zaokružena: počinje zeleno, završava zeleno, i ostavlja
 repozitorijum u stanju iz koga se sme stati.
@@ -244,39 +311,63 @@ broj. Broj je i dalje izgledao verodostojno — to je i bio problem. Sada ide
 
 ### S4–S6 · `managed/G2710.App`  *(tri sesije — najveći deo koji je ostao)*
 
-Wizard je 4.747 linija i **jednostavniji** je od ovoga: nema preview sa
-crop-om, ni live progress nad pravim skeniranjem, ni izvoz u šest formata.
-Zato tri sesije, a ne jedna — aplikacija se ne sme ostaviti na pola.
+Wizard je 2.733 linije i **jednostavniji** je od ovoga: nema preview sa crop-om,
+ni live progress nad pravim skeniranjem, ni izvoz u šest formata. Zato tri
+sesije, a ne jedna — aplikacija se ne sme ostaviti na pola.
+
+Priča sa jezgrom isključivo kroz `G2710.Interop.Scanner`. Ništa u aplikaciji ne
+sme dodirnuti `NativeMethods` — sve što se može pogrešiti već je jednom
+izmereno, i ne meri se dvaput.
+
+**Tri stvari koje S3 nameće aplikaciji, a lako se prećute:**
+
+- **`ScanLineResult.Cancelled` nije `Complete`.** Slika je nepotpuna i UI to
+  mora reći. Tiho snimanje polovične slike je gore od greške.
+- **Callback-ovi stižu sa radne niti.** Isti obrazac kao `OnUiThread` u wizardu
+  — bez njega se prozor ruši čim stigne prvi red dnevnika.
+- **`ShadingApplied = false`.** Aplikacija mora reći da slika nosi
+  neujednačenost senzora, umesto da je pokaže kao gotov proizvod.
 
 #### S4 · Ljuska i podešavanja
-- prozor, navigacija, tema (isti `Palette.xaml` / `Controls.xaml` obrazac kao
-  wizard, izdvojen u deljeni resurs)
-- izbor izvora / moda / rezolucije / dubine, sve vezano za `capabilities`
-- **stanja:** nema uređaja · zauzet drugim klijentom · greška · učitavanje ·
-  prazan rezultat
-- dijagnostika i log viewer
+- tema se **izdvaja** iz wizarda u deljeni resurs (`Palette.xaml`,
+  `Controls.xaml`) — dva prozora sa dve kopije iste palete raziđu se u prvom
+  mesecu
+- `Scanner.CheckAbiVersion()` pri pokretanju: nepoklapanje je jasna poruka,
+  a ne rušenje pri prvom pozivu
+- izbor izvora / moda / rezolucije / dubine, vezano za `capabilities`
+- **stanja:** nema uređaja · zauzet drugim klijentom (`CurrentOwner` kaže
+  kojim) · greška · učitavanje · prazan rezultat
+- dijagnostika: plafon build-a, da li je motorni put uopšte preveden, i
+  dugme koje piše trag (`WriteTrace`)
 
 #### S5 · Preview, crop, progres, cancel
-- preview scan → slika u prozoru
-- interaktivni crop (rubber-band) sa mapiranjem preview ↔ uređaj; ovo je
-  mesto gde se najlakše pogreši za faktor rezolucije, pa ide sa testovima nad
-  koordinatnom transformacijom
-- live progress iz ABI callback-a
-- cancel u bilo kom trenutku → `Idle`, bez zaostalog prolaza
+- **preview je obično skeniranje na niskoj rezoluciji** — zasebnog preview
+  poziva u ABI-ju nema i neće ga ni biti; ovo je zapisano da se ne bi tražio
+- interaktivni crop (rubber-band) sa mapiranjem preview ↔ uređaj; mesto gde se
+  najlakše pogreši za faktor rezolucije, pa ide sa testovima nad **čistom**
+  koordinatnom transformacijom, bez UI-ja
+- live progress iz `Scanner` callback-a, kroz dispečer
+- cancel u bilo kom trenutku → `Idle`, bez zaostalog prolaza; `ScanEnd` u
+  `finally`, uvek
 
 #### S6 · Izvoz i završna obrada
 - PNG · JPEG · TIFF 8-bit · TIFF 16-bit · PDF · multi-page PDF
 - 16-bit TIFF je taj koji obično ispadne pogrešan (byte order); ide sa golden
-  testom
-- keyboard navigacija, tooltip-ovi, poruke greške koje kažu šta da se uradi
+  testom, kao i PNM u CLI-ju
+- keyboard navigacija, tooltip-ovi, poruke greške koje kažu **šta da se uradi**
+- pakovanje: `G2710.Native.dll` mora ići pored aplikacije, i to se proverava
+  probnim pokretanjem iz raspakovanog foldera
 
-**Gotovo kada:** ceo tok otvori → warmup → home → kalibracija → preview →
-crop → scan → izvoz radi nad simulatorom kroz `TestTransportProvider`, u svih
-šest formata, i cancel u bilo kom trenutku ostavlja uređaj u `Idle`.
+**Gotovo kada:** tok otvori → warmup → preview → crop → scan → izvoz radi nad
+simulatorom u svih šest formata; cancel u bilo kom trenutku ostavlja uređaj u
+`Idle`; a ono što ne radi (home, kalibracija) aplikacija **kaže**, ne krije.
 
 ---
 
 ### S7–S8 · TWAIN  ·  `native/twain/`
+
+TWAIN ide direktno na `G2710::Core`, ne kroz C ABI — u istom je procesu i u
+istom jeziku, pa bi ABI bio suvišan sloj. WIA to već radi tako.
 
 #### S7 · Data Source, x64
 - `DSM_Entry`, `DAT_IDENTITY`, `DAT_CAPABILITY`
@@ -285,16 +376,18 @@ crop → scan → izvoz radi nad simulatorom kroz `TestTransportProvider`, u svi
 - `DAT_IMAGENATIVEXFER` + `DAT_IMAGEMEMXFER`
 - state machine 1–7, bez curenja stanja
 - sopstveni UI + „hide UI" režim
+- prenos se piše po uzoru na `WiaTransfer`: sink iza seam-a, pa je logika
+  merljiva bez TWAIN DSM-a
 
 #### S8 · x86, harness, arbitraža
-- `G2710.Core` se već gradi za x86 — TWAIN se dodaje
+- `G2710.Core` i `native/abi` se već grade za x86 — TWAIN se dodaje
 - `tests/twainharness/` za **obe** arhitekture
-- x86 i x64 DS istovremeno pokrenuti ne blokiraju jedan drugog trajno
+- x86 i x64 DS istovremeno pokrenuti ne blokiraju jedan drugog trajno; ovo je
+  isti `Global\` objekat koji S1 već meri međuprocesno
 - raspoređivanje: x64 → `C:\Windows\twain_64\`, x86 → `C:\Windows\twain_32\`
 
 **Gotovo kada:** state machine testovi zeleni na obe arhitekture, smoke test
-nad simulatorom prolazi, i ukršteni pristup (x86 DS + x64 DS) daje tačno
-jednu `DataSession`.
+nad simulatorom prolazi, i ukršteni pristup daje tačno jednu `DataSession`.
 
 ---
 
@@ -305,22 +398,24 @@ nepostojeću aplikaciju bio bi skelet.
 
 - install / uninstall, `pnputil` za INF, instalacija sertifikata
 - `SIGNING_MODE=Development|Release` — isti paket, drugi potpis
-- TWAIN x86 + x64 na prava mesta
+- TWAIN x86 + x64 na prava mesta; `G2710.Native.dll` pored aplikacije
 - **čist uninstall:** provera da posle deinstalacije ne ostaje nijedan fajl,
-  ključ registra ni sertifikat — mereno, ne pretpostavljeno
+  ključ registra ni sertifikat — mereno, ne pretpostavljeno. `install.ps1` to
+  već radi za kvalifikacioni paket i ta provera se preuzima.
 - `tools/build-qualification-package.ps1` dobija brata za pun proizvod
 
 ---
 
 ### S10 · Prvi paket koji zaista ide prijatelju
 
-- izbor plafona i redosled eskalacije (§5)
-- probni prolaz cele isporuke na ovoj mašini
+- izbor plafona i redosled eskalacije (§6)
+- probni prolaz cele isporuke na ovoj mašini — isti postupak kao za
+  kvalifikacioni paket, koji je već jednom prošao
 - kratko uputstvo šta da javi ako nešto ne prođe
 
 ---
 
-## 5. Eskalacija plafona — kojim redom paketi idu
+## 6. Eskalacija plafona — kojim redom paketi idu
 
 Plafon se **ugrađuje u binarni fajl pri pakovanju** i ne može se podići na
 tuđem računaru. Zato redosled paketa *jeste* bezbednosni plan.
@@ -340,7 +435,7 @@ plafon nego što je traženo.
 
 ---
 
-## 6. Hardverska staza — blokirana prijateljevim uređajem
+## 7. Hardverska staza — blokirana prijateljevim uređajem
 
 Ne troši naše sesije; ide paralelno čim P1 ode.
 
@@ -366,18 +461,19 @@ tri postavke baš zato.
 
 ---
 
-## 7. Šta bi promenilo redosled
+## 8. Šta bi promenilo redosled
 
 | Nalaz | Posledica |
 |---|---|
 | H2 pokaže control transfer koji nije `0x40`/`0xC0` | transport odluka se otvara ponovo; `WinUsbTransport` iz laboratorije postaje kandidat, uz zaseban INF |
+| Port `Head_Relocate` bude ekstraktovan | `g2710_home` prestaje da bude `NOT_IMPLEMENTED`; H4 postaje izvodljiv, a aplikacija dobija dugme koje danas nema |
 | H1-A padne uz Secure Boot | prelazi se na H1-B; Secure Boot se i dalje ne gasi bez pristanka |
 | H8 obori 1200/2400 | ostaju `IMPLEMENTED` zauvek i **ne postoje** u WIA property listi (G2710-13) |
 | Hardver se ne slaže sa referencom | USBPcap golden capture originalnog HP drajvera → `tools/pcapng-to-trace.py` → `ReplayTransport` → diferencijalna analiza |
 
 ---
 
-## 8. Redosled u jednom redu
+## 9. Redosled u jednom redu
 
 ```
 S1 gate-ovi ✓ → S2 ABI ✓ → S3 Interop ✓ → S4·S5·S6 aplikacija
