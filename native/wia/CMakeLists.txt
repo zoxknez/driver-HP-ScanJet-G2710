@@ -17,6 +17,7 @@ add_library(g2710_wia SHARED
     G2710Usd.cpp
     G2710MiniDrv.cpp
     G2710Transfer.cpp
+    WiaTransfer.cpp
     WiaItemContext.cpp
     WiaCapabilities.cpp
     WiaEvents.cpp

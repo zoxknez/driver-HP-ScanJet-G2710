@@ -54,7 +54,8 @@ PHASES = [
     ("G2710-4", "Stanja, MotionGuard, arbitraza", [
         "unit/safety_level_test.cpp", "unit/safety_ceiling1_test.cpp",
         "unit/device_arbiter_test.cpp", "unit/motion_guard_test.cpp",
-        "unit/device_lifecycle_test.cpp"]),
+        "unit/device_lifecycle_test.cpp",
+        "arbiter/arbiter_cross_process_test.cpp"]),
     ("G2710-5", "Kalibracija", [
         "golden/lamp_test.cpp", "integration/calibration_test.cpp",
         "unit/adc_calibration_test.cpp", "unit/calibration_cache_test.cpp"]),
@@ -65,7 +66,8 @@ PHASES = [
         "golden/scan_planner_test.cpp", "integration/scan_session_test.cpp"]),
     ("G2710-9", "WIA minidriver", [
         "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
-        "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp"]),
+        "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp",
+        "wiaharness/wia_lifecycle_test.cpp"]),
     ("G2710-11", "Kvalifikacioni paket", [
         "unit/qualification_test.cpp"]),
 ]

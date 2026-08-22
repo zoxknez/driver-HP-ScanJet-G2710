@@ -110,6 +110,70 @@ target_compile_definitions(g2710_wia_qualification_test PRIVATE
     G2710_WIA_ALLOW_UNQUALIFIED=1)
 add_test(NAME wia_qualification COMMAND g2710_wia_qualification_test)
 
+# --- wiaharness: zivotni ciklus WIA drajvera --------------------------------
+# Acceptance gate faze G2710-9.
+#
+# Izvori iz native/wia/ se KOMPAJLIRAJU OVDE, a DLL se ne ucitava. g2710_wia
+# linkuje jezgro staticki, pa bi LoadLibrary + DllGetClassObject dao DLL-u
+# SVOJU kopiju TransportProvider singletona - ScopedTestProvider iz test
+# procesa ne bi imao efekta, a test bi i dalje prolazio, samo bi merio nesto
+# drugo.
+#
+# G2710_WIA_ALLOW_UNQUALIFIED=1 jer bez toga ponuda je prazna, drvInitializeWia
+# odbija na vratima, i nema zivotnog ciklusa koji bi se testirao. Grana
+# "nema sta da se ponudi -> odbij" pokrivena je u izdanju, u wia_capabilities.
+# Samo x64. native/wia/CMakeLists.txt preskace ceo minidriver na 32 bita, pa bi
+# ovaj harness testirao komponentu koja se za x86 i ne isporucuje. Izmereno:
+# x86 binarni fajl se ne moze ni pokrenuti - wiaservc ne postoji kao 32-bitni,
+# pa se proces rusi sa STATUS_DLL_NOT_FOUND jos pre main().
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+
+add_executable(g2710_wiaharness_tests
+    wiaharness/wia_lifecycle_test.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/G2710Usd.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/G2710MiniDrv.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/G2710Transfer.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaTransfer.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaItemContext.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaCapabilities.cpp
+    ${CMAKE_SOURCE_DIR}/native/wia/WiaEvents.cpp
+)
+# sti.lib nosi IID_IStiDeviceControl; WiaGuid.lib nosi WIA_* i IID_IStiUSD.
+# G2710Transfer.cpp se linkuje iako se ne moze pozvati bez servisa - bez njega
+# G2710MiniDrv nema drvAcquireItemData i vtable je nepotpun.
+target_link_libraries(g2710_wiaharness_tests
+    PRIVATE G2710::Core G2710::Sim GTest::gtest_main Ole32 WiaGuid wiaservc sti)
+target_include_directories(g2710_wiaharness_tests PRIVATE
+    ${CMAKE_SOURCE_DIR}/native/wia)
+target_compile_definitions(g2710_wiaharness_tests PRIVATE
+    G2710_WIA_ALLOW_UNQUALIFIED=1)
+gtest_discover_tests(g2710_wiaharness_tests)
+
+endif()
+
+# --- arbitraza izmedju DVA PROCESA ------------------------------------------
+# Acceptance gate faze G2710-4.
+#
+# unit/device_arbiter_test.cpp radi u jednom procesu, a bas to ne dokazuje
+# nista: takav test prolazi i kada je brava obican std::mutex. `Global\`
+# postoji zato sto proces nije granica koja nas zanima.
+#
+# Pravi Session 0 trazi Windows servis i ostaje H12; ovo hvata ono sto se
+# offline moze uhvatiti - da je brava zaista medju-procesna.
+add_executable(g2710_lock_holder arbiter/lock_holder.cpp)
+target_link_libraries(g2710_lock_holder PRIVATE G2710::Core)
+
+add_executable(g2710_arbiter_tests arbiter/arbiter_cross_process_test.cpp)
+target_link_libraries(g2710_arbiter_tests PRIVATE G2710::Core GTest::gtest_main)
+add_dependencies(g2710_arbiter_tests g2710_lock_holder)
+
+# Putanja do pomocnog procesa se PROSLEDJUJE, ne pogadja. Generator expression
+# je jedini nacin da radi i za jednokonfiguracione i za viseskonfiguracione
+# generatore (Ninja vs Visual Studio).
+target_compile_definitions(g2710_arbiter_tests PRIVATE
+    G2710_LOCK_HOLDER_PATH="$<TARGET_FILE:g2710_lock_holder>")
+gtest_discover_tests(g2710_arbiter_tests)
+
 # --- plafon bezbednosti mora biti JEDNA vrednost po binarnom fajlu ----------
 # Zato ovaj test ne linkuje G2710::Core (koji nosi PUBLIC plafon 5) nego
 # kompajlira svoju kopiju izvora sa plafonom 1. Mesanje razlicitih plafona u

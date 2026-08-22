@@ -13,12 +13,14 @@ regeneriše STATUS.
 
 | | |
 |---|---|
-| Faze završene | 0, 1, 2, 3, 5, 6, 7, 11 |
-| Faze delimično | 4 i 9 — kod postoji, jedan gate po fazi nije izmeren (§3) |
+| Faze završene | 0, 1, 2, 3, **4**, 5, 6, 7, **9**, 11 |
 | Faze nedirnute | 8, 10 |
 | Blokirano hardverom | 12, 13 |
-| Kod | ~21.500 linija (`native/core` 10.414, `native/wia` 2.305, wizard 4.747, CLI 1.708, sim 1.643) |
-| Testovi | 552 (506 C++ ×2 arhitekture, 46 wizard) |
+| Testovi | 584 — x64 538, x86 512, wizard 46 |
+
+Faze 4 i 9 su do S1 stajale kao „završene" sa jednim neizmerenim gate-om po
+fazi. Sada su izmerene; ono što se offline ne može izmeriti imenovano je i
+prebačeno na H11/H12 (§3), umesto da se prećuti.
 
 Po broju linija urađeno je oko **60%**. Po riziku više — najteže je iza nas:
 RTS8822 protokol, kalibracija, line-offset i bezbednosni model su portovani i
@@ -50,69 +52,92 @@ nastalo iz greške koja se već desila.
 
 ---
 
-## 3. Dve otvorene rupe u već „završenim" fazama
+## 3. Dve rupe koje su bile otvorene — zatvorene u S1
 
-Obe su iste vrste: **kod postoji, tvrdnja nije izmerena.**
+Obe su bile iste vrste: **kod postoji, tvrdnja nije izmerena.**
 
-### 3.1 `tests/wiaharness/` je prazan
+### 3.1 `tests/wiaharness/` — zatvoreno
 
-Testiran je sloj odluka — `WiaCapabilities`, `WiaEvents`, `WiaItemContext`,
-CLSID (30 testova). Nije testiran ceo `IWiaMiniDrv` životni ciklus kroz pravi
-COM objekat.
+Prvo je izmereno šta od `wiaservc` pomoćnih funkcija uopšte radi van WIA
+servisa, jer je od toga zavisio ceo projekat harness-a:
 
-**Tehnička prepreka koju treba znati unapred:** `g2710_wia` linkuje
-`G2710::Core` statički. Ako test uradi `LoadLibrary` + `DllGetClassObject`,
-DLL nosi **svoju** kopiju `TransportProvider` singletona, pa
-`SetForTesting` iz test procesa ne bi imao nikakvog efekta — a test bi i dalje
-prolazio, samo bi merio nešto drugo.
+| | |
+|---|---|
+| `wiasCreateDrvItem` | **radi** — stablo se pravi i bez servisa |
+| `wiasReadPropLong` | `E_INVALIDARG` |
+| `wiasWritePropLong` | `E_INVALIDARG` |
 
-**Rešenje:** harness kompajlira `native/wia/*.cpp` direktno u test binarni fajl,
-kao što se `WiaCapabilities.cpp` već gradi kao deo testova. Tako je
-`TransportProvider` jedan objekat.
+Skladište osobina pravi servis, ne drajver. Zato je prenos podeljen tačno na
+toj granici — `native/wia/WiaTransfer.{h,cpp}`:
 
-### 3.2 `tests/arbiter/` je prazan
+```
+drvAcquireItemData   čita osobine (wiasReadPropLong)      → čeka H11
+                     sklopi sink i pozove runTransfer
 
-`unit/device_arbiter_test.cpp` postoji, ali radi u **jednom procesu** — a
-`Global\` namespace i postoji zato što proces nije jedini nivo izolacije.
+runTransfer          lampa, plan, sesija, redovi,
+                     otkazivanje, napredak, zatvaranje    → mereno sada
+```
 
-**Šta se offline može dokazati:** dva odvojena procesa se otimaju o isti
-`Global\` objekat i tačno jedan dobija `DataSession`; drugi dobija poruku sa
-imenom vlasnika, ne sirov Win32 kod.
+`MINIDRV_TRANSFER_CONTEXT` je običan POD a `IWiaMiniDrvCallBack` običan COM
+interfejs, pa je i `WiaCallbackSink` — koji barata baferima servisa — ostao
+testabilan. Servis treba **samo** osobinama.
 
-**Šta se offline NE može dokazati:** pravi Session 0 ↔ interaktivna sesija.
-Za to treba Windows servis. To ostaje H12 na hardveru, i ROADMAP to tako i
-zove — ne pretvara se da je pokriveno.
+Harness kompajlira `native/wia/*.cpp` u sebe umesto da učitava DLL. Razlog je
+zapisan u samom fajlu: `g2710_wia` linkuje jezgro statički, pa bi `LoadLibrary`
+dao DLL-u *svoju* kopiju `TransportProvider` singletona — `ScopedTestProvider`
+iz test procesa ne bi imao efekta, a test bi i dalje **prolazio**, samo bi merio
+nešto drugo.
 
----
+Cilja se `G2710_WIA_ALLOW_UNQUALIFIED=1`; bez toga ponuda je prazna,
+`drvInitializeWia` odbija na vratima, i nema životnog ciklusa. Grana
+„nema šta da se ponudi → odbij" pokrivena je u izdanju, u `wia_capabilities`.
+
+**26 testova.** Samo x64 — `wiaservc` ne postoji kao 32-bitni i x86 binarni
+fajl se ruši sa `STATUS_DLL_NOT_FOUND` pre `main()`.
+
+### 3.2 `tests/arbiter/` — zatvoreno koliko se offline može
+
+`unit/device_arbiter_test.cpp` radi u jednom procesu, a takav test prolazi i
+kada je brava običan `std::mutex`. Novi test pokreće **drugi proces**
+(`tests/arbiter/lock_holder.cpp`) i njih dva se otimaju o isti `Global\`
+objekat.
+
+Dokaz da test zaista meri: kada se muteks napravi bezimenim — brava postaje
+proces-lokalna — **svih 9 starih testova i dalje prolazi**, a tri nova padaju.
+
+**Šta i dalje NIJE dokazano:** pravi Session 0 ↔ interaktivna sesija. Za to
+treba Windows servis koji radi kao LocalSystem, a to se ne podiže iz test
+binarnog fajla. Ostaje **H12**.
+
+**6 testova**, obe arhitekture.
 
 ## 4. Sesije
 
 Svaka sesija je zaokružena: počinje zeleno, završava zeleno, i ostavlja
 repozitorijum u stanju iz koga se sme stati.
 
-### S1 · Zatvaranje dva gate-a  *(mali, visok prinos)*
+### ~~S1 · Zatvaranje dva gate-a~~ — **URAĐENO**
 
-Prvi je namerno najmanji: zatvara dva gate-a i ne ostavlja ništa nedovršeno ako
-nas limit prekine.
+Zatvoreni gate-ovi faza G2710-4 i G2710-9; kako i dokle — §3.
 
-**Nastaje:**
-- `tests/wiaharness/wia_lifecycle_test.cpp` + `CMakeLists.txt`
-- `tests/arbiter/arbiter_cross_process_test.cpp` + pomoćni exe
-  `tests/arbiter/lock_holder.cpp`
+**Nastalo:** `native/wia/WiaTransfer.{h,cpp}` (seam),
+`tests/wiaharness/wia_lifecycle_test.cpp` (26),
+`tests/arbiter/arbiter_cross_process_test.cpp` + `lock_holder.cpp` (6).
 
-**Pokriva:**
-- `IStiUSD::Initialize` → `GetCapabilities` → `GetStatus` → `LockDevice` →
-  `drvInitializeWia` → `drvInitItemProperties` → `drvValidateItemProperties` →
-  `drvAcquireItemData` → `drvFreeDrvItemContext` → `drvUnInitializeWia`
-- cancel usred transfera (`S_FALSE` semantika)
-- greška usred transfera
-- `TransportLost` usred transfera → nijedna dalja motion komanda
-- dva procesa, isti `Global\` objekat, tačno jedan `DataSession`
-- klijent koji čeka dobija ime vlasnika, ne `ERROR_SHARING_VIOLATION`
+**Pokriveno:** produkciona putanja otvaranja kroz `IStiUSD::Initialize` sa
+lažnim `IStiDeviceControl`; `QueryInterface` između `IStiUSD` i `IWiaMiniDrv`;
+`GetCapabilities` / `GetStatus` / `LockDevice`; ceo prenos nad simulatorom —
+otkazivanje aplikacije, otkazivanje kroz token, tvrda greška, dva prenosa
+zaredom, kadenca napretka; oba režima bafera; preslikavanje grešaka; i
+međuprocesna arbitraža.
 
-**Gotovo kada:** obe mete zelene na x64 i x86, `generate-status.py` ih svrstava
-u G2710-9 i G2710-4, i mutacija (npr. uklonjena provera vlasništva) obara
-imenovani test.
+**Nije pokriveno, i zna se zašto:** `drvInitItemProperties`,
+`drvValidateItemProperties` i čitanje osobina u `drvAcquireItemData` — traže
+WIA servis (§3.1). Pravi Session 0 traži Windows servis (§3.2). Oboje H11/H12.
+
+**Nađeno usput:** napredak se javljao `kProgressSteps + 1` puta jer je brojač
+kretao od `-1` — konstanta je lagala o sopstvenoj kadenci. Popravljeno u kodu,
+ne u očekivanju testa.
 
 ---
 
@@ -312,11 +337,11 @@ tri postavke baš zato.
 ## 8. Redosled u jednom redu
 
 ```
-S1 gate-ovi → S2 ABI → S3 Interop → S4·S5·S6 aplikacija
+S1 gate-ovi ✓ → S2 ABI → S3 Interop → S4·S5·S6 aplikacija
    → S7·S8 TWAIN → S9 installer → S10 paket
                                       ↓
                         P1…P5  ·  H1…H13  ·  G2710-13 capability lock
 ```
 
-Procena: **7–10 sesija** do trenutka kada je sve što se može uraditi bez
+Preostalo: **6–9 sesija** do trenutka kada je sve što se može uraditi bez
 skenera — urađeno.
