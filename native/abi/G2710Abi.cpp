@@ -23,6 +23,7 @@
 #include "rts8822/Lamp.h"
 #include "rts8822/RegisterFile.h"
 #include "scan/Capabilities.h"
+#include "scan/CapabilityReport.h"
 #include "scan/ScanPlanner.h"
 #include "scan/ScanSession.h"
 #include "transport/ITransportProvider.h"
@@ -798,6 +799,18 @@ g2710_status G2710_CALL g2710_scan_end(g2710_device* device) {
         }
         return G2710_STATUS_OK;
     });
+}
+
+// --- mogucnosti -------------------------------------------------------------
+
+int32_t G2710_CALL g2710_capabilities(char* buffer, int32_t capacity) {
+    // Bez handle-a i bez uredjaja: racun je statican. Izuzetak se ne sme
+    // pustiti napolje ni ovde, pa se prazan izlaz vraca kao nula.
+    try {
+        return copyOut(scan::capabilitiesJson(), buffer, capacity);
+    } catch (...) {
+        return 0;
+    }
 }
 
 // --- trag -------------------------------------------------------------------

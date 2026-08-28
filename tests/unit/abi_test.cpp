@@ -14,6 +14,8 @@
 
 #include "g2710_abi.h"
 
+#include "scan/CapabilityReport.h"
+
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -624,6 +626,50 @@ TEST(Abi, TheLogReceivesTheReasonAnOperationFailed) {
     const std::size_t before = lines.size();
     ASSERT_EQ(G2710_STATUS_INVALID_ARGUMENT, g2710_plan_scan(handle, &request, &info));
     EXPECT_EQ(before, lines.size());
+}
+
+// =============================================================================
+// Mogucnosti
+// =============================================================================
+
+TEST(Abi, CapabilitiesAnswerWithoutAnyDevice) {
+    // Racun je statican. Aplikacija time nudi rezolucije pre nego sto se ista
+    // prikljuci - i pre nego sto skener uopste postoji.
+    const int32_t needed = g2710_capabilities(nullptr, 0);
+    ASSERT_GT(needed, 0);
+
+    std::string text(static_cast<std::size_t>(needed) + 1, '\0');
+    const int32_t again = g2710_capabilities(text.data(), needed + 1);
+    EXPECT_EQ(needed, again);
+    text.resize(static_cast<std::size_t>(needed));
+
+    EXPECT_EQ('{', text.front());
+    EXPECT_NE(std::string::npos, text.find("\"resolutions\""));
+    EXPECT_NE(std::string::npos, text.find("\"advertisable\""));
+    EXPECT_NE(std::string::npos, text.find("03F0:2805"));
+}
+
+TEST(Abi, CapabilitiesAreTheSameTextTheCliPrints) {
+    // Ista funkcija u jezgru pravi oba ispisa. Da su dva, razisla bi se - pa bi
+    // aplikacija pokazivala jedno a STATUS.md drugo.
+    const int32_t needed = g2710_capabilities(nullptr, 0);
+    std::string text(static_cast<std::size_t>(needed) + 1, '\0');
+    g2710_capabilities(text.data(), needed + 1);
+    text.resize(static_cast<std::size_t>(needed));
+
+    EXPECT_EQ(g2710::scan::capabilitiesJson(), text);
+}
+
+TEST(Abi, NothingIsAdvertisedUntilTheHardwareSaysSo) {
+    const int32_t needed = g2710_capabilities(nullptr, 0);
+    std::string text(static_cast<std::size_t>(needed) + 1, '\0');
+    g2710_capabilities(text.data(), needed + 1);
+
+    // Pravilo iz MASTER plana: oglasava se iskljucivo ono sto je proslo
+    // hardversku kvalifikaciju. Na dan pisanja to je NISTA, i aplikacija to
+    // mora videti kroz ABI, a ne pretpostaviti.
+    EXPECT_NE(std::string::npos, text.find("\"advertisable\": []"))
+        << "nesto se oglasava a hardver to nije potvrdio";
 }
 
 // =============================================================================

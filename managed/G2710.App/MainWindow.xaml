@@ -16,9 +16,40 @@
         <TextBlock Grid.Row="1" Text="{Binding StatusDetail}" TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,8,0,20" />
         <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
           <StackPanel><TextBlock Text="Izvor" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding Transport}" SelectedValuePath="Tag" Margin="0,4,12,0"><ComboBoxItem Tag="UsbScan" Content="Skener (USB)"/><ComboBoxItem Tag="Simulator" Content="Simulator"/></ComboBox></StackPanel>
-          <StackPanel Grid.Column="1"><TextBlock Text="Rezolucija" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding Resolution}" SelectedValuePath="Tag" Margin="0,4,12,0"><ComboBoxItem Tag="150" Content="150 dpi"/><ComboBoxItem Tag="300" Content="300 dpi"/><ComboBoxItem Tag="600" Content="600 dpi"/></ComboBox></StackPanel>
+          <!-- Spisak dolazi iz jezgra, ne odavde. Otkucane stavke se razidju sa
+               drajverom prvi put kada neka rezolucija promeni status. -->
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Rezolucija" Style="{StaticResource SmallText}"/>
+            <ComboBox ItemsSource="{Binding Resolutions}"
+                      SelectedItem="{Binding SelectedResolution}"
+                      DisplayMemberPath="Label"
+                      Margin="0,4,12,0" />
+          </StackPanel>
           <StackPanel Grid.Column="2"><TextBlock Text="Režim" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding ColorMode}" SelectedValuePath="Tag" Margin="0,4,0,0"><ComboBoxItem Tag="Color" Content="U boji"/><ComboBoxItem Tag="Gray" Content="Sivo"/><ComboBoxItem Tag="Lineart" Content="Crno-belo"/></ComboBox></StackPanel>
         </Grid>
+        <!-- Ono sto se ne sme precutati: izabrana vrednost nije hardverski
+             potvrdjena. Vidljivo je samo kada zaista ima sta da se kaze. -->
+        <Border Grid.Row="2" VerticalAlignment="Bottom" Margin="0,64,0,0"
+                Padding="10,6" CornerRadius="4"
+                Background="{StaticResource SurfaceSunken}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                >
+          <!-- DataTrigger umesto konvertera: aplikacija time ne mora da deli
+               ni jednu klasu sa wizardom, a ponasanje je isto. -->
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding HasResolutionCaveat}" Value="True">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <TextBlock Text="{Binding SelectedResolutionCaveat}"
+                     Style="{StaticResource SmallText}" TextWrapping="Wrap" />
+        </Border>
+
         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,16,0,0">
           <TextBlock Text="Crop (preview px):" Style="{StaticResource SmallText}" VerticalAlignment="Center" Margin="0,0,8,0" />
           <TextBox Width="55" Text="{Binding CropLeft, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0" ToolTip="Levo" />

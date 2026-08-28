@@ -65,14 +65,17 @@ PHASES = [
         "golden/resize_test.cpp", "unit/pnm_writer_test.cpp"]),
     ("G2710-7", "Planer i sesija skeniranja", [
         "golden/scan_planner_test.cpp", "integration/scan_session_test.cpp"]),
-    ("G2710-8", "C ABI", [
+    ("G2710-8", "C ABI, Interop i aplikacija", [
         "unit/abi_test.cpp", "unit/abi_stability_test.cpp"]),
     ("G2710-9", "WIA minidriver", [
         "unit/wia_clsid_test.cpp", "unit/wia_capabilities_test.cpp",
         "unit/wia_events_test.cpp", "unit/wia_item_context_test.cpp",
         "wiaharness/wia_lifecycle_test.cpp"]),
-    ("G2710-10", "Desktop aplikacija", []),
-    ("G2710-12", "TWAIN DS jezgro i harness", [
+    # Numeracija je iz MASTER plana i ROADMAP-a: 8 je ABI i aplikacija, 10 je
+    # TWAIN, a 12 je hardverska kvalifikacija - koja je blokirana uredjajem i
+    # zato ovde nema svoj red. Prepravljeno: aplikacija je bila upisana kao 10,
+    # a TWAIN kao 12, pa je STATUS pripisivao testove aplikacije TWAIN-u.
+    ("G2710-10", "TWAIN Data Source", [
         "twainharness/twain_lifecycle_test.cpp",
         "twainharness/twain_release_policy_test.cpp"]),
     ("G2710-11", "Kvalifikacioni paket", [
@@ -87,12 +90,13 @@ MANAGED_SUITES = {
     "WizardFlowTests": "G2710-11",
     "InteropLayoutTests": "G2710-8",
     "ScannerTests": "G2710-8",
-    "CropTransformTests": "G2710-10",
-    "ImageExportTests": "G2710-10",
-    "ScanCaptureTests": "G2710-10",
-    "SimulatorWorkflowTests": "G2710-10",
+    "CropTransformTests": "G2710-8",
+    "ImageExportTests": "G2710-8",
+    "ScanCaptureTests": "G2710-8",
+    "SimulatorWorkflowTests": "G2710-8",
+    "ResolutionChoiceTests": "G2710-8",
     # xUnit za Theory prikazuje samo metod i argumente, bez imena klase.
-    "Exports_8_bit_raster": "G2710-10",
+    "Exports_8_bit_raster": "G2710-8",
 }
 
 # Testovi koji nemaju gtest suite - registruju se u CMake-u pod svojim imenom.

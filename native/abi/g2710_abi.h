@@ -87,7 +87,7 @@ extern "C" {
  * ------------------------------------------------------------------------- */
 
 #define G2710_ABI_VERSION_MAJOR 1
-#define G2710_ABI_VERSION_MINOR 0
+#define G2710_ABI_VERSION_MINOR 1
 
 /* ---------------------------------------------------------------------------
  * Ishodi
@@ -399,6 +399,25 @@ G2710_API g2710_status G2710_CALL g2710_scan_end(g2710_device* device);
  * ukljuceno, vraca G2710_STATUS_INVALID_STATE - a ne prazan fajl, koji izgleda
  * kao da se nista nije desilo. */
 G2710_API g2710_status G2710_CALL g2710_write_trace(g2710_device* device, const char* path);
+
+/* ---------------------------------------------------------------------------
+ * Sta uredjaj ume
+ * ------------------------------------------------------------------------- */
+
+/* Tabela mogucnosti kao JSON. Isti ugovor o baferu kao g2710_last_error.
+ *
+ * `device` sme biti NULL: racun je statican i radi kada skenera nema. Bas zato
+ * aplikacija moze ponuditi rezolucije pre nego sto se ista prikljuci.
+ *
+ * Isti tekst ispisuje i `g2710ctl capabilities --json`, jer ga proizvodi ista
+ * funkcija u jezgru. Dva ispisa bi se razisla, pa bi aplikacija pokazivala
+ * jedno a izvestaj drugo.
+ *
+ * `advertisable` u izlazu je jedino sto sme da se ponudi krajnjem korisniku;
+ * ostalo postoji i moze se pozvati kroz dijagnostiku.
+ *
+ * Dodato u ABI 1.1. */
+G2710_API int32_t G2710_CALL g2710_capabilities(char* buffer, int32_t capacity);
 
 /* Koliko je transfera zabelezeno. 0 ako snimanje nije ukljuceno. */
 G2710_API int32_t G2710_CALL g2710_trace_count(const g2710_device* device);

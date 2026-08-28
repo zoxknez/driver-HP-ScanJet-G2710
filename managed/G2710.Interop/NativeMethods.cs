@@ -274,6 +274,13 @@ internal static partial class NativeMethods
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     internal static partial Status WriteTrace(ScannerHandle device, string path);
 
+    // --- mogucnosti -----------------------------------------------------
+
+    /// <summary>Tabela mogucnosti kao JSON. Ne trazi handle ni uredjaj.</summary>
+    [LibraryImport(Library, EntryPoint = "g2710_capabilities")]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    internal static partial int Capabilities(Span<byte> buffer, int capacity);
+
     [LibraryImport(Library, EntryPoint = "g2710_trace_count")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     internal static partial int TraceCount(ScannerHandle device);

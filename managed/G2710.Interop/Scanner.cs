@@ -142,7 +142,14 @@ public sealed class Scanner : IDisposable
     // --- ugovor ---------------------------------------------------------
 
     /// <summary>Verzija ABI-ja za koju je OVA strana izgradjena.</summary>
-    public static uint ExpectedAbiVersion => (1u << 16) | 0u;
+    /// <summary>
+    /// Verzija ABI-ja za koju je OVA strana izgradjena.
+    /// </summary>
+    /// <remarks>
+    /// 1.1 je dodala <c>g2710_capabilities</c>. Dodavanje na kraj ugovora ne
+    /// kvari starijeg pozivaoca, pa raste manji broj.
+    /// </remarks>
+    public static uint ExpectedAbiVersion => (1u << 16) | 1u;
 
     /// <summary>Verzija koju prijavljuje ucitana biblioteka.</summary>
     public static uint NativeAbiVersion => NativeMethods.AbiVersion();
@@ -360,6 +367,16 @@ public sealed class Scanner : IDisposable
         }
         return ToGeometry(info);
     }
+
+    /// <summary>
+    /// Sta uredjaj ume. Ne trazi otvoren uredjaj.
+    /// </summary>
+    /// <remarks>
+    /// Staticno namerno: aplikacija mora moci da popuni spisak rezolucija pre
+    /// nego sto se ista prikljuci - inace bi prazan prozor izgledao kao
+    /// pokvaren program.
+    /// </remarks>
+    public static ScannerCapabilities Capabilities() => ScannerCapabilities.Read();
 
     /// <summary>Pokreni prolaz. Trazi nivo 5.</summary>
     public ScanGeometry ScanBegin(ScanSettings settings)

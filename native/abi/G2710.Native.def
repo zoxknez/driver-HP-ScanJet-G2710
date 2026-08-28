@@ -43,5 +43,7 @@ EXPORTS
     g2710_scan_read_line
     g2710_scan_end
 
+    g2710_capabilities
+
     g2710_write_trace
     g2710_trace_count

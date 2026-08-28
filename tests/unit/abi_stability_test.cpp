@@ -339,6 +339,10 @@ TEST(AbiStability, ColorModesAndTransportsKeepTheirNumbers) {
 TEST(AbiStability, TheVersionIsBumpedWhenTheContractChanges) {
     // Ako neki test iznad padne zato sto je promena NAMERNA, ovaj broj se menja
     // u istom commit-u. Bez toga .NET ne moze razlikovati stari DLL od novog.
+    //
+    // 1.0 -> 1.1: dodat g2710_capabilities. Dodavanje na KRAJ ugovora ne kvari
+    // starijeg pozivaoca - on tu funkciju prosto ne zove - pa raste manji broj.
+    // Da je promenjen raspored strukture ili broj u enum-u, rastao bi veci.
     EXPECT_EQ(1, G2710_ABI_VERSION_MAJOR);
-    EXPECT_EQ(0, G2710_ABI_VERSION_MINOR);
+    EXPECT_EQ(1, G2710_ABI_VERSION_MINOR);
 }

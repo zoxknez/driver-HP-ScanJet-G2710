@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
@@ -11,7 +13,7 @@ namespace G2710.App;
 internal sealed class MainViewModel : Observable
 {
     private ScannerTransport _transport = ScannerTransport.UsbScan;
-    private int _resolution = 300;
+    private ResolutionChoice? _resolutionChoice;
     private ScanColorMode _colorMode = ScanColorMode.Color;
     private string _statusTitle = "Spremno za proveru";
     private string _statusDetail = "Izaberite izvor, pa proverite vezu sa skenerom.";
@@ -27,6 +29,16 @@ internal sealed class MainViewModel : Observable
 
     public MainViewModel()
     {
+        // Rezolucije dolaze iz jezgra, ne iz spiska otkucanog u XAML-u.
+        //
+        // Ovde se namerno nude i one koje hardver jos nije potvrdio: aplikacija
+        // je i dijagnosticki alat, a bez skenera nijedna vrednost nije
+        // potvrdjena - lista bi inace bila PRAZNA. Ono sto se ne sme precutati
+        // je da vrednost nije potvrdjena, i to stoji u SelectedResolutionCaveat.
+        Resolutions = ResolutionChoice.From(ReadCapabilities(), includeUnqualified: true);
+        _resolutionChoice = Resolutions.FirstOrDefault(r => r.Dpi == 300)
+                            ?? Resolutions.FirstOrDefault();
+
         CheckCommand = new RelayCommand(CheckConnection);
         WriteTraceCommand = new RelayCommand(WriteTrace, () => _scanner is not null);
         ScanCommand = new RelayCommand(async () => await ScanAsync(), () => !_isScanning);
@@ -36,7 +48,39 @@ internal sealed class MainViewModel : Observable
     }
 
     public ScannerTransport Transport { get => _transport; set => Set(ref _transport, value); }
-    public int Resolution { get => _resolution; set => Set(ref _resolution, value); }
+    /// <summary>Sve sto drajver ume, sa statusom svake vrednosti.</summary>
+    public IReadOnlyList<ResolutionChoice> Resolutions { get; }
+
+    public ResolutionChoice? SelectedResolution
+    {
+        get => _resolutionChoice;
+        set
+        {
+            if (Set(ref _resolutionChoice, value))
+            {
+                Raise(nameof(Resolution));
+                Raise(nameof(SelectedResolutionCaveat));
+                Raise(nameof(HasResolutionCaveat));
+            }
+        }
+    }
+
+    /// <summary>Izabrana vrednost u dpi; 300 ako lista jos nije popunjena.</summary>
+    public int Resolution => _resolutionChoice?.Dpi ?? 300;
+
+    /// <summary>
+    /// Sta korisnik treba da zna o izabranoj rezoluciji. Prazno = nema sta.
+    /// </summary>
+    public string SelectedResolutionCaveat => _resolutionChoice?.Caveat ?? string.Empty;
+
+    public bool HasResolutionCaveat => !string.IsNullOrEmpty(SelectedResolutionCaveat);
+
+    /// <summary>
+    /// Tabela mogucnosti. Izdvojeno da se moze zameniti u testovima - citanje
+    /// iz native strane trazi ucitanu biblioteku.
+    /// </summary>
+    internal static Func<ScannerCapabilities> ReadCapabilities { get; set; } =
+        Scanner.Capabilities;
     public ScanColorMode ColorMode { get => _colorMode; set => Set(ref _colorMode, value); }
     public string StatusTitle { get => _statusTitle; private set => Set(ref _statusTitle, value); }
     public string StatusDetail { get => _statusDetail; private set => Set(ref _statusDetail, value); }

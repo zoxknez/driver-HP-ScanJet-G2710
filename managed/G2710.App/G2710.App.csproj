@@ -11,6 +11,11 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Testovi voze view model direktno; bez ovoga bi merili samo ono sto je
+         slucajno javno, a ne ono sto aplikacija zaista radi. -->
+    <InternalsVisibleTo Include="G2710.App.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\G2710.Interop\G2710.Interop.csproj" />
     <!-- Jedna paleta za aplikaciju i kvalifikacioni wizard. -->
     <Page Include="..\G2710.Qualification\Theme\Palette.xaml" Link="Theme\Palette.xaml" />

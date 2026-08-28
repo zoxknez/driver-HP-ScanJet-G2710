@@ -22,6 +22,7 @@ add_library(g2710_core STATIC
     transport/UsbScanTransport.cpp
 
     scan/Capabilities.cpp
+    scan/CapabilityReport.cpp
     scan/ScanPlanner.cpp
     scan/ScanSession.cpp
 

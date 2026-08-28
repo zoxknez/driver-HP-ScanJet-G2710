@@ -18,6 +18,8 @@
 #include "transport/UsbScanTransport.h"
 #include "G2710Profile.generated.h"
 
+#include "scan/CapabilityReport.h"
+
 #include "../sim/SimTransport.h"
 
 #include <chrono>
@@ -246,37 +248,10 @@ int cmdCapabilities(bool asJson) {
         return 0;
     }
 
-    std::printf("{\n");
-    std::printf("  \"device\": \"%04X:%04X\",\n", profile::kUsbVendorId, profile::kUsbProductId);
-    std::printf("  \"resolutions\": [\n");
-    for (std::size_t i = 0; i < rows.size(); ++i) {
-        const auto& row = rows[i];
-        std::printf("    {\"dpi\": %d, \"origin\": \"%s\", \"level\": \"%s\", "
-                    "\"sourceDpi\": %d, \"nativeDpi\": %d, \"resize\": \"%s\", "
-                    "\"alignment\": \"%s\", \"advertisable\": %s, \"note\": \"%s\"}%s\n",
-                    row.capability->dpi, toString(row.capability->origin),
-                    toString(row.capability->level), row.capability->sourceDpi,
-                    row.planned ? row.plan.nativeResolution : 0,
-                    row.planned ? toString(row.plan.resize) : "-",
-                    row.planned ? (row.plan.useHardwareAlignment ? "hardware" : "software") : "-",
-                    row.capability->advertisable() ? "true" : "false",
-                    row.capability->note,
-                    i + 1 == rows.size() ? "" : ",");
-    }
-    std::printf("  ],\n");
-    std::printf("  \"depths\": [\n");
-    const auto depths = depthCapabilities();
-    for (std::size_t i = 0; i < depths.size(); ++i) {
-        std::printf("    {\"bits\": %d, \"level\": \"%s\", \"note\": \"%s\"}%s\n",
-                    depths[i].bits, toString(depths[i].level), depths[i].note,
-                    i + 1 == depths.size() ? "" : ",");
-    }
-    std::printf("  ],\n");
-    std::printf("  \"advertisable\": [");
-    for (std::size_t i = 0; i < advertisable.size(); ++i) {
-        std::printf("%s%d", i == 0 ? "" : ", ", advertisable[i]);
-    }
-    std::printf("]\n}\n");
+    // Isti tekst citaju i aplikacija (kroz g2710_capabilities) i
+    // tools/generate-status.py. Da svaki od njih ima svoj ispis, razisli bi
+    // se - pa bi aplikacija pokazivala jedno a STATUS drugo.
+    std::fputs(scan::capabilitiesJson().c_str(), stdout);
     return 0;
 }
 
