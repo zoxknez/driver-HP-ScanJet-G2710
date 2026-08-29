@@ -313,6 +313,18 @@ TEST(TwainCapabilities, UsesTheDsmAllocatorAndDoesNotAdvertiseUnqualifiedDpi) {
     EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
 }
 
+// Verzija u identitetu je ono sto aplikacija prikaze u spisku izvora.
+//
+// Dok je bila otkucana u izvoru, bila je jedno od sedam mesta na kojima je
+// pisala verzija projekta. Sest ih se slagalo slucajno; INF se vec bio razisao.
+TEST(TwainIdentity, VersionComesFromTheProjectNotFromTheSource) {
+    TW_IDENTITY id{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_GET, &id));
+
+    EXPECT_EQ(id.Version.MajorNum, G2710_VERSION_MAJOR);
+    EXPECT_EQ(id.Version.MinorNum, G2710_VERSION_MINOR);
+}
+
 // MSG_QUERYSUPPORT je prvo pitanje koje ozbiljna TWAIN aplikacija postavi.
 //
 // Prva verzija je vracala TWRC_SUCCESS sa hContainer = nullptr. Aplikacija koja

@@ -28,3 +28,5 @@ target_compile_definitions(g2710_native PRIVATE G2710_ABI_BUILDING)
 set_target_properties(g2710_native PROPERTIES
     OUTPUT_NAME "G2710.Native"
     PREFIX "")
+
+g2710_add_version_resource(g2710_native "HP ScanJet G2710 native core (C ABI)" "G2710.Native.dll" VFT_DLL)

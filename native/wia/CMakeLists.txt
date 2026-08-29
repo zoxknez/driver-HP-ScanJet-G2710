@@ -51,6 +51,8 @@ add_dependencies(g2710_wia g2710_wia_icons)
 # RC nalazi .ico preko include putanje; sami fajlovi su u build direktorijumu.
 target_include_directories(g2710_wia PRIVATE "${G2710_ICON_DIR}")
 
+g2710_add_version_resource(g2710_wia "HP ScanJet G2710 WIA 2.0 minidriver" "G2710.Wia.dll" VFT_DLL)
+
 set_target_properties(g2710_wia PROPERTIES
     OUTPUT_NAME "G2710.Wia"
     PREFIX ""

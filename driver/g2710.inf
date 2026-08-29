@@ -14,7 +14,15 @@ Class       = Image
 ClassGuid   = {6BDD1FC6-810F-11D0-BEC7-08002BE2092F}
 Provider    = %ProviderName%
 CatalogFile = g2710.cat
-DriverVer   = 08/20/2026,1.0.0.0
+; Broj MORA odgovarati korenskom VERSION fajlu; drzi ga
+; DriverVersionMatchesTheVersionFile u tests/unit/wia_events_test.cpp.
+;
+; Ovo je broj koji Device Manager prikazuje i koji pnputil vraca - dakle
+; jedini broj koji prijatelj moze da procita i posalje nazad. Dok je ovde
+; stajalo 1.0.0.0 a paket bio 0.1.0, taj odgovor je bio bezvredan.
+;
+; I datum je vazan: PnP po njemu bira izmedju dva drajvera za isti uredjaj.
+DriverVer   = 08/20/2026,0.1.0.0
 PnpLockdown = 1
 
 [DestinationDirs]

@@ -1,9 +1,43 @@
 cmake_minimum_required(VERSION 3.25)
 
+# Verzija stoji na JEDNOM mestu.
+#
+# Ranije je bila prepisana ovde, a nezavisno i u driver/g2710.inf. Korenski
+# VERSION je govorio 0.1.0, INF je Windows-u prijavljivao 1.0.0.0. Broj koji
+# Device Manager prikazuje bio je izmisljen - a to je bas onaj broj koji
+# prijatelj procita kada ga pitamo koji build ima.
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" G2710_VERSION_RAW)
+string(STRIP "${G2710_VERSION_RAW}" G2710_VERSION_RAW)
+if(NOT G2710_VERSION_RAW MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "VERSION nije oblika X.Y.Z: '${G2710_VERSION_RAW}'")
+endif()
+
 project(G2710
-    VERSION 0.1.0
+    VERSION ${G2710_VERSION_RAW}
     DESCRIPTION "HP ScanJet G2710 native Windows 10/11 driver"
     LANGUAGES CXX)
+
+enable_language(RC)
+
+# Verzijski resurs za isporucene binarne fajlove.
+#
+# Poziva se za svaki fajl koji ide korisniku. Bez njega Windows u osobinama
+# fajla prikazuje prazno, pa se sa tudjeg racunara ne moze utvrditi koji je
+# build tamo.
+function(g2710_add_version_resource target description filename filetype)
+    set(G2710_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+    set(G2710_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+    set(G2710_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+    set(G2710_VERSION_STRING "${PROJECT_VERSION}")
+    set(G2710_VERSION_DESCRIPTION "${description}")
+    set(G2710_VERSION_FILENAME "${filename}")
+    set(G2710_VERSION_INTERNAL "${target}")
+    set(G2710_VERSION_FILETYPE "${filetype}")
+
+    set(generated "${CMAKE_CURRENT_BINARY_DIR}/${target}.version.rc")
+    configure_file("${CMAKE_SOURCE_DIR}/native/version.rc.in" "${generated}" @ONLY)
+    target_sources(${target} PRIVATE "${generated}")
+endfunction()
 
 # ---------------------------------------------------------------- opcije ----
 

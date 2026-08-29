@@ -88,7 +88,8 @@ target_include_directories(g2710_unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/native/cli)
 target_compile_definitions(g2710_unit_tests PRIVATE
     G2710_INF_PATH="${CMAKE_SOURCE_DIR}/driver/g2710.inf"
-    G2710_WIA_RC_PATH="${CMAKE_SOURCE_DIR}/native/wia/G2710Wia.rc")
+    G2710_WIA_RC_PATH="${CMAKE_SOURCE_DIR}/native/wia/G2710Wia.rc"
+    G2710_VERSION_PATH="${CMAKE_SOURCE_DIR}/VERSION")
 gtest_discover_tests(g2710_unit_tests)
 
 # --- golden register sequence testovi --------------------------------------
@@ -239,3 +240,15 @@ target_include_directories(g2710_safety_ceiling1_test PRIVATE
 target_compile_definitions(g2710_safety_ceiling1_test PRIVATE
     G2710_BUILD_SAFETY_CEILING=1)
 add_test(NAME safety_ceiling_1 COMMAND g2710_safety_ceiling1_test)
+
+target_compile_definitions(g2710_twainharness_tests PRIVATE
+    G2710_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    G2710_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+
+target_compile_definitions(g2710_twain_release_policy_tests PRIVATE
+    G2710_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    G2710_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+
+target_compile_definitions(g2710_twaindsm_smoke PRIVATE
+    G2710_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    G2710_VERSION_MINOR=${PROJECT_VERSION_MINOR})

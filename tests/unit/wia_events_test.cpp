@@ -104,7 +104,59 @@ std::set<int> resourceScriptIconIds() {
     return ids;
 }
 
+// Cita `DriverVer = <datum>,<verzija>` iz INF-a.
+std::string infDriverVersion() {
+    std::ifstream file(G2710_INF_PATH);
+    if (!file) {
+        return {};
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.rfind("DriverVer", 0) != 0) {
+            continue;
+        }
+        const std::size_t comma = line.find(',');
+        if (comma == std::string::npos) {
+            continue;
+        }
+        std::string value = line.substr(comma + 1);
+        while (!value.empty() && (value.back() == '' || value.back() == ' ')) {
+            value.pop_back();
+        }
+        return value;
+    }
+    return {};
+}
+
+std::string versionFileContents() {
+    std::ifstream file(G2710_VERSION_PATH);
+    std::string value;
+    std::getline(file, value);
+    while (!value.empty() && (value.back() == '' || value.back() == ' ')) {
+        value.pop_back();
+    }
+    return value;
+}
+
 }  // namespace
+
+// Broj koji Windows prikazuje mora biti broj koji paket zaista nosi.
+//
+// Nadjeno mereno: korenski VERSION je govorio 0.1.0, a INF je Device Manager-u
+// prijavljivao 1.0.0.0. To je jedini broj koji prijatelj moze da procita i
+// posalje nazad kada nesto ne radi - i bio je izmisljen.
+//
+// PnP po DriverVer bira izmedju dva drajvera za isti uredjaj. Verzija koja se
+// ne menja izmedju paketa znaci i da noviji paket ne mora da zameni stariji -
+// sto bi celu eskalaciju plafona ucinilo nepouzdanom.
+TEST(DriverPackage, DriverVersionMatchesTheVersionFile) {
+    const std::string version = versionFileContents();
+    ASSERT_FALSE(version.empty()) << "VERSION se ne moze procitati";
+
+    // INF trazi cetiri dela; VERSION ima tri.
+    EXPECT_EQ(infDriverVersion(), version + ".0")
+        << "INF prijavljuje drugu verziju nego sto je paket";
+}
 
 // Ikone: INF, resursna skripta i Windows-ov nacin trazenja moraju se slagati.
 //

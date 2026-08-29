@@ -175,8 +175,16 @@ TW_UINT16 nativeTransfer(Source& s, TW_MEMREF data) {
 void identity(pTW_IDENTITY out) {
     if (!out) return;
     std::memset(out, 0, sizeof(*out));
-    out->Version.MajorNum = 0;
-    out->Version.MinorNum = 1;
+    // Verzija dolazi iz korenskog VERSION fajla, kao i za sve ostalo.
+    //
+    // Ovo je broj koji TWAIN aplikacija prikazuje u spisku izvora. Dok je bio
+    // otkucan ovde, bio je sedmo mesto na kome je pisala verzija - a takva se
+    // mesta razidju cim se jedno zaboravi.
+#ifndef G2710_VERSION_MAJOR
+#error "G2710_VERSION_MAJOR mora doci iz build sistema"
+#endif
+    out->Version.MajorNum = G2710_VERSION_MAJOR;
+    out->Version.MinorNum = G2710_VERSION_MINOR;
     out->ProtocolMajor = TWON_PROTOCOLMAJOR;
     out->ProtocolMinor = TWON_PROTOCOLMINOR;
     out->SupportedGroups = DG_CONTROL | DG_IMAGE;

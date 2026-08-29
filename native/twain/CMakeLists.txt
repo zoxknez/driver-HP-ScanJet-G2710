@@ -15,3 +15,8 @@ target_include_directories(g2710_twain PRIVATE
 )
 target_link_libraries(g2710_twain PRIVATE G2710::Core)
 
+g2710_add_version_resource(g2710_twain "HP ScanJet G2710 TWAIN Data Source" "G2710.Twain.ds" VFT_DLL)
+
+target_compile_definitions(g2710_twain PRIVATE
+    G2710_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    G2710_VERSION_MINOR=${PROJECT_VERSION_MINOR})

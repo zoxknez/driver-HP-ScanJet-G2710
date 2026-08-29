@@ -1,0 +1,46 @@
+// Verzija koju Windows pokazuje u osobinama fajla.
+//
+// Nastaje iz korenskog VERSION fajla, kao i MSI i obe upravljane aplikacije.
+// Dok ovoga nije bilo, nijedan isporuceni binarni fajl nije nosio verziju -
+// mereno: G2710.Wia.dll, G2710.Twain.dll, G2710.Native.dll i g2710ctl.exe svi
+// su prijavljivali prazno. Sa tudjeg racunara se tada ne moze utvrditi koji je
+// build tamo, a bas to je jedina stvar koja se pita kada nesto ne radi.
+//
+// NE uredjivati rucno: ovo je sablon, pravi fajl nastaje u build direktorijumu.
+
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    @G2710_VERSION_MAJOR@,@G2710_VERSION_MINOR@,@G2710_VERSION_PATCH@,0
+PRODUCTVERSION @G2710_VERSION_MAJOR@,@G2710_VERSION_MINOR@,@G2710_VERSION_PATCH@,0
+FILEFLAGSMASK  VS_FFI_FILEFLAGSMASK
+#ifdef _DEBUG
+FILEFLAGS      VS_FF_DEBUG
+#else
+FILEFLAGS      0x0L
+#endif
+FILEOS         VOS_NT_WINDOWS32
+FILETYPE       @G2710_VERSION_FILETYPE@
+FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        // 040904B0 = engleski (SAD), Unicode. Verzija je masinski podatak i
+        // ne prevodi se - isto kao izvestaji koje program pise.
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "G2710 Project"
+            VALUE "FileDescription",  "@G2710_VERSION_DESCRIPTION@"
+            VALUE "FileVersion",      "@G2710_VERSION_STRING@"
+            VALUE "InternalName",     "@G2710_VERSION_INTERNAL@"
+            VALUE "LegalCopyright",   "GPL-2.0. Portovano iz hp3900 (Jonathan Bravo Lopez)."
+            VALUE "OriginalFilename", "@G2710_VERSION_FILENAME@"
+            VALUE "ProductName",      "HP ScanJet G2710"
+            VALUE "ProductVersion",   "@G2710_VERSION_STRING@"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

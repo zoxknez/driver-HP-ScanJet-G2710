@@ -534,6 +534,17 @@ identitet), pokrivenost svih šest ishoda `RunFailure` u čarobnjaku, otpornost
    negativnim brojem. Sada `-101/-102/-103`, ikone se generišu iz skripte, a
    potpisivanje paketa meri isto ono što meri i Windows.
 5. **Deinstalacija je ostavljala ključ u registru** (`HKLM\SOFTWARE\G2710`).
+6. **Verzija je bila na sedam mesta i već se razišla.** `VERSION` je govorio
+   0.1.0, a `driver/g2710.inf` je Windows-u prijavljivao **1.0.0.0** — a to je
+   jedini broj koji prijatelj može pročitati u Device Manageru i poslati nazad.
+   Uz to, **nijedan** isporučeni binarni fajl nije nosio verziju: `G2710.Wia.dll`,
+   `G2710.Twain.dll`, `G2710.Native.dll` i `g2710ctl.exe` svi su u osobinama
+   fajla prikazivali prazno. `DriverVer` je i ono po čemu PnP bira između dva
+   drajvera za isti uređaj — verzija koja se ne menja znači da noviji paket ne
+   mora zameniti stariji, što bi eskalaciju plafona (§6) učinilo nepouzdanom.
+   Sada CMake čita `VERSION`, verzijski resurs se generiše za sva četiri fajla,
+   TWAIN identitet dolazi iz istog broja, a dva testa drže INF i `VERSION`
+   spojene u oba smera.
 
 Uz to: broj odloženih stranica premešten ispod prikaza (stajao bi preko slike),
 prazan prikaz sada govori šta se od korisnika očekuje, brojevi se formatiraju
