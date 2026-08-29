@@ -1,5 +1,5 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="HP ScanJet G2710" Manufacturer="G2710 Project" Version="0.1.0" UpgradeCode="A1B2C3D4-94E2-4A8A-928A-1234567890AB" Scope="perMachine">
+  <Package Name="HP ScanJet G2710" Manufacturer="G2710 Project" Version="$(var.ProductVersion)" UpgradeCode="A1B2C3D4-94E2-4A8A-928A-1234567890AB" Scope="perMachine">
     <MajorUpgrade DowngradeErrorMessage="Novija verzija HP ScanJet G2710 je već instalirana." />
     <MediaTemplate EmbedCab="yes" />
     <StandardDirectory Id="ProgramFiles64Folder">

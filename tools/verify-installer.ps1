@@ -9,7 +9,10 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$MsiPath,
-    [switch]$RequireDevelopmentCertificate
+    [switch]$RequireDevelopmentCertificate,
+
+    # Verzija koju MSI mora prijaviti, i koju mora nositi i aplikacija u njemu.
+    [string]$ExpectedVersion
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,6 +43,18 @@ try {
     if (([regex]::Matches($text, [regex]::Escape('G2710.Twain.ds'))).Count -ne 2) {
         throw 'MSI mora sadrzati tacno dva TWAIN DLL-a (x64 i x86).'
     }
+    # Verzija MSI-ja i verzija aplikacije u njemu MORAJU biti ista.
+    #
+    # Ranije su bile razlicite: MSI je nosio 0.1.0, a aplikacija nije imala
+    # verziju uopste, pa je prijavljivala 1.0.0.0. Sa tudjeg racunara se tada
+    # nije moglo utvrditi koji je build tamo - isti problem kao trag koji ne
+    # belezi identitet uredjaja.
+    if ($ExpectedVersion) {
+        if ($text -notmatch ('Version="' + [regex]::Escape($ExpectedVersion) + '"')) {
+            throw "MSI ne prijavljuje verziju $ExpectedVersion."
+        }
+    }
+
     foreach ($directory in 'twain_64', 'twain_32') {
         if ($text -notmatch ('Name="' + [regex]::Escape($directory) + '"')) {
             throw "MSI ne rasporedjuje TWAIN u C:\Windows\$directory."

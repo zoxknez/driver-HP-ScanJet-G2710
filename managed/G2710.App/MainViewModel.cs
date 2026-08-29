@@ -177,6 +177,19 @@ internal sealed class MainViewModel : Observable
     public bool IsScanning { get => _isScanning; private set { if (Set(ref _isScanning, value)) { Raise(nameof(CanScan)); ScanCommand.RaiseCanExecuteChanged(); PreviewCommand.RaiseCanExecuteChanged(); CancelCommand.RaiseCanExecuteChanged(); ExportCommand.RaiseCanExecuteChanged(); } } }
     public bool CanScan => !IsScanning;
 
+    /// <summary>
+    /// Verzija ovog programa.
+    /// </summary>
+    /// <remarks>
+    /// Bez nje se sa tuđeg računara ne može utvrditi koji je build tamo. Za
+    /// drajver koji se otklanja na daljinu to je isti problem kao trag koji ne
+    /// beleži identitet uređaja: izveštaj stigne, a ne zna se na šta se odnosi.
+    ///
+    /// Broj dolazi iz korenskog VERSION fajla, istog iz koga ga uzima i MSI.
+    /// </remarks>
+    internal static string AppVersion =>
+        typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "nepoznata";
+
     /// <summary>Callback iz native skena stiže sa radne niti.</summary>
     public Action<Action> OnUiThread { get; set; } = action =>
     {
@@ -206,7 +219,7 @@ internal sealed class MainViewModel : Observable
                 // blokira sledeci preview ili drugog klijenta.
                 _scanner.End();
             }
-            Diagnostics = $"ABI: {Scanner.NativeAbiVersion >> 16}.{Scanner.NativeAbiVersion & 0xffff}\nPlafon build-a: {Scanner.BuildSafetyCeiling}\nMotorni put: {(_scanner is not null && Scanner.MotorPathCompiled ? "preveden" : "nije preveden")}\nPlan: {plan.WidthPixels} × {plan.Lines}, {plan.NativeResolution} dpi, shading: {(plan.ShadingApplied ? "da" : "ne")}";
+            Diagnostics = $"Verzija: {AppVersion}\nABI: {Scanner.NativeAbiVersion >> 16}.{Scanner.NativeAbiVersion & 0xffff}\nPlafon build-a: {Scanner.BuildSafetyCeiling}\nMotorni put: {(_scanner is not null && Scanner.MotorPathCompiled ? "preveden" : "nije preveden")}\nPlan: {plan.WidthPixels} × {plan.Lines}, {plan.NativeResolution} dpi, shading: {(plan.ShadingApplied ? "da" : "ne")}";
             StatusTitle = "Veza je proverena";
             StatusDetail = plan.ShadingApplied ? "Skener je spreman." : "Skeniranje radi, ali kalibracija senzora još nije hardverski potvrđena.";
         }

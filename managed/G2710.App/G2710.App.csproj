@@ -9,6 +9,13 @@
     <AssemblyName>G2710.App</AssemblyName>
     <RootNamespace>G2710.App</RootNamespace>
     <PlatformTarget>x64</PlatformTarget>
+
+    <!-- Verzija dolazi iz korenskog VERSION fajla, istog iz koga je uzima i
+         MSI. Da su dva broja, aplikacija bi tvrdila jedno a instalater drugo -
+         i sa tudjeg racunara se ne bi znalo koji je build tamo. -->
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\..\VERSION').Trim())</Version>
+    <Product>HP ScanJet G2710</Product>
+    <Company>G2710 Project</Company>
   </PropertyGroup>
   <ItemGroup>
     <!-- Testovi voze view model direktno; bez ovoga bi merili samo ono sto je

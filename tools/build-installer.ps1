@@ -47,16 +47,29 @@ foreach ($pair in @(
     Copy-Item $pair.Source $pair.Destination
 }
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-$msi = Join-Path $OutputDirectory 'G2710-0.1.0-x64.msi'
+
+# Verzija stoji na JEDNOM mestu.
+#
+# Ranije je bila na tri - u Product.wxs, u imenu MSI fajla, i nigde u
+# aplikaciji. Tri mesta se razidju, a onda se sa tudjeg racunara ne moze
+# utvrditi koji je build tamo. Za drajver koji se otklanja na daljinu to je isti
+# problem kao trag koji ne belezi identitet uredjaja.
+$version = (Get-Content -LiteralPath (Join-Path $repo 'VERSION') -Raw).Trim()
+if ($version -notmatch '^\d+\.\d+\.\d+$') {
+    throw "VERSION nije oblika X.Y.Z: '$version'"
+}
+
+$msi = Join-Path $OutputDirectory "G2710-$version-x64.msi"
 $wix = (Get-Command wix -ErrorAction SilentlyContinue).Source
 if (-not $wix) { $wix = 'C:\Program Files\WiX Toolset v7.0\bin\wix.exe' }
 if (-not (Test-Path $wix)) { throw 'WiX CLI nije pronadjen; instalirajte WiXToolset.WiXCLI.' }
 & $wix build -arch x64 -d "AppDir=$publish" -d "DriverDir=$driver" `
     -d "Twain64Dir=$twain64" -d "Twain86Dir=$twain86" `
-    -d "IncludeDevCertificate=$includeDevCertificate" -o $msi (Join-Path $repo 'installer\Product.wxs')
+    -d "IncludeDevCertificate=$includeDevCertificate" -d "ProductVersion=$version" `
+    -o $msi (Join-Path $repo 'installer\Product.wxs')
 if ($LASTEXITCODE -ne 0) { throw 'WiX build nije uspeo' }
 if (-not (Test-Path $msi)) { throw 'MSI nije nastao' }
-$verification = @{ MsiPath = $msi }
+$verification = @{ MsiPath = $msi; ExpectedVersion = $version }
 if ($SigningMode -eq 'Development') { $verification.RequireDevelopmentCertificate = $true }
 & (Join-Path $repo 'tools\verify-installer.ps1') @verification
 Write-Host "Gotovo: $msi" -ForegroundColor Green

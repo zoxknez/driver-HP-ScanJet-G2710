@@ -22,7 +22,8 @@ $msiOutput = Join-Path $OutputDirectory 'msi'
 
 & (Join-Path $repo 'tools\build-installer.ps1') -OutputDirectory $msiOutput -SigningMode $SigningMode
 if ($LASTEXITCODE -ne 0) { throw 'MSI build nije uspeo.' }
-$msi = Join-Path $msiOutput 'G2710-0.1.0-x64.msi'
+$version = (Get-Content -LiteralPath (Join-Path $repo 'VERSION') -Raw).Trim()
+$msi = Join-Path $msiOutput "G2710-$version-x64.msi"
 if (-not (Test-Path -LiteralPath $msi)) { throw "MSI nije nastao: $msi" }
 
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
@@ -32,7 +33,7 @@ Copy-Item -LiteralPath (Join-Path $repo 'installer\README.md') -Destination (Joi
 $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $msi
 "$($hash.Hash)  $($hash.Path | Split-Path -Leaf)" | Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Encoding ascii
 
-$zip = Join-Path $OutputDirectory "G2710-0.1.0-x64-$SigningMode.zip"
+$zip = Join-Path $OutputDirectory "G2710-$version-x64-$SigningMode.zip"
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Compress-Archive -LiteralPath (Get-ChildItem -LiteralPath $stage | Select-Object -ExpandProperty FullName) -DestinationPath $zip -CompressionLevel Optimal
 if (-not (Test-Path -LiteralPath $zip)) { throw 'ZIP nije nastao.' }
