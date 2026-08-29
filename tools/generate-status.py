@@ -96,6 +96,7 @@ MANAGED_SUITES = {
     "SimulatorWorkflowTests": "G2710-8",
     "ResolutionChoiceTests": "G2710-8",
     "MultiPagePdfTests": "G2710-8",
+    "ScanWorkflowTests": "G2710-8",
     # xUnit za Theory prikazuje samo metod i argumente, bez imena klase.
     "Exports_8_bit_raster": "G2710-8",
 }
