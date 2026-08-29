@@ -1,6 +1,7 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="HP ScanJet G2710" Manufacturer="G2710 Project" Version="$(var.ProductVersion)" UpgradeCode="A1B2C3D4-94E2-4A8A-928A-1234567890AB" Scope="perMachine">
-    <MajorUpgrade DowngradeErrorMessage="Novija verzija HP ScanJet G2710 je već instalirana." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of HP ScanJet G2710 is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="HP ScanJet G2710">
@@ -11,6 +12,22 @@
           <File Source="$(var.AppDir)\G2710.App.runtimeconfig.json" />
           <File Source="$(var.AppDir)\G2710.Interop.dll" />
           <File Source="$(var.AppDir)\G2710.Native.dll" />
+          <File Source="$(var.AppDir)\G2710.Localization.dll" />
+        </Component>
+        <!-- Engleski je ugradjen u samu biblioteku; srpski je satelit i mora
+             stici kao zaseban fajl u svom folderu. Da izostane, program bi i
+             dalje radio - govorio bi engleski. Zato je engleski neutralni
+             resurs, a ne satelit. -->
+        <Directory Id="SRFOLDER" Name="sr">
+          <Component Id="SerbianResources" Guid="4F3C1D6A-2B7E-4E51-9C08-5A6D2E9B3C41">
+            <File Source="$(var.AppDir)\sr\G2710.Localization.resources.dll" KeyPath="yes" />
+          </Component>
+        </Directory>
+        <!-- Izbor jezika iz dijaloga. Language.cs cita bas ovu vrednost, i
+             cita je pre nego sto pogleda jezik Windows-a. -->
+        <Component Id="LanguageChoice" Guid="9E1B7A24-38D6-4F0C-BC55-7A2E4D8F6013">
+          <RegistryValue Root="HKLM" Key="SOFTWARE\G2710" Name="Language"
+                         Type="string" Value="[G2710LANGUAGE]" KeyPath="yes" />
         </Component>
         <Directory Id="DRIVERFOLDER" Name="driver">
           <Component Id="DriverPackage" Guid="7D720503-F9D4-4543-96D7-5B3C868A3110">
@@ -42,10 +59,30 @@
     </StandardDirectory>
     <Feature Id="ProductFeature" Title="HP ScanJet G2710" Level="1">
       <ComponentRef Id="ApplicationFiles" />
+      <ComponentRef Id="SerbianResources" />
+      <ComponentRef Id="LanguageChoice" />
       <ComponentRef Id="DriverPackage" />
       <ComponentRef Id="Twain64" />
       <ComponentRef Id="Twain86" />
     </Feature>
+    <!-- Minimalni WixUI: prvo izbor jezika, pa licenca (GPL-2.0 se mora
+         pokazati). Jezik ide prvi jer je to jedino pitanje koje MI postavljamo;
+         sve posle njega je standardni tok. -->
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+    <!-- Bez ova dva Wix stavlja svoj podrazumevani crtez - crveni znak zabrane
+         na prvom ekranu instalacije drajvera. Slike nastaju iz skripte, u
+         istim bojama kao program. -->
+    <WixVariable Id="WixUIBannerBmp" Value="$(var.InstallerArt)\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="$(var.InstallerArt)\dialog.bmp" />
+    <!-- Dijalog stoji u UI sekvenci PRE licence, a ne na dugmetu "Install".
+         Mereno na sastavljenom MSI-ju: Install vec nosi EndDialog na redu 2, a
+         dodati NewDialog dobija veci red - dijalog se nikada ne bi pojavio, i
+         to se ne bi videlo dok neko ne pokrene instalaciju. -->
+    <InstallUISequence>
+      <Show Dialog="G2710LanguageDlg" Sequence="1294" Condition="NOT Installed" />
+    </InstallUISequence>
+
     <!-- MSI je per-machine, pa se ove akcije izvrsavaju kao LocalSystem.
          Skript radi samo sa NASIM INF-om i sertifikatom po otisku; ne dira
          Secure Boot, TESTSIGNING niti tudje drajvere. -->

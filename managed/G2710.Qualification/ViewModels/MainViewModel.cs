@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using G2710.Localization;
 using G2710.Qualification.Models;
 using G2710.Qualification.Services;
 
@@ -134,25 +135,25 @@ public sealed class MainViewModel : Observable
 
     public string StepTitle => Step switch
     {
-        WizardStep.Welcome => "Provera skenera",
-        WizardStep.Running => "Provera je u toku",
-        WizardStep.Questions => "Nekoliko pitanja",
-        WizardStep.Results => "Rezultat",
+        WizardStep.Welcome => Strings.Get("Wiz_Head_Welcome"),
+        WizardStep.Running => Strings.Get("Wiz_Head_Running"),
+        WizardStep.Questions => Strings.Get("Wiz_Head_Questions"),
+        WizardStep.Results => Strings.Get("Wiz_Head_Results"),
         _ => string.Empty,
     };
 
+    /// <summary>Verzija u bocnoj traci; ista ona koja ide u izvestaj.</summary>
+    public string AppVersionLine => Strings.Format("Wiz_Version", AppVersion);
+
+    private static string AppVersion =>
+        typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "?";
+
     public string StepSubtitle => Step switch
     {
-        WizardStep.Welcome =>
-            "Ovaj program proverava da li skener radi sa novim drajverom. "
-            + "Nista se ne menja na racunaru i skener se ne rastavlja.",
-        WizardStep.Running =>
-            "Skener se proverava korak po korak. Ovo traje manje od minuta.",
-        WizardStep.Questions =>
-            "Na ovo racunar ne moze da odgovori sam - potreban je pogled na skener.",
-        WizardStep.Results =>
-            "Sacuvajte izvestaj i posaljite ga nazad. On je jedini nacin da se vidi "
-            + "sta je kod vas proslo, a sta nije.",
+        WizardStep.Welcome => Strings.Get("Wiz_Sub_Welcome"),
+        WizardStep.Running => Strings.Get("Wiz_Sub_Running"),
+        WizardStep.Questions => Strings.Get("Wiz_Sub_Questions"),
+        WizardStep.Results => Strings.Get("Wiz_Sub_Results"),
         _ => string.Empty,
     };
 
@@ -241,7 +242,9 @@ public sealed class MainViewModel : Observable
     }
 
     public string DeviceLabel =>
-        Report is null ? "Skener jos nije proveren" : $"Uredjaj {Report.Device}";
+        Report is null
+            ? Strings.Get("Wiz_Results_NotChecked")
+            : Strings.Format("Wiz_Results_Device", Report.Device);
 
     public string SummaryLine
     {
@@ -254,8 +257,8 @@ public sealed class MainViewModel : Observable
             var failures = Report.FailureCount();
             var passed = Report.Tests.Count(t => t.Outcome == CheckOutcome.Pass);
             return failures == 0
-                ? $"Sve sto je moglo da se proveri - proslo. ({passed} provera)"
-                : $"{failures} provera nije prosla, od ukupno {Report.Tests.Count}.";
+                ? Strings.Format("Wiz_Results_AllPassed", passed)
+                : Strings.Format("Wiz_Results_SomeFailed", failures, Report.Tests.Count);
         }
     }
 
@@ -287,7 +290,7 @@ public sealed class MainViewModel : Observable
         Step = WizardStep.Running;
         State = ScreenState.Busy;
         Progress = 0;
-        StatusLine = "Trazim alat...";
+        StatusLine = Strings.Get("Wiz_Status_Locating");
         ErrorTitle = string.Empty;
         ErrorDetail = string.Empty;
         Log.Clear();
@@ -300,13 +303,13 @@ public sealed class MainViewModel : Observable
         var located = _locate();
         if (!located.Found)
         {
-            Fail("Alat za proveru nije pronadjen",
-                 "Fajl g2710ctl.exe mora stajati pored ovog programa. Trazen je na:\n\n  "
+            Fail(Strings.Get("Wiz_Fail_NoTool"),
+                 Strings.Get("Wiz_Fail_NoTool_Detail") + "\n\n  "
                  + string.Join("\n  ", located.SearchedIn));
             return;
         }
 
-        StatusLine = "Proveravam skener...";
+        StatusLine = Strings.Get("Wiz_Status_Checking");
         _cancellation = new CancellationTokenSource();
 
         RunOutcome outcome;
@@ -348,12 +351,12 @@ public sealed class MainViewModel : Observable
         if (Checks.Count == 0)
         {
             State = ScreenState.Empty;
-            StatusLine = "Alat nije prijavio nijednu proveru.";
+            StatusLine = Strings.Get("Wiz_Status_NoChecks");
             return;
         }
 
         State = ScreenState.Ready;
-        StatusLine = $"Zavrseno: {Checks.Count} provera.";
+        StatusLine = Strings.Format("Wiz_Status_Done", Checks.Count);
 
         // Ako nema pitanja, korak sa pitanjima se preskace - prazan ekran sa
         // "nema nista" bio bi samo jedan klik vise.
@@ -363,7 +366,7 @@ public sealed class MainViewModel : Observable
     public void Cancel()
     {
         _cancellation?.Cancel();
-        StatusLine = "Prekidam...";
+        StatusLine = Strings.Get("Wiz_Status_Stopping");
     }
 
     private void AppendLog(string line)
@@ -402,35 +405,34 @@ public sealed class MainViewModel : Observable
         var (title, detail) = outcome.Failure switch
         {
             RunFailure.ToolMissing => (
-                "Alat za proveru nije pronadjen",
-                "Fajl g2710ctl.exe mora stajati pored ovog programa."),
+                Strings.Get("Wiz_Fail_NoTool"),
+                Strings.Get("Wiz_Fail_NoTool_Short")),
 
             RunFailure.Cancelled => (
-                "Provera je prekinuta",
-                "Nista nije ostalo nedovrseno na skeneru. Mozete pokusati ponovo."),
+                Strings.Get("Wiz_Fail_Cancelled"),
+                Strings.Get("Wiz_Fail_Cancelled_Detail")),
 
             RunFailure.DeviceNotFound => (
-                "Skener nije pronadjen",
-                "Proverite da li je USB kabl uključen i da li je skener upaljen, "
-                + "pa pokusajte ponovo."),
+                Strings.Get("Wiz_Fail_NotFound"),
+                Strings.Get("Wiz_Fail_NotFound_Detail")),
 
             RunFailure.DeviceBusy => (
-                "Skener koristi drugi program",
-                "Zatvorite programe za skeniranje i probajte ponovo."),
+                Strings.Get("Wiz_Fail_Busy"),
+                Strings.Get("Wiz_Fail_Busy_Detail")),
 
             RunFailure.ToolCrashed => (
-                "Alat za proveru se nije pokrenuo",
-                "Windows nije uspeo da pokrene g2710ctl.exe."),
+                Strings.Get("Wiz_Fail_NoStart"),
+                Strings.Get("Wiz_Fail_NoStart_Detail")),
 
             _ => (
-                "Provera nije dala izvestaj",
-                "Alat je zavrsio, ali nije upisao rezultate."),
+                Strings.Get("Wiz_Fail_NoReport"),
+                Strings.Get("Wiz_Fail_NoReport_Detail")),
         };
 
         var full = detail;
         if (!string.IsNullOrWhiteSpace(outcome.ToolOutput))
         {
-            full += "\n\nSta je alat ispisao:\n" + outcome.ToolOutput.Trim();
+            full += "\n\n" + Strings.Get("Wiz_Fail_ToolSaid") + "\n" + outcome.ToolOutput.Trim();
         }
         Fail(title, full);
     }
@@ -492,12 +494,12 @@ public sealed class MainViewModel : Observable
 
             File.WriteAllText(path, Report.ToJson());
             SavedReportPath = path;
-            StatusLine = "Izvestaj je sacuvan.";
+            StatusLine = Strings.Get("Wiz_Status_Saved");
         }
         catch (Exception exception) when (exception is IOException
                                               or UnauthorizedAccessException)
         {
-            Fail("Izvestaj nije sacuvan", exception.Message);
+            Fail(Strings.Get("Wiz_Fail_NotSaved"), exception.Message);
         }
     }
 
@@ -546,7 +548,7 @@ public sealed class MainViewModel : Observable
         var directory = ReportDirectory();
 
         State = ScreenState.Busy;
-        StatusLine = "Sakupljam podatke o racunaru...";
+        StatusLine = Strings.Get("Wiz_Status_Collecting");
 
         // Skript cita registar, pnputil i setupapi log - traje par sekundi.
         // Na UI niti bi to bio zamrznut prozor.
@@ -568,11 +570,11 @@ public sealed class MainViewModel : Observable
             TryDelete(reportPath);
             SavedReportPath = null;
 
-            StatusLine = "Sve je spremno. Posaljite taj jedan ZIP.";
+            StatusLine = Strings.Get("Wiz_Status_Ready");
         }
         else
         {
-            StatusLine = $"Izvestaj je sacuvan, ali ZIP nije napravljen: {result.Error}";
+            StatusLine = Strings.Format("Wiz_Status_NoZip", result.Error);
         }
     }
 
@@ -618,7 +620,7 @@ public sealed class MainViewModel : Observable
         catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
                                               or InvalidOperationException)
         {
-            StatusLine = "Ne mogu da otvorim folder; putanja je iznad.";
+            StatusLine = Strings.Get("Wiz_Status_NoFolder");
         }
     }
 }

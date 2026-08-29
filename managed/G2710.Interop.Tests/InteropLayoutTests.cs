@@ -121,13 +121,15 @@ public class InteropLayoutTests
     }
 
     [Fact]
-    public void EveryStatusHasSerbianText()
+    public void The_exception_message_names_the_status_and_the_detail()
     {
-        // Poruka koju vidi covek. Nedostajuci prevod bi ispao kao "Nepoznat
-        // ishod" bas u trenutku kada je objasnjenje najpotrebnije.
-        foreach (ScanStatus status in Enum.GetValues<ScanStatus>())
-        {
-            Assert.NotEqual("Nepoznat ishod", ScannerException.Describe(status));
-        }
+        // Interop je tehnicki sloj: poruka je na engleskom i sluzi dnevniku.
+        // Tekst koji cita covek stoji u G2710.Localization, a bira ga sloj koji
+        // zna na kom jeziku program govori.
+        var exception = new ScannerException(ScanStatus.Busy, "drzi ga WIA", 5);
+
+        Assert.Contains("Busy", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("drzi ga WIA", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("win32 5", exception.Message, StringComparison.Ordinal);
     }
 }

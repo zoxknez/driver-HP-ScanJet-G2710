@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using G2710.Localization;
 
 namespace G2710.Qualification.Services;
 
@@ -45,7 +46,7 @@ public static class DiagnosticsPackager
         var script = FindScript();
         if (script is null)
         {
-            return new Result(null, $"{ScriptName} nije pored programa.");
+            return new Result(null, Strings.Format("Wiz_Zip_NoScript", ScriptName));
         }
 
         // Snimak stanja PRE pokretanja. ZIP se prepoznaje kao onaj koji ranije
@@ -80,7 +81,7 @@ public static class DiagnosticsPackager
             using var process = Process.Start(info);
             if (process is null)
             {
-                return new Result(null, "PowerShell se nije pokrenuo.");
+                return new Result(null, Strings.Get("Wiz_Zip_NoPowerShell"));
             }
 
             // Citanje mora ici PRE WaitForExit: cev ima ogranicen bafer, a
@@ -104,7 +105,7 @@ public static class DiagnosticsPackager
             var created = SafeListZips(outputDirectory).Except(before).ToList();
             if (created.Count == 0)
             {
-                return new Result(null, "Skript je zavrsio, ali ZIP nije nastao.");
+                return new Result(null, Strings.Get("Wiz_Zip_NoFile"));
             }
 
             return new Result(created.OrderBy(p => p).Last(), null);

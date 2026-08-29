@@ -16,13 +16,20 @@
     <AssemblyName>G2710.Qualification</AssemblyName>
     <RootNamespace>G2710.Qualification</RootNamespace>
     <ApplicationIcon />
-    <Product>HP ScanJet G2710 - kvalifikacija</Product>
+    <Product>HP ScanJet G2710 Qualification</Product>
     <Company>G2710 Project</Company>
-    <Version>1.0.0</Version>
+    <!-- Verzija dolazi iz korenskog VERSION fajla, kao i kod aplikacije i MSI-ja.
+         Broj koji carobnjak upise u izvestaj mora biti isti onaj koji je
+         instaliran; inace se sa tudjeg racunara ne zna koji je build tamo. -->
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\..\VERSION').Trim())</Version>
 
     <!-- Jedan fajl, bez instalacije: prijatelj raspakuje ZIP i pokrene. -->
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\G2710.Localization\G2710.Localization.csproj" />
+  </ItemGroup>
 
 </Project>

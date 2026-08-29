@@ -29,13 +29,57 @@
 [CmdletBinding()]
 param(
     [string]$OutputDirectory = [Environment]::GetFolderPath('Desktop'),
-    [string]$ReportPath
+    [string]$ReportPath,
+
+    # Jezik poruka na ekranu. Sam ZIP je uvek na engleskom - njega cita onaj
+    # kome se salje, a ne onaj ko ga pravi.
+    [ValidateSet('en', 'sr')]
+    [string]$Language
 )
 
 $ErrorActionPreference = 'Stop'
 
 $here = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 $tool = Join-Path $here 'g2710ctl.exe'
+
+# Isti redosled kao u programu: prekidac, pa language.txt pored skripta, pa
+# engleski. Kvalifikacioni ZIP upisuje taj fajl pri pakovanju.
+if (-not $Language) {
+    $languageFile = Join-Path $here 'language.txt'
+    $fromFile = if (Test-Path $languageFile) {
+        (Get-Content -LiteralPath $languageFile -TotalCount 1 | Select-Object -First 1)
+    } else { $null }
+    $Language = if ($fromFile -and $fromFile.Trim() -in @('en', 'sr')) { $fromFile.Trim() } else { 'en' }
+}
+
+$Messages = @{
+    Title      = @{ en = 'HP ScanJet G2710 - collecting information'
+                    sr = 'HP ScanJet G2710 - sakupljanje podataka' }
+    Step1      = @{ en = '[1/6] System';      sr = '[1/6] Sistem' }
+    Step2      = @{ en = '[2/6] Device';      sr = '[2/6] Uredjaj' }
+    Step3      = @{ en = '[3/6] DriverStore'; sr = '[3/6] DriverStore' }
+    Step4      = @{ en = '[4/6] g2710ctl';    sr = '[4/6] g2710ctl' }
+    Step5      = @{ en = '[5/6] Qualification report'
+                    sr = '[5/6] Izvestaj kvalifikacije' }
+    Step6      = @{ en = '[6/6] setupapi (extract)'
+                    sr = '[6/6] setupapi (izvod)' }
+    FromReport = @{ en = '      test-results.json  (from {0})'
+                    sr = '      test-results.json  (iz {0})' }
+    Done       = @{ en = 'Done: {0}';         sr = 'Gotovo: {0}' }
+    SendBack   = @{ en = 'Send that one file back. Nothing else is needed.'
+                    sr = 'Posaljite taj jedan fajl nazad. Nista drugo ne treba.' }
+}
+
+# Bez [Parameter()] atributa - vidi isto obrazlozenje u install.ps1.
+function T {
+    param([string]$Key, [object[]]$Arguments)
+    $entry = $Messages[$Key]
+    if (-not $entry) { return "[$Key]" }
+    $text = $entry[$Language]
+    if (-not $text) { $text = $entry['en'] }
+    if ($Arguments) { return ($text -f $Arguments) }
+    return $text
+}
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $work = Join-Path ([IO.Path]::GetTempPath()) "G2710-diag-$stamp"
@@ -54,7 +98,7 @@ function Save-Text {
 }
 
 Write-Host ''
-Write-Host 'HP ScanJet G2710 - sakupljanje podataka' -ForegroundColor Cyan
+Write-Host (T 'Title') -ForegroundColor Cyan
 Write-Host ''
 
 # --- 1. sistem -----------------------------------------------------------------
@@ -63,7 +107,7 @@ Write-Host ''
 # UKLJUCENIM Secure Boot-om; bez zapisa o stvarnom stanju masine, ishod tog
 # eksperimenta ne znaci nista.
 
-Write-Host '[1/6] Sistem'
+Write-Host (T 'Step1')
 
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $elevated = (New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole(
@@ -76,29 +120,29 @@ $elevated = (New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole
 $secureBoot = try {
     $state = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State' `
                               -Name UEFISecureBootEnabled -ErrorAction Stop
-    if ($state.UEFISecureBootEnabled -eq 1) { 'ukljucen' } else { 'iskljucen' }
+    if ($state.UEFISecureBootEnabled -eq 1) { 'on' } else { 'off' }
 } catch {
     # Kljuc ne postoji na masinama sa starim BIOS-om - to nije greska nego
     # odgovor: Secure Boot tu ni ne postoji.
-    'nema (legacy BIOS ili kljuc nedostupan)'
+    'absent (legacy BIOS or the key is unreadable)'
 }
 
 $memoryIntegrity = try {
     $guard = Get-CimInstance -ClassName Win32_DeviceGuard `
                              -Namespace root\Microsoft\Windows\DeviceGuard -ErrorAction Stop
-    if ($guard.SecurityServicesRunning -contains 2) { 'ukljucen' } else { 'iskljucen' }
-} catch { 'nepoznato' }
+    if ($guard.SecurityServicesRunning -contains 2) { 'on' } else { 'off' }
+} catch { 'unknown' }
 
 # bcdedit BEZ administratorskih prava ne pada tiho - ispise gresku i vrati
 # nenulti kod. Bez provere koda, regex nad tom greskom ne bi nasao
 # "testsigning Yes" i stanje bi se prijavilo kao "iskljucen". To je gora vest
 # od "nepoznato", jer izgleda kao izmeren podatak.
-$testSigning = 'nepoznato'
+$testSigning = 'unknown'
 $bcd = & bcdedit /enum '{current}' 2>&1 | Out-String
 if ($LASTEXITCODE -eq 0) {
-    $testSigning = if ($bcd -match '(?im)^\s*testsigning\s+Yes') { 'ukljucen' } else { 'iskljucen' }
+    $testSigning = if ($bcd -match '(?im)^\s*testsigning\s+Yes') { 'on' } else { 'off' }
 } elseif (-not $elevated) {
-    $testSigning = 'nepoznato (skript nije pokrenut kao administrator)'
+    $testSigning = 'unknown (the script was not run as an administrator)'
 }
 
 $os = Get-CimInstance Win32_OperatingSystem
@@ -130,7 +174,7 @@ Save-Json 'system-info.json' $systemInfo
 
 # --- 2. uredjaj ------------------------------------------------------------------
 
-Write-Host '[2/6] Uredjaj'
+Write-Host (T 'Step2')
 
 $devices = @(Get-PnpDevice -ErrorAction SilentlyContinue |
              Where-Object { $_.InstanceId -like '*VID_03F0&PID_2805*' } |
@@ -160,7 +204,7 @@ Save-Json 'device.json' ([ordered]@{
 
 # --- 3. DriverStore ---------------------------------------------------------------
 
-Write-Host '[3/6] DriverStore'
+Write-Host (T 'Step3')
 Save-Text 'driverstore.txt' (& pnputil /enum-drivers 2>&1)
 
 # --- 4. g2710ctl ------------------------------------------------------------------
@@ -169,7 +213,7 @@ Save-Text 'driverstore.txt' (& pnputil /enum-drivers 2>&1)
 # profila, pa rade i kada skenera nema. Zato uvek imaju smisla u izvestaju:
 # iz njih se vidi TACNO koji je binarni fajl covek pokrenuo.
 
-Write-Host '[4/6] g2710ctl'
+Write-Host (T 'Step4')
 if (Test-Path $tool) {
     Save-Text 'g2710ctl-info.txt' (& $tool info 2>&1)
     Save-Text 'capabilities.json' (& $tool capabilities --json 2>&1)
@@ -179,7 +223,7 @@ if (Test-Path $tool) {
 
 # --- 5. izvestaj wizarda ------------------------------------------------------------
 
-Write-Host '[5/6] Izvestaj kvalifikacije'
+Write-Host (T 'Step5')
 
 $chosen = $null
 if ($ReportPath -and (Test-Path $ReportPath)) {
@@ -194,7 +238,7 @@ if ($ReportPath -and (Test-Path $ReportPath)) {
 
 if ($chosen) {
     Copy-Item $chosen.FullName (Join-Path $work 'test-results.json')
-    Write-Host "      test-results.json  (iz $($chosen.Name))"
+    Write-Host (T 'FromReport' $chosen.Name)
 } else {
     # Prazna rubrika je losa vest samo ako se ne vidi da je prazna. Zato ovde
     # stoji uputstvo, a ne fajl koji nedostaje bez objasnjenja.
@@ -211,7 +255,7 @@ Pokrenite G2710.Qualification.exe, prodjite kroz proveru i kliknite
 # Ceo setupapi.dev.log ume da bude desetine megabajta i pun tudjih uredjaja.
 # Uzima se samo ono sto se tice nas, sa po dva reda konteksta oko nalaza.
 
-Write-Host '[6/6] setupapi (izvod)'
+Write-Host (T 'Step6')
 $setupapi = Join-Path $env:WINDIR 'inf\setupapi.dev.log'
 if (Test-Path $setupapi) {
     try {
@@ -237,6 +281,6 @@ Compress-Archive -Path (Join-Path $work '*') -DestinationPath $zip
 Remove-Item $work -Recurse -Force
 
 Write-Host ''
-Write-Host "Gotovo: $zip" -ForegroundColor Green
-Write-Host 'Posaljite taj jedan fajl nazad. Nista drugo ne treba.'
+Write-Host (T 'Done' $zip) -ForegroundColor Green
+Write-Host (T 'SendBack')
 Write-Host ''

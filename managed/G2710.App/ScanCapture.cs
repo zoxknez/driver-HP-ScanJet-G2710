@@ -14,7 +14,7 @@ public sealed class ScanCapture
     {
         ArgumentNullException.ThrowIfNull(geometry);
         if (geometry.WidthPixels <= 0 || geometry.Lines <= 0 || geometry.BytesPerLine <= 0)
-            throw new ArgumentException("Nevažeća geometrija skena.", nameof(geometry));
+            throw new ArgumentException("Invalid scan geometry.", nameof(geometry));
         _geometry = geometry;
         _pixels = new byte[checked(geometry.BytesPerLine * geometry.Lines)];
     }
@@ -24,11 +24,11 @@ public sealed class ScanCapture
     public int Percent => Math.Min(100, _nextLine * 100 / _geometry.Lines);
     public Span<byte> NextLine => _nextLine < _geometry.Lines
         ? _pixels.AsSpan(_nextLine * _geometry.BytesPerLine, _geometry.BytesPerLine)
-        : throw new InvalidOperationException("Svi redovi su već primljeni.");
+        : throw new InvalidOperationException("Every line has already been received.");
 
     public void CommitLine()
     {
-        if (_nextLine >= _geometry.Lines) throw new InvalidOperationException("Previše redova iz skenera.");
+        if (_nextLine >= _geometry.Lines) throw new InvalidOperationException("Too many lines from the scanner.");
         _nextLine++;
     }
 
@@ -36,7 +36,7 @@ public sealed class ScanCapture
     public ScanImage Complete()
     {
         if (_nextLine != _geometry.Lines)
-            throw new InvalidOperationException("Skeniranje nije kompletno; slika se ne sme sačuvati.");
+            throw new InvalidOperationException("The scan is incomplete; the image must not be saved.");
         return new ScanImage(_geometry.WidthPixels, _geometry.Lines, _geometry.BitsPerChannel,
             _geometry.Channels, _pixels);
     }

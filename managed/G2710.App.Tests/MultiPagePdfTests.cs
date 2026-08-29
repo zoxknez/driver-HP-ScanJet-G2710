@@ -191,23 +191,33 @@ public sealed class MultiPagePdfTests
         Assert.False(model.ClearPagesCommand.CanExecute(null));
     }
 
-    [Fact]
-    public void The_summary_says_how_many_pages_the_pdf_will_have()
+    // Oba jezika, jer je poenta broj - a broj se u prevodu izgubi lakse nego
+    // recenica. Engleski je prvi zato sto je on ono sto vidi neko ko nista nije
+    // birao pri instalaciji.
+    [Theory]
+    [InlineData("en", "No pages set aside", "will give 2 pages", "will give 4 pages")]
+    [InlineData("sr", "Nema odloženih", "2 strane", "4 strana")]
+    public void The_summary_says_how_many_pages_the_pdf_will_have(string language,
+                                                                  string empty,
+                                                                  string afterOne,
+                                                                  string afterThree)
     {
         // Broj se ne sme pogadjati: korisnik koji je odlozio tri stranice mora
         // videti da ce PDF imati cetiri.
+        using var _ = new LanguageScope(language);
+
         var model = new MainViewModel();
-        Assert.Contains("Nema odloženih", model.PagesSummary);
+        Assert.Contains(empty, model.PagesSummary);
 
         model.SetLastImageForTest(Page(0x11));
         model.AddPage();
         Assert.Equal(1, model.PageCount);
-        Assert.Contains("2 strane", model.PagesSummary);
+        Assert.Contains(afterOne, model.PagesSummary);
 
         model.AddPage();
         model.AddPage();
         Assert.Equal(3, model.PageCount);
-        Assert.Contains("4 strana", model.PagesSummary);
+        Assert.Contains(afterThree, model.PagesSummary);
     }
 
     [Fact]

@@ -116,9 +116,9 @@ TEST_F(QualificationTest, HighResolutionsDeliverLinesNotNothing) {
         const CheckResult* check = find(results, id);
         ASSERT_NE(check, nullptr) << id;
         EXPECT_EQ(check->outcome, CheckOutcome::Pass) << id << ": " << check->detail;
-        EXPECT_EQ(check->detail.find("0 redova"), std::string::npos)
+        EXPECT_EQ(check->detail.find("0 lines"), std::string::npos)
             << id << " isporucuje nista: " << check->detail;
-        EXPECT_NE(check->detail.find("softversko poravnanje"), std::string::npos)
+        EXPECT_NE(check->detail.find("software alignment"), std::string::npos)
             << id << " bi trebalo da ide softverskim poravnanjem";
     }
 }
@@ -136,7 +136,7 @@ TEST_F(QualificationTest, ReadOnlyLevelNeverTouchesTheLamp) {
         const CheckResult* check = find(results, id);
         ASSERT_NE(check, nullptr) << id;
         EXPECT_EQ(check->outcome, CheckOutcome::BlockedBySafetyLevel) << id;
-        EXPECT_NE(check->detail.find("nivo"), std::string::npos)
+        EXPECT_NE(check->detail.find("level"), std::string::npos)
             << "razlog mora navesti nivo: " << check->detail;
     }
 

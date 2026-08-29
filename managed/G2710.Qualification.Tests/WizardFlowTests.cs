@@ -159,7 +159,7 @@ public class WizardFlowTests
         await model.StartAsync();
 
         Assert.Equal(ScreenState.Failed, model.State);
-        Assert.Contains("nije pronadjen", model.ErrorTitle, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not found", model.ErrorTitle, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("C:/prvo", model.ErrorDetail);
         Assert.Contains("C:/drugo", model.ErrorDetail);
     }
@@ -224,14 +224,25 @@ public class WizardFlowTests
 
     // --- neuspesni prolaz ----------------------------------------------------------
 
+    // Oba jezika: prevod koji izgubi radnju ("proverite kabl") pretvorio bi
+    // uputstvo u obavestenje, i to bi se videlo tek kod prijatelja.
     [Theory]
-    [InlineData(RunFailure.DeviceNotFound, "kabl")]
-    [InlineData(RunFailure.DeviceBusy, "program")]
-    [InlineData(RunFailure.ToolCrashed, "pokrenuo")]
-    [InlineData(RunFailure.Cancelled, "prekinuta")]
-    [InlineData(RunFailure.NoReport, "izvestaj")]
-    public async Task EveryFailureHasAMessageAUserCanAct(RunFailure failure, string expected)
+    [InlineData("en", RunFailure.DeviceNotFound, "cable")]
+    [InlineData("en", RunFailure.DeviceBusy, "program")]
+    [InlineData("en", RunFailure.ToolCrashed, "start")]
+    [InlineData("en", RunFailure.Cancelled, "stopped")]
+    [InlineData("en", RunFailure.NoReport, "report")]
+    [InlineData("sr", RunFailure.DeviceNotFound, "kabl")]
+    [InlineData("sr", RunFailure.DeviceBusy, "program")]
+    [InlineData("sr", RunFailure.ToolCrashed, "pokrenuo")]
+    [InlineData("sr", RunFailure.Cancelled, "prekinuta")]
+    [InlineData("sr", RunFailure.NoReport, "izveštaj")]
+    public async Task EveryFailureHasAMessageAUserCanAct(string language,
+                                                          RunFailure failure,
+                                                          string expected)
     {
+        using var _ = new LanguageScope(language);
+
         var model = BuildViewModel(new RunOutcome(failure, null, string.Empty, 3));
 
         await model.StartAsync();
@@ -371,7 +382,7 @@ public class WizardFlowTests
         model.SaveReport();
 
         Assert.Equal(ScreenState.Failed, model.State);
-        Assert.Contains("nije sacuvan", model.ErrorTitle, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not saved", model.ErrorTitle, StringComparison.OrdinalIgnoreCase);
     }
 
     // --- pakovanje u ZIP -----------------------------------------------------------------
@@ -454,7 +465,7 @@ public class WizardFlowTests
 
             // Ne ekran greske - izvestaj je sacuvan, samo ZIP nije nastao.
             Assert.NotEqual(ScreenState.Failed, model.State);
-            Assert.Contains("sacuvan", model.StatusLine, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("saved", model.StatusLine, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("PowerShell nije nadjen", model.StatusLine,
                             StringComparison.OrdinalIgnoreCase);
 

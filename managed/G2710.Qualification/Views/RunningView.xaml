@@ -1,6 +1,7 @@
 <UserControl x:Class="G2710.Qualification.Views.RunningView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:G2710.Localization;assembly=G2710.Localization">
 
     <Grid Margin="{StaticResource PageMargin}">
         <!--
@@ -44,7 +45,7 @@
                                  Value="{Binding Progress, Mode=OneWay}" />
 
                     <TextBlock Margin="0,12,0,0" Style="{StaticResource SmallText}"
-                               Text="Skener se ispituje. Ne iskljucujte kabl dok ovo traje." />
+                               Text="{loc:Str Wiz_Running_Hint}" />
                 </StackPanel>
             </Border>
 
@@ -55,7 +56,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Sta alat radi"
+                    <TextBlock Grid.Row="0" Text="{loc:Str Wiz_Running_WhatTool}"
                                Style="{StaticResource BodyText}" FontWeight="SemiBold"
                                Margin="0,0,0,10" />
 
@@ -63,7 +64,7 @@
                             CornerRadius="6" Padding="12">
                         <Grid>
                             <!-- prazno stanje: dok jos nista nije ispisano -->
-                            <TextBlock Text="Cekam prvi odgovor skenera..."
+                            <TextBlock Text="{loc:Str Wiz_Running_Waiting}"
                                        VerticalAlignment="Center"
                                        HorizontalAlignment="Center">
                                 <TextBlock.Style>
@@ -127,7 +128,7 @@
                     </Grid>
 
                     <StackPanel Orientation="Horizontal" Margin="46,18,0,0">
-                        <Button Content="Pokusaj ponovo"
+                        <Button Content="{loc:Str Button_Retry}"
                                 Style="{StaticResource PrimaryButton}"
                                 Command="{Binding RetryCommand}" />
                     </StackPanel>
@@ -139,11 +140,11 @@
         <Border Style="{StaticResource Card}" VerticalAlignment="Top"
                 Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisible}}">
             <StackPanel>
-                <TextBlock Text="Alat nije prijavio nijednu proveru"
+                <TextBlock Text="{loc:Str Wiz_Running_Empty}"
                            Style="{StaticResource HeadingText}" />
                 <TextBlock Margin="0,10,0,0" Style="{StaticResource BodyText}"
-                           Text="Program je zavrsio bez greske, ali izvestaj je prazan. To obicno znaci da verzija alata ne odgovara verziji ovog programa." />
-                <Button Content="Pokusaj ponovo" Style="{StaticResource SecondaryButton}"
+                           Text="{loc:Str Wiz_Running_Empty_Detail}" />
+                <Button Content="{loc:Str Button_Retry}" Style="{StaticResource SecondaryButton}"
                         Command="{Binding RetryCommand}"
                         HorizontalAlignment="Left" Margin="0,18,0,0" />
             </StackPanel>

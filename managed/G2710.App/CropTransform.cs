@@ -28,7 +28,7 @@ public static class CropTransform
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(requested);
         if (preview.WidthPixels <= 0 || preview.Lines <= 0 || target.WidthPixels <= 0 || target.Lines <= 0)
-            throw new ArgumentOutOfRangeException(nameof(preview), "Geometrija mora imati pozitivne dimenzije.");
+            throw new ArgumentOutOfRangeException(nameof(preview), "Geometry must have positive dimensions.");
 
         if (previewSelection.IsEmpty)
             return requested with { Left = 0, Top = 0, Width = 0, Height = 0 };
@@ -40,7 +40,7 @@ public static class CropTransform
         var right = ScaleAndClamp(previewSelection.Right, preview.WidthPixels, target.WidthPixels);
         var bottom = ScaleAndClamp(previewSelection.Bottom, preview.Lines, target.Lines);
         if (right <= left || bottom <= top)
-            throw new ArgumentException("Izbor nema nijedan piksel nakon presecanja.", nameof(previewSelection));
+            throw new ArgumentException("The selection has no pixels left after clipping.", nameof(previewSelection));
 
         return requested with { Left = left, Top = top, Width = right - left, Height = bottom - top };
     }

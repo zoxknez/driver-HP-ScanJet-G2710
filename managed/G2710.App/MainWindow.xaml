@@ -1,13 +1,14 @@
 <Window x:Class="G2710.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="HP ScanJet G2710" Height="620" Width="900" MinHeight="540" MinWidth="760"
+        xmlns:loc="clr-namespace:G2710.Localization;assembly=G2710.Localization"
+        Title="HP ScanJet G2710" Height="680" Width="980" MinHeight="560" MinWidth="760"
         WindowStartupLocation="CenterScreen" Background="{StaticResource SurfaceSunken}">
   <Grid Margin="32">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel>
-      <TextBlock Text="HP ScanJet G2710" Style="{StaticResource TitleText}" />
-      <TextBlock Text="Skeniranje i dijagnostika" Style="{StaticResource MutedText}" Margin="0,8,0,0" />
+      <TextBlock Text="{loc:Str Product_Name}" Style="{StaticResource TitleText}" />
+      <TextBlock Text="{loc:Str App_Subtitle}" Style="{StaticResource MutedText}" Margin="0,8,0,0" />
     </StackPanel>
     <Border Grid.Row="1" Margin="0,24,0,24" Padding="20" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8">
       <Grid>
@@ -15,17 +16,17 @@
         <TextBlock Text="{Binding StatusTitle}" Style="{StaticResource HeadingText}" />
         <TextBlock Grid.Row="1" Text="{Binding StatusDetail}" TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,8,0,20" />
         <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-          <StackPanel><TextBlock Text="Izvor" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding Transport}" SelectedValuePath="Tag" Margin="0,4,12,0"><ComboBoxItem Tag="UsbScan" Content="Skener (USB)"/><ComboBoxItem Tag="Simulator" Content="Simulator"/></ComboBox></StackPanel>
+          <StackPanel><TextBlock Text="{loc:Str App_Source}" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding Transport}" SelectedValuePath="Tag" Margin="0,4,12,0"><ComboBoxItem Tag="UsbScan" Content="{loc:Str App_Source_Usb}"/><ComboBoxItem Tag="Simulator" Content="{loc:Str App_Source_Simulator}"/></ComboBox></StackPanel>
           <!-- Spisak dolazi iz jezgra, ne odavde. Otkucane stavke se razidju sa
                drajverom prvi put kada neka rezolucija promeni status. -->
           <StackPanel Grid.Column="1">
-            <TextBlock Text="Rezolucija" Style="{StaticResource SmallText}"/>
+            <TextBlock Text="{loc:Str App_Resolution}" Style="{StaticResource SmallText}"/>
             <ComboBox ItemsSource="{Binding Resolutions}"
                       SelectedItem="{Binding SelectedResolution}"
                       DisplayMemberPath="Label"
                       Margin="0,4,12,0" />
           </StackPanel>
-          <StackPanel Grid.Column="2"><TextBlock Text="Režim" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding ColorMode}" SelectedValuePath="Tag" Margin="0,4,0,0"><ComboBoxItem Tag="Color" Content="U boji"/><ComboBoxItem Tag="Gray" Content="Sivo"/><ComboBoxItem Tag="Lineart" Content="Crno-belo"/></ComboBox></StackPanel>
+          <StackPanel Grid.Column="2"><TextBlock Text="{loc:Str App_Mode}" Style="{StaticResource SmallText}"/><ComboBox SelectedValue="{Binding ColorMode}" SelectedValuePath="Tag" Margin="0,4,0,0"><ComboBoxItem Tag="Color" Content="{loc:Str App_Mode_Color}"/><ComboBoxItem Tag="Gray" Content="{loc:Str App_Mode_Gray}"/><ComboBoxItem Tag="Lineart" Content="{loc:Str App_Mode_Lineart}"/></ComboBox></StackPanel>
         </Grid>
         <!-- Ono sto se ne sme precutati: izabrana vrednost nije hardverski
              potvrdjena. Vidljivo je samo kada zaista ima sta da se kaze. -->
@@ -50,20 +51,32 @@
                      Style="{StaticResource SmallText}" TextWrapping="Wrap" />
         </Border>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,16,0,0">
-          <TextBlock Text="Crop (preview px):" Style="{StaticResource SmallText}" VerticalAlignment="Center" Margin="0,0,8,0" />
-          <TextBox Width="55" Text="{Binding CropLeft, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0" ToolTip="Levo" />
-          <TextBox Width="55" Text="{Binding CropTop, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0" ToolTip="Gore" />
-          <TextBox Width="55" Text="{Binding CropWidth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,0" ToolTip="Širina" />
-          <TextBox Width="55" Text="{Binding CropHeight, UpdateSourceTrigger=PropertyChanged}" ToolTip="Visina" />
-          <TextBlock Text="(nule = cela površina)" Style="{StaticResource SmallText}" VerticalAlignment="Center" Margin="10,0,0,0" />
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,16,0,0" VerticalAlignment="Bottom">
+          <TextBlock Text="{loc:Str App_Crop}" Style="{StaticResource SmallText}" VerticalAlignment="Bottom" Margin="0,0,8,4" />
+          <StackPanel Margin="0,0,6,0">
+            <TextBlock Text="{loc:Str App_Crop_Left}" Style="{StaticResource SmallText}" />
+            <TextBox Width="62" Text="{Binding CropLeft, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0" />
+          </StackPanel>
+          <StackPanel Margin="0,0,6,0">
+            <TextBlock Text="{loc:Str App_Crop_Top}" Style="{StaticResource SmallText}" />
+            <TextBox Width="62" Text="{Binding CropTop, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0" />
+          </StackPanel>
+          <StackPanel Margin="0,0,6,0">
+            <TextBlock Text="{loc:Str App_Crop_Width}" Style="{StaticResource SmallText}" />
+            <TextBox Width="62" Text="{Binding CropWidth, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0" />
+          </StackPanel>
+          <StackPanel>
+            <TextBlock Text="{loc:Str App_Crop_Height}" Style="{StaticResource SmallText}" />
+            <TextBox Width="62" Text="{Binding CropHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,0" />
+          </StackPanel>
+          <TextBlock Text="{loc:Str App_Crop_Hint}" Style="{StaticResource SmallText}" VerticalAlignment="Bottom" Margin="10,0,0,4" />
         </StackPanel>
         <Border Grid.Row="4" Margin="0,24,0,0" Height="170" Background="{StaticResource SurfaceSunken}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
           <Grid x:Name="PreviewSurface" Background="Transparent"
                 MouseLeftButtonDown="PreviewSurface_MouseLeftButtonDown"
                 MouseMove="PreviewSurface_MouseMove"
                 MouseLeftButtonUp="PreviewSurface_MouseLeftButtonUp"
-                ToolTip="Prevucite mišem preko prikaza da izaberete oblast za konačno skeniranje.">
+                ToolTip="{loc:Str App_Preview_Hint}">
             <Image x:Name="PreviewControl" Source="{Binding PreviewImage}" Stretch="Uniform" />
             <Canvas x:Name="CropCanvas" Background="Transparent">
               <Rectangle x:Name="CropRectangle" Visibility="Collapsed" Stroke="{StaticResource Accent}" StrokeThickness="2" Fill="#334AA3DF" />
@@ -76,23 +89,39 @@
         <TextBox Grid.Row="5" Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,16,0,0" />
       </Grid>
     </Border>
-    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-      <Button Content="Sačuvaj trag" Style="{StaticResource SecondaryButton}" Command="{Binding WriteTraceCommand}" Margin="0,0,12,0" />
-      <Button Content="Preview" Style="{StaticResource SecondaryButton}" Command="{Binding PreviewCommand}" IsEnabled="{Binding CanScan}" Margin="0,0,12,0" />
-      <ComboBox Width="92" SelectedValue="{Binding ExportFormat}" SelectedValuePath="Tag" Margin="0,0,8,0">
-        <ComboBoxItem Tag="Png" Content="PNG"/><ComboBoxItem Tag="Jpeg" Content="JPEG"/><ComboBoxItem Tag="Tiff8" Content="TIFF 8"/><ComboBoxItem Tag="Tiff16" Content="TIFF 16"/><ComboBoxItem Tag="Pdf" Content="PDF"/>
-      </ComboBox>
-      <Button Content="Dodaj stranicu" Style="{StaticResource SecondaryButton}"
-              Command="{Binding AddPageCommand}" IsEnabled="{Binding HasImage}"
-              ToolTip="Odloži trenutnu sliku kao stranicu; izvoz u PDF spaja sve odložene."
-              Margin="0,0,8,0" />
-      <Button Content="Obriši stranice" Style="{StaticResource SecondaryButton}"
-              Command="{Binding ClearPagesCommand}" IsEnabled="{Binding HasPages}"
-              Margin="0,0,12,0" />
-      <Button Content="Izvezi" Style="{StaticResource SecondaryButton}" Command="{Binding ExportCommand}" IsEnabled="{Binding HasImage}" Margin="0,0,12,0" />
-      <Button Content="Prekini" Style="{StaticResource SecondaryButton}" Command="{Binding CancelCommand}" IsEnabled="{Binding IsScanning}" Margin="0,0,12,0" />
-      <Button Content="Skeniraj" Style="{StaticResource PrimaryButton}" Command="{Binding ScanCommand}" IsEnabled="{Binding CanScan}" Margin="0,0,12,0" />
-      <Button Content="Proveri vezu" Style="{StaticResource PrimaryButton}" Command="{Binding CheckCommand}" />
-    </StackPanel>
+    <!-- Alati levo, radnje desno.
+         Jedan vodoravni StackPanel je drzao svih devet kontrola i secao ih
+         kada ne stanu - izmereno na snimku: "Sacuvaj trag" i "Pregled" su bili
+         stisnuti na nekoliko piksela. Duzina natpisa zavisi od jezika, pa
+         raspored koji staje na jednom ne staje na drugom.
+
+         Sada leva grupa prelama sama sebe, a "Skeniraj" i "Proveri vezu"
+         ostaju prikovani uz desnu ivicu - tamo gde ih covek trazi. -->
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <WrapPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Left">
+        <Button Content="{loc:Str App_Button_WriteTrace}" Style="{StaticResource SecondaryButton}" Command="{Binding WriteTraceCommand}" Margin="0,0,12,8" />
+        <Button Content="{loc:Str App_Button_Preview}" Style="{StaticResource SecondaryButton}" Command="{Binding PreviewCommand}" IsEnabled="{Binding CanScan}" Margin="0,0,12,8" />
+        <ComboBox Width="92" SelectedValue="{Binding ExportFormat}" SelectedValuePath="Tag" Margin="0,0,8,8" VerticalAlignment="Center">
+          <ComboBoxItem Tag="Png" Content="PNG"/><ComboBoxItem Tag="Jpeg" Content="JPEG"/><ComboBoxItem Tag="Tiff8" Content="TIFF 8"/><ComboBoxItem Tag="Tiff16" Content="TIFF 16"/><ComboBoxItem Tag="Pdf" Content="PDF"/>
+        </ComboBox>
+        <Button Content="{loc:Str App_Button_AddPage}" Style="{StaticResource SecondaryButton}"
+                Command="{Binding AddPageCommand}" IsEnabled="{Binding HasImage}"
+                ToolTip="{loc:Str App_Button_AddPage_Hint}"
+                Margin="0,0,8,8" />
+        <Button Content="{loc:Str App_Button_ClearPages}" Style="{StaticResource SecondaryButton}"
+                Command="{Binding ClearPagesCommand}" IsEnabled="{Binding HasPages}"
+                Margin="0,0,12,8" />
+        <Button Content="{loc:Str App_Button_Export}" Style="{StaticResource SecondaryButton}" Command="{Binding ExportCommand}" IsEnabled="{Binding HasImage}" Margin="0,0,12,8" />
+      </WrapPanel>
+      <WrapPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0">
+        <Button Content="{loc:Str Button_Cancel}" Style="{StaticResource SecondaryButton}" Command="{Binding CancelCommand}" IsEnabled="{Binding IsScanning}" Margin="0,0,12,8" />
+        <Button Content="{loc:Str App_Button_Scan}" Style="{StaticResource PrimaryButton}" Command="{Binding ScanCommand}" IsEnabled="{Binding CanScan}" Margin="0,0,12,8" />
+        <Button Content="{loc:Str App_Button_Check}" Style="{StaticResource PrimaryButton}" Command="{Binding CheckCommand}" Margin="0,0,0,8" />
+      </WrapPanel>
+    </Grid>
   </Grid>
 </Window>

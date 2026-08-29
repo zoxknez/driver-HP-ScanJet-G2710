@@ -1,6 +1,7 @@
 <UserControl x:Class="G2710.Qualification.Views.WelcomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:G2710.Localization;assembly=G2710.Localization">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="{StaticResource PageMargin}">
         <!--
@@ -18,7 +19,7 @@
             <StackPanel Grid.Column="0">
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Sta ce program uraditi"
+                        <TextBlock Text="{loc:Str Wiz_Welcome_What}"
                                    Style="{StaticResource HeadingText}" />
 
                         <Grid Margin="0,14,0,0">
@@ -38,28 +39,28 @@
                                        Margin="0,0,10,0" />
                             <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,10"
                                        Style="{StaticResource BodyText}"
-                                       Text="Prepoznaje skener i cita njegove postavke. Nista se ne pomera." />
+                                       Text="{loc:Str Wiz_Welcome_Step1}" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="2."
                                        Style="{StaticResource BodyText}" FontWeight="SemiBold"
                                        Margin="0,0,10,0" />
                             <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,10"
                                        Style="{StaticResource BodyText}"
-                                       Text="Pali lampu i proverava da li se to vidi u postavkama." />
+                                       Text="{loc:Str Wiz_Welcome_Step2}" />
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="3."
                                        Style="{StaticResource BodyText}" FontWeight="SemiBold"
                                        Margin="0,0,10,0" />
                             <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,10"
                                        Style="{StaticResource BodyText}"
-                                       Text="Pravi nekoliko probnih snimaka, u vise rezolucija." />
+                                       Text="{loc:Str Wiz_Welcome_Step3}" />
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Text="4."
                                        Style="{StaticResource BodyText}" FontWeight="SemiBold"
                                        Margin="0,0,10,0" />
                             <TextBlock Grid.Row="3" Grid.Column="1"
                                        Style="{StaticResource BodyText}"
-                                       Text="Postavlja dva pitanja na koja racunar ne moze da odgovori." />
+                                       Text="{loc:Str Wiz_Welcome_Step4}" />
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -67,12 +68,12 @@
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0"
                         Background="{StaticResource SurfaceSunken}">
                     <StackPanel>
-                        <TextBlock Text="Pre nego sto pocnete"
+                        <TextBlock Text="{loc:Str Wiz_Welcome_Before}"
                                    Style="{StaticResource HeadingText}" />
                         <TextBlock Margin="0,10,0,0" Style="{StaticResource BodyText}"
-                                   Text="Skener treba da bude uključen i povezan USB kablom. Poklopac zatvorite, a staklo ostavite prazno - probni snimci koriste kalibracione trake na ivici stakla." />
+                                   Text="{loc:Str Wiz_Welcome_Before_1}" />
                         <TextBlock Margin="0,10,0,0" Style="{StaticResource MutedText}"
-                                   Text="Program ne menja nista na racunaru i ne instalira drajver. Ako nesto ne prodje, to ce pisati u izvestaju - skener zbog toga nece biti ostecen." />
+                                   Text="{loc:Str Wiz_Welcome_Before_2}" />
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -81,42 +82,42 @@
             <StackPanel Grid.Column="2">
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Text="Podesavanja" Style="{StaticResource HeadingText}" />
+                        <TextBlock Text="{loc:Str Wiz_Welcome_Settings}" Style="{StaticResource HeadingText}" />
 
                         <CheckBox Margin="0,14,0,0" IsChecked="{Binding UseSimulator}"
                                   FontFamily="{StaticResource UiFont}"
                                   FontSize="{StaticResource BodySize}"
                                   Foreground="{StaticResource Text}">
-                            <TextBlock Text="Proba bez skenera" TextWrapping="Wrap" />
+                            <TextBlock Text="{loc:Str Wiz_Welcome_NoScanner}" TextWrapping="Wrap" />
                         </CheckBox>
                         <TextBlock Margin="24,4,0,0" Style="{StaticResource SmallText}"
-                                   Text="Pokrece iste provere nad simulatorom. Sluzi da se program isproba pre nego sto se posalje." />
+                                   Text="{loc:Str Wiz_Welcome_NoScanner_Hint}" />
 
                         <Border Height="1" Background="{StaticResource BorderBrush}"
                                 Margin="0,16,0,16" />
 
-                        <TextBlock Text="Dokle sme da ide"
+                        <TextBlock Text="{loc:Str Wiz_Welcome_HowFar}"
                                    Style="{StaticResource BodyText}" FontWeight="SemiBold" />
                         <TextBlock Margin="0,4,0,8" Style="{StaticResource SmallText}"
-                                   Text="Vise znaci temeljnije. Paket moze imati i nizi plafon, i tada se visi nivoi preskacu - to nije greska." />
+                                   Text="{loc:Str Wiz_Welcome_HowFar_Hint}" />
 
                         <Slider Minimum="1" Maximum="5" TickFrequency="1"
                                 IsSnapToTickEnabled="True" TickPlacement="BottomRight"
                                 Value="{Binding SafetyLevel}" />
 
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource SmallText}">
-                            <Run Text="Izabrano:" />
+                            <Run Text="{loc:Str Wiz_Welcome_Chosen}" />
                             <Run Text="{Binding SafetyLevel, Mode=OneWay}" FontWeight="SemiBold" />
-                            <Run Text="od 5" />
+                            <Run Text="{loc:Str Wiz_Welcome_OutOf}" />
                         </TextBlock>
                     </StackPanel>
                 </Border>
 
                 <Border Style="{StaticResource Card}" Margin="0,16,0,0">
                     <StackPanel>
-                        <TextBlock Text="Koliko traje" Style="{StaticResource HeadingText}" />
+                        <TextBlock Text="{loc:Str Wiz_Welcome_HowLong}" Style="{StaticResource HeadingText}" />
                         <TextBlock Margin="0,10,0,0" Style="{StaticResource BodyText}"
-                                   Text="Manje od minuta. Provera se moze prekinuti u svakom trenutku, i skener tada ostaje u ispravnom stanju." />
+                                   Text="{loc:Str Wiz_Welcome_HowLong_Hint}" />
                     </StackPanel>
                 </Border>
             </StackPanel>

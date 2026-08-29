@@ -20,9 +20,9 @@ public sealed record ScanImage(int Width, int Height, int BitsPerChannel, int Ch
     public void Validate()
     {
         if (Width <= 0 || Height <= 0 || Channels is < 1 or > 3 || BitsPerChannel is not (8 or 16))
-            throw new ArgumentException("Nepodržana geometrija slike.");
+            throw new ArgumentException("Unsupported image geometry.");
         if (Pixels.Length != checked(Stride * Height))
-            throw new ArgumentException("Veličina piksela se ne slaže sa geometrijom slike.");
+            throw new ArgumentException("Pixel buffer does not match the image geometry.");
     }
 }
 
@@ -39,16 +39,16 @@ public static class ImageExport
             SavePdf(Join(image, additionalPages), path);
             return;
         }
-        if (additionalPages is { Count: > 0 }) throw new ArgumentException("Više stranica podržava samo PDF.", nameof(additionalPages));
+        if (additionalPages is { Count: > 0 }) throw new ArgumentException("Only PDF carries more than one page.", nameof(additionalPages));
         BitmapEncoder encoder = format switch
         {
             ExportFormat.Png => new PngBitmapEncoder(),
             ExportFormat.Jpeg when image.BitsPerChannel == 8 => new JpegBitmapEncoder { QualityLevel = 92 },
             ExportFormat.Tiff8 when image.BitsPerChannel == 8 => new TiffBitmapEncoder(),
             ExportFormat.Tiff16 when image.BitsPerChannel == 16 => new TiffBitmapEncoder(),
-            ExportFormat.Jpeg => throw new ArgumentException("JPEG ne podržava 16-bitni ulaz."),
-            ExportFormat.Tiff8 => throw new ArgumentException("TIFF 8 zahteva 8-bitni ulaz."),
-            ExportFormat.Tiff16 => throw new ArgumentException("TIFF 16 zahteva 16-bitni ulaz."),
+            ExportFormat.Jpeg => throw new ArgumentException("JPEG does not support 16-bit input."),
+            ExportFormat.Tiff8 => throw new ArgumentException("TIFF 8 requires 8-bit input."),
+            ExportFormat.Tiff16 => throw new ArgumentException("TIFF 16 requires 16-bit input."),
             _ => throw new ArgumentOutOfRangeException(nameof(format)),
         };
         encoder.Frames.Add(BitmapFrame.Create(CreateBitmap(image)));
@@ -65,7 +65,7 @@ public static class ImageExport
             (3, 8) => PixelFormats.Rgb24,
             (1, 16) => PixelFormats.Gray16,
             (3, 16) => PixelFormats.Rgb48,
-            _ => throw new ArgumentException("Kombinacija kanala i dubine nije podržana."),
+            _ => throw new ArgumentException("Unsupported combination of channels and depth."),
         };
         return BitmapSource.Create(image.Width, image.Height, 300, 300, format, null, image.Pixels, image.Stride);
     }
@@ -74,7 +74,7 @@ public static class ImageExport
     {
         var all = new List<ScanImage> { first };
         if (rest is not null) all.AddRange(rest);
-        foreach (var image in all) { image.Validate(); if (image.BitsPerChannel != 8) throw new ArgumentException("PDF trenutno prima 8-bitne slike."); }
+        foreach (var image in all) { image.Validate(); if (image.BitsPerChannel != 8) throw new ArgumentException("PDF currently accepts 8-bit images only."); }
         return all;
     }
 

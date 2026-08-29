@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using G2710.Localization;
 using G2710.Qualification.Models;
 
 namespace G2710.Qualification.ViewModels;
@@ -18,8 +19,28 @@ public sealed class CheckRowViewModel : Observable
     public CheckResult Model => _check;
 
     public string Id => _check.Id;
-    public string Name => _check.Name;
-    public string Question => _check.Question;
+
+    /// <summary>Naziv provere na jeziku korisnika.</summary>
+    /// <remarks>
+    /// Izvestaj koji alat pise ostaje na engleskom - njega cita onaj kome se
+    /// salje. Prevodi se samo ono sto stoji na ekranu, i to po ID-u provere.
+    /// Provera koju prevod jos ne poznaje prikazuje se onako kako ju je alat
+    /// nazvao; prazno polje bi bilo gore od engleskog natpisa.
+    /// </remarks>
+    public string Name => Localized("Wiz_Check_", _check.Name);
+
+    public string Question => Localized("Wiz_Ask_", _check.Question);
+
+    private string Localized(string prefix, string fallback)
+    {
+        if (string.IsNullOrEmpty(_check.Id))
+        {
+            return fallback;
+        }
+        var text = Strings.Get(prefix + _check.Id.Replace('.', '_'));
+        return text.StartsWith('[') ? fallback : text;
+    }
+
     public CheckOutcome Outcome => _check.Outcome;
 
     /// <summary>Ono sto se prikazuje u redu - detalj, a za pitanja samo pitanje.</summary>
@@ -29,10 +50,10 @@ public sealed class CheckRowViewModel : Observable
     /// <summary>Kratka rec u znacki.</summary>
     public string Badge => Outcome switch
     {
-        CheckOutcome.Pass => "PROSAO",
-        CheckOutcome.Fail => "PAO",
-        CheckOutcome.Blocked => "PRESKOCEN",
-        CheckOutcome.Pending => "CEKA",
+        CheckOutcome.Pass => Strings.Get("Wiz_Badge_Pass"),
+        CheckOutcome.Fail => Strings.Get("Wiz_Badge_Fail"),
+        CheckOutcome.Blocked => Strings.Get("Wiz_Badge_Blocked"),
+        CheckOutcome.Pending => Strings.Get("Wiz_Badge_Pending"),
         CheckOutcome.Ask => AnsweredBadge(),
         _ => "?",
     };
@@ -56,8 +77,8 @@ public sealed class CheckRowViewModel : Observable
     /// <summary>Zasto provera nije pokrenuta - prikazuje se ispod imena.</summary>
     public string? Explanation => Outcome switch
     {
-        CheckOutcome.Blocked => "Nivo bezbednosti ovog paketa ne dozvoljava ovu proveru.",
-        CheckOutcome.Pending => "Deo drajvera za ovo jos nije napisan.",
+        CheckOutcome.Blocked => Strings.Get("Wiz_Why_Blocked"),
+        CheckOutcome.Pending => Strings.Get("Wiz_Why_Pending"),
         _ => null,
     };
 
@@ -95,8 +116,8 @@ public sealed class CheckRowViewModel : Observable
 
     private string AnsweredBadge() => Answer switch
     {
-        UserAnswer.Yes => "DA",
-        UserAnswer.No => "NE",
-        _ => "PITANJE",
+        UserAnswer.Yes => Strings.Get("Button_Yes"),
+        UserAnswer.No => Strings.Get("Button_No"),
+        _ => Strings.Get("Wiz_Badge_Question"),
     };
 }

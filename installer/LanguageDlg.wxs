@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Izbor jezika pri instalaciji.
+
+  Zasto zaseban dijalog, a ne "pogodi po Windows-u": pogadjanje daje pogresan
+  jezik svakome ko radi na engleskom Windows-u a govori srpski, i obrnuto.
+  Program to i dalje pogadja - ali tek ako izbor NE postoji (vidi Language.cs).
+  Instalacija je jedini trenutak kada se moze pitati, pa se pita tada.
+
+  Natpisi samog dijaloga stoje na oba jezika. Dijalog koji pita "koji jezik
+  govorite" ne sme biti napisan samo na jednom od njih - onaj kome treba srpski
+  ne bi umeo da procita pitanje.
+
+  Tiha instalacija ne vidi nijedan dijalog, pa vrednost stize sa komandne
+  linije:  msiexec /i G2710.msi /qn G2710LANGUAGE=sr
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <!-- Podrazumevano engleski. Secure="yes" da vrednost prezivi prelaz u
+         deferred fazu koja radi kao LocalSystem. -->
+    <Property Id="G2710LANGUAGE" Value="en" Secure="yes" />
+
+    <UI>
+      <RadioButtonGroup Property="G2710LANGUAGE">
+        <RadioButton Value="en" X="0" Y="0" Width="295" Height="16"
+                     Text="English    (English)" />
+        <RadioButton Value="sr" X="0" Y="20" Width="295" Height="16"
+                     Text="Serbian    (Srpski)" />
+      </RadioButtonGroup>
+
+      <Dialog Id="G2710LanguageDlg" Width="370" Height="270"
+              Title="[ProductName] Setup">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44"
+                 TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15"
+                 Transparent="yes" NoPrefix="yes"
+                 Text="{\WixUI_Font_Title}Language / Jezik" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="330" Height="15"
+                 Transparent="yes" NoPrefix="yes"
+                 Text="Choose the language of the program. / Izaberite jezik programa." />
+
+        <Control Id="Choice" Type="RadioButtonGroup" X="30" Y="70" Width="300" Height="45"
+                 Property="G2710LANGUAGE" />
+
+        <!-- Izbor nije neopoziv, i to treba da pise. Korisnik koji misli da
+             bira zauvek bira opreznije nego sto treba. -->
+        <Control Id="Note" Type="Text" X="30" Y="135" Width="310" Height="60"
+                 Transparent="yes" NoPrefix="yes"
+                 Text="This can be changed later without reinstalling. The scanner itself works the same in both.&#xA;&#xA;Ovo se kasnije menja bez ponovne instalacije. Sam skener radi isto na oba jezika." />
+
+        <!-- Ovo je prvi dijalog, pa "Nazad" nema kuda; dugme koje ne radi
+             nista gore je od dugmeta kog nema. -->
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17"
+                 Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="EndDialog" Value="Return" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17"
+                 Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+    </UI>
+  </Fragment>
+</Wix>

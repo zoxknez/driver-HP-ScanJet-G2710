@@ -24,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\G2710.Interop\G2710.Interop.csproj" />
+    <ProjectReference Include="..\G2710.Localization\G2710.Localization.csproj" />
     <!-- Jedna paleta za aplikaciju i kvalifikacioni wizard. -->
     <Page Include="..\G2710.Qualification\Theme\Palette.xaml" Link="Theme\Palette.xaml" />
     <Page Include="..\G2710.Qualification\Theme\Controls.xaml" Link="Theme\Controls.xaml" />

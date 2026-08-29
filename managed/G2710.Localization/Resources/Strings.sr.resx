@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Srpski. Satelit, ne neutralni resurs.
+
+  Svaki ključ odavde mora postojati i u Strings.resx, i obrnuto —
+  LocalizationTests to drži u oba smera. Ključ koji postoji samo ovde bio bi
+  prevod koji program nikada ne traži; ključ koji postoji samo tamo bio bi
+  engleski natpis usred srpskog prozora.
+-->
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ===== zajedničko ===== -->
+  <data name="Product_Name"><value>HP ScanJet G2710</value></data>
+  <data name="Button_Cancel"><value>Prekini</value></data>
+  <data name="Button_Back"><value>Nazad</value></data>
+  <data name="Button_Retry"><value>Pokušaj ponovo</value></data>
+  <data name="Button_Yes"><value>DA</value></data>
+  <data name="Button_No"><value>NE</value></data>
+
+  <!-- ===== aplikacija ===== -->
+  <data name="App_Subtitle"><value>Skeniranje i dijagnostika</value></data>
+  <data name="App_Source"><value>Izvor</value></data>
+  <data name="App_Source_Usb"><value>Skener (USB)</value></data>
+  <data name="App_Source_Simulator"><value>Simulator</value></data>
+  <data name="App_Resolution"><value>Rezolucija</value></data>
+  <data name="App_Mode"><value>Režim</value></data>
+  <data name="App_Mode_Color"><value>U boji</value></data>
+  <data name="App_Mode_Gray"><value>Sivo</value></data>
+  <data name="App_Mode_Lineart"><value>Crno-belo</value></data>
+  <data name="App_Crop"><value>Isecak (preview px):</value></data>
+  <data name="App_Crop_Left"><value>Levo</value></data>
+  <data name="App_Crop_Top"><value>Gore</value></data>
+  <data name="App_Crop_Width"><value>Širina</value></data>
+  <data name="App_Crop_Height"><value>Visina</value></data>
+  <data name="App_Crop_Hint"><value>(nule = cela površina)</value></data>
+  <data name="App_Preview_Hint"><value>Prevucite mišem preko prikaza da izaberete oblast za konačno skeniranje.</value></data>
+
+  <data name="App_Button_WriteTrace"><value>Sačuvaj trag</value></data>
+  <data name="App_Button_Preview"><value>Pregled</value></data>
+  <data name="App_Button_AddPage"><value>Dodaj stranicu</value></data>
+  <data name="App_Button_AddPage_Hint"><value>Odloži trenutnu sliku kao stranicu; izvoz u PDF spaja sve odložene.</value></data>
+  <data name="App_Button_ClearPages"><value>Obriši stranice</value></data>
+  <data name="App_Button_Export"><value>Izvezi</value></data>
+  <data name="App_Button_Scan"><value>Skeniraj</value></data>
+  <data name="App_Button_Check"><value>Proveri vezu</value></data>
+
+  <data name="App_Status_Ready"><value>Spremno za proveru</value></data>
+  <data name="App_Status_Ready_Detail"><value>Izaberite izvor, pa proverite vezu sa skenerom.</value></data>
+  <data name="App_Status_Checked"><value>Veza je proverena</value></data>
+  <data name="App_Status_Checked_Ready"><value>Skener je spreman.</value></data>
+  <data name="App_Status_Checked_NoShading"><value>Skeniranje radi, ali kalibracija senzora još nije hardverski potvrđena.</value></data>
+  <data name="App_Status_NotReady"><value>Skener nije spreman</value></data>
+  <data name="App_Status_Scanning"><value>Skeniranje je u toku</value></data>
+  <data name="App_Status_Preparing"><value>Pripremam skener…</value></data>
+  <data name="App_Status_Scan_Cancelled"><value>Skeniranje je prekinuto</value></data>
+  <data name="App_Status_Scan_Cancelled_Detail"><value>Delimična slika nije sačuvana.</value></data>
+  <data name="App_Status_Scan_Done"><value>Skeniranje je završeno</value></data>
+  <data name="App_Status_Scan_Failed"><value>Skeniranje nije uspelo</value></data>
+  <data name="App_Status_Preview_Running"><value>Pregled je u toku</value></data>
+  <data name="App_Status_Preview_Detail"><value>Skeniram na 150 dpi…</value></data>
+  <data name="App_Status_Preview_Cancelled"><value>Pregled je prekinut</value></data>
+  <data name="App_Status_Preview_Ready"><value>Pregled je spreman</value></data>
+  <data name="App_Status_Preview_Ready_Detail"><value>Izaberite oblast skeniranja na prikazu.</value></data>
+  <data name="App_Status_Preview_Failed"><value>Pregled nije uspeo</value></data>
+  <data name="App_Status_Exported"><value>Slika je izvezena</value></data>
+  <data name="App_Status_Export_Failed"><value>Izvoz nije uspeo</value></data>
+  <data name="App_Status_TraceSaved"><value>Trag je sačuvan: {0}</value></data>
+  <data name="App_Status_Received"><value>Primljeno je {0} × {1} piksela. Izaberite format izvoza u sledećem koraku.</value></data>
+
+  <data name="App_Pages_None"><value>Nema odloženih stranica.</value></data>
+  <data name="App_Pages_One"><value>1 odložena stranica; izvoz u PDF daće 2 strane.</value></data>
+  <data name="App_Pages_Many"><value>{0} odloženih stranica; izvoz u PDF daće {1} strana.</value></data>
+  <data name="App_Pages_Added"><value>Stranica je odložena</value></data>
+  <data name="App_Pages_Added_Detail"><value>{0} Skenirajte sledeću, pa izvezite u PDF.</value></data>
+  <data name="App_Pages_OnlyPdf"><value>{0} Više stranica podržava samo PDF — izaberite PDF ili obrišite odložene stranice.</value></data>
+  <data name="App_Export_Pages"><value>{0} ({1} strana)</value></data>
+
+  <data name="App_Fail_CheckCable"><value>Proverite USB kabl, napajanje i da li je uređaj uključen, pa pokušajte ponovo.</value></data>
+  <data name="App_Fail_BusyOwner"><value>Uređaj trenutno koristi: {0}. Završite taj posao pa pokušajte ponovo.</value></data>
+  <data name="App_Fail_BusyUnknown"><value>Drugi program trenutno koristi skener. Zatvorite ga pa pokušajte ponovo.</value></data>
+  <data name="App_Fail_Ceiling"><value>Ovaj paket nema potreban bezbednosni plafon za traženu radnju.</value></data>
+
+  <data name="App_Diagnostics_Idle"><value>Dijagnostika još nije pokrenuta.</value></data>
+  <data name="App_Diagnostics_Version"><value>Verzija</value></data>
+  <data name="App_Diagnostics_Abi"><value>ABI</value></data>
+  <data name="App_Diagnostics_Ceiling"><value>Plafon build-a</value></data>
+  <data name="App_Diagnostics_MotorPath"><value>Motorni put</value></data>
+  <data name="App_Diagnostics_MotorPath_Yes"><value>preveden</value></data>
+  <data name="App_Diagnostics_MotorPath_No"><value>nije preveden</value></data>
+  <data name="App_Diagnostics_Plan"><value>Plan</value></data>
+  <data name="App_Diagnostics_Shading"><value>shading</value></data>
+  <data name="Common_Yes"><value>da</value></data>
+  <data name="Common_No"><value>ne</value></data>
+
+  <data name="App_Busy_Owner"><value>Skener trenutno koristi: {0}</value></data>
+
+  <!-- Upozorenja uz rezolucije. Poenta je da se nepotvrđena vrednost nikada ne
+       ponudi tiho. -->
+  <data name="Res_Caveat_Reference"><value>Ponaša se kao referentni drajver, ali još nije potvrđeno na uređaju.</value></data>
+  <data name="Res_Caveat_Implemented"><value>Kod postoji, ali nije potvrđen ni na referenci ni na uređaju.</value></data>
+  <data name="Res_Caveat_NotImplemented"><value>Nije implementirano.</value></data>
+  <data name="Res_Label"><value>{0} dpi</value></data>
+
+  <!-- ===== tekst greške koji korisnik čita ===== -->
+  <data name="Err_Ok"><value>U redu</value></data>
+  <data name="Err_NotOpen"><value>Uređaj nije otvoren</value></data>
+  <data name="Err_Timeout"><value>Uređaj nije odgovorio na vreme</value></data>
+  <data name="Err_ShortTransfer"><value>Uređaj je poslao manje podataka nego što je traženo</value></data>
+  <data name="Err_Stalled"><value>Veza sa uređajem je zapela</value></data>
+  <data name="Err_Cancelled"><value>Prekinuto</value></data>
+  <data name="Err_TransportLost"><value>Veza sa skenerom je prekinuta tokom rada</value></data>
+  <data name="Err_DeviceNotFound"><value>Skener nije pronađen</value></data>
+  <data name="Err_DeviceError"><value>Skener je odgovorio neispravno</value></data>
+  <data name="Err_Busy"><value>Skener trenutno koristi drugi program</value></data>
+  <data name="Err_SafetyViolation"><value>Ova radnja nije dozvoljena na ovom nivou bezbednosti</value></data>
+  <data name="Err_NotImplemented"><value>Ova mogućnost još ne postoji</value></data>
+  <data name="Err_InvalidArgument"><value>Neispravna vrednost</value></data>
+  <data name="Err_InvalidState"><value>Uređaj nije u stanju u kome se to može uraditi</value></data>
+  <data name="Err_Internal"><value>Unutrašnja greška</value></data>
+  <data name="Err_Unknown"><value>Nepoznat ishod</value></data>
+  <!-- ===== čarobnjak za proveru ===== -->
+  <data name="Wiz_Title"><value>HP ScanJet G2710 - provera</value></data>
+  <data name="Wiz_Subtitle"><value>Provera skenera</value></data>
+  <data name="Wiz_Version"><value>Verzija {0}</value></data>
+
+  <data name="Wiz_Step1"><value>Početak</value></data>
+  <data name="Wiz_Step1_Detail"><value>Šta će se proveriti</value></data>
+  <data name="Wiz_Step2"><value>Provera</value></data>
+  <data name="Wiz_Step2_Detail"><value>Skener se ispituje</value></data>
+  <data name="Wiz_Step3"><value>Pitanja</value></data>
+  <data name="Wiz_Step3_Detail"><value>Pogledajte skener</value></data>
+  <data name="Wiz_Step4"><value>Izveštaj</value></data>
+  <data name="Wiz_Step4_Detail"><value>Sačuvajte i pošaljite</value></data>
+
+  <data name="Wiz_Button_Start"><value>Započni proveru</value></data>
+  <data name="Wiz_Button_Next"><value>Dalje</value></data>
+  <data name="Wiz_Button_Save"><value>Sačuvaj izveštaj</value></data>
+  <data name="Wiz_Button_OpenFolder"><value>Otvori folder sa izveštajem</value></data>
+
+  <data name="Wiz_Head_Welcome"><value>Provera skenera</value></data>
+  <data name="Wiz_Head_Running"><value>Provera je u toku</value></data>
+  <data name="Wiz_Head_Questions"><value>Nekoliko pitanja</value></data>
+  <data name="Wiz_Head_Results"><value>Rezultat</value></data>
+  <data name="Wiz_Sub_Welcome"><value>Ovaj program proverava da li skener radi sa novim drajverom. Ništa se ne menja na računaru i skener se ne rastavlja.</value></data>
+  <data name="Wiz_Sub_Running"><value>Skener se proverava korak po korak. Ovo traje manje od minuta.</value></data>
+  <data name="Wiz_Sub_Questions"><value>Na ovo računar ne može da odgovori sam - potreban je pogled na skener.</value></data>
+  <data name="Wiz_Sub_Results"><value>Sačuvajte izveštaj i pošaljite ga nazad. On je jedini način da se vidi šta je kod vas prošlo, a šta nije.</value></data>
+
+  <data name="Wiz_Welcome_What"><value>Šta će program uraditi</value></data>
+  <data name="Wiz_Welcome_Step1"><value>Prepoznaje skener i čita njegove postavke. Ništa se ne pomera.</value></data>
+  <data name="Wiz_Welcome_Step2"><value>Pali lampu i proverava da li se to vidi u postavkama.</value></data>
+  <data name="Wiz_Welcome_Step3"><value>Pravi nekoliko probnih snimaka, u više rezolucija.</value></data>
+  <data name="Wiz_Welcome_Step4"><value>Postavlja dva pitanja na koja računar ne može da odgovori.</value></data>
+  <data name="Wiz_Welcome_Before"><value>Pre nego što počnete</value></data>
+  <data name="Wiz_Welcome_Before_1"><value>Skener treba da bude uključen i povezan USB kablom. Poklopac zatvorite, a staklo ostavite prazno - probni snimci koriste kalibracione trake na ivici stakla.</value></data>
+  <data name="Wiz_Welcome_Before_2"><value>Program ne menja ništa na računaru i ne instalira drajver. Ako nešto ne prođe, to će pisati u izveštaju - skener zbog toga neće biti oštećen.</value></data>
+  <data name="Wiz_Welcome_Settings"><value>Podešavanja</value></data>
+  <data name="Wiz_Welcome_NoScanner"><value>Proba bez skenera</value></data>
+  <data name="Wiz_Welcome_NoScanner_Hint"><value>Pokreće iste provere nad simulatorom. Služi da se program isproba pre nego što se pošalje.</value></data>
+  <data name="Wiz_Welcome_HowFar"><value>Dokle sme da ide</value></data>
+  <data name="Wiz_Welcome_HowFar_Hint"><value>Više znači temeljnije. Paket može imati i niži plafon, i tada se viši nivoi preskoču - to nije greška.</value></data>
+  <data name="Wiz_Welcome_Chosen"><value>Izabrano:</value></data>
+  <data name="Wiz_Welcome_OutOf"><value>od 5</value></data>
+  <data name="Wiz_Welcome_HowLong"><value>Koliko traje</value></data>
+  <data name="Wiz_Welcome_HowLong_Hint"><value>Manje od minuta. Provera se može prekinuti u svakom trenutku, i skener tada ostaje u ispravnom stanju.</value></data>
+
+  <data name="Wiz_Running_Hint"><value>Skener se ispituje. Ne isključujte kabl dok ovo traje.</value></data>
+  <data name="Wiz_Running_WhatTool"><value>Šta alat radi</value></data>
+  <data name="Wiz_Running_Waiting"><value>Čekam prvi odgovor skenera...</value></data>
+  <data name="Wiz_Running_Empty"><value>Alat nije prijavio nijednu proveru</value></data>
+  <data name="Wiz_Running_Empty_Detail"><value>Program je završio bez greške, ali izveštaj je prazan. To obično znači da verzija alata ne odgovara verziji ovog programa.</value></data>
+
+  <data name="Wiz_Questions_Hint"><value>Pogledajte skener dok odgovarate. Ako niste sigurni, odgovorite NE - bolje je da izveštaj kaže da nešto nije provereno nego da tvrdi pogrešno.</value></data>
+
+  <data name="Wiz_Results_All"><value>Sve provere</value></data>
+  <data name="Wiz_Results_None"><value>Nema nijedne provere za prikaz.</value></data>
+  <data name="Wiz_Results_NotChecked"><value>Skener još nije proveren</value></data>
+  <data name="Wiz_Results_Device"><value>Uređaj {0}</value></data>
+  <data name="Wiz_Results_AllPassed"><value>Sve što je moglo da se proveri - prošlo. ({0} provera)</value></data>
+  <data name="Wiz_Results_SomeFailed"><value>{0} provera nije prošla, od ukupno {1}.</value></data>
+
+  <data name="Wiz_Status_Locating"><value>Tražim alat...</value></data>
+  <data name="Wiz_Status_Checking"><value>Proveravam skener...</value></data>
+  <data name="Wiz_Status_NoChecks"><value>Alat nije prijavio nijednu proveru.</value></data>
+  <data name="Wiz_Status_Done"><value>Završeno: {0} provera.</value></data>
+  <data name="Wiz_Status_Stopping"><value>Prekidam...</value></data>
+  <data name="Wiz_Status_Saved"><value>Izveštaj je sačuvan.</value></data>
+  <data name="Wiz_Status_Collecting"><value>Sakupljam podatke o računaru...</value></data>
+  <data name="Wiz_Status_Ready"><value>Sve je spremno. Pošaljite taj jedan ZIP.</value></data>
+  <data name="Wiz_Status_NoZip"><value>Izveštaj je sačuvan, ali ZIP nije napravljen: {0}</value></data>
+  <data name="Wiz_Status_NoFolder"><value>Ne mogu da otvorim folder; putanja je iznad.</value></data>
+
+  <data name="Wiz_Fail_NoTool"><value>Alat za proveru nije pronađen</value></data>
+  <data name="Wiz_Fail_NoTool_Detail"><value>Fajl g2710ctl.exe mora stajati pored ovog programa. Tražen je na:</value></data>
+  <data name="Wiz_Fail_NoTool_Short"><value>Fajl g2710ctl.exe mora stajati pored ovog programa.</value></data>
+  <data name="Wiz_Fail_Cancelled"><value>Provera je prekinuta</value></data>
+  <data name="Wiz_Fail_Cancelled_Detail"><value>Ništa nije ostalo nedovršeno na skeneru. Možete pokušati ponovo.</value></data>
+  <data name="Wiz_Fail_NotFound"><value>Skener nije pronađen</value></data>
+  <data name="Wiz_Fail_NotFound_Detail"><value>Proverite da li je USB kabl uključen i da li je skener upaljen, pa pokušajte ponovo.</value></data>
+  <data name="Wiz_Fail_Busy"><value>Skener koristi drugi program</value></data>
+  <data name="Wiz_Fail_Busy_Detail"><value>Zatvorite programe za skeniranje i probajte ponovo.</value></data>
+  <data name="Wiz_Fail_NoStart"><value>Alat za proveru se nije pokrenuo</value></data>
+  <data name="Wiz_Fail_NoStart_Detail"><value>Windows nije uspeo da pokrene g2710ctl.exe.</value></data>
+  <data name="Wiz_Fail_NoReport"><value>Provera nije dala izveštaj</value></data>
+  <data name="Wiz_Fail_NoReport_Detail"><value>Alat je završio, ali nije upisao rezultate.</value></data>
+  <data name="Wiz_Fail_NotSaved"><value>Izveštaj nije sačuvan</value></data>
+  <data name="Wiz_Fail_ToolSaid"><value>Šta je alat ispisao:</value></data>
+
+  <data name="Wiz_Badge_Pass"><value>PROŠAO</value></data>
+  <data name="Wiz_Badge_Fail"><value>PAO</value></data>
+  <data name="Wiz_Badge_Blocked"><value>PRESKOČEN</value></data>
+  <data name="Wiz_Badge_Pending"><value>ČEKA</value></data>
+  <data name="Wiz_Badge_Question"><value>PITANJE</value></data>
+  <data name="Wiz_Why_Blocked"><value>Nivo bezbednosti ovog paketa ne dozvoljava ovu proveru.</value></data>
+  <data name="Wiz_Why_Pending"><value>Deo drajvera za ovo još nije napisan.</value></data>
+
+  <!-- Nazivi provera; ključ je ID iz izveštaja. Sam izveštaj ostaje na
+       engleskom - njega čita onaj kome se šalje, a ne onaj ko ga pravi. -->
+  <data name="Wiz_Check_H1_1"><value>USB identitet</value></data>
+  <data name="Wiz_Check_H1_2"><value>Konfiguracija pipe-ova</value></data>
+  <data name="Wiz_Check_H2_1"><value>Čitanje registarskog bank-a</value></data>
+  <data name="Wiz_Check_H2_2"><value>Home senzor</value></data>
+  <data name="Wiz_Check_H3_1"><value>Paljenje lampe</value></data>
+  <data name="Wiz_Check_H3_2"><value>Status lampe</value></data>
+  <data name="Wiz_Check_H3_3"><value>Lampa vidljivo svetli</value></data>
+  <data name="Wiz_Check_H4_1"><value>Povratak na home</value></data>
+  <data name="Wiz_Check_H5_1"><value>Probni prolaz, sivo</value></data>
+  <data name="Wiz_Check_H6_1"><value>Probni prolaz, boja</value></data>
+  <data name="Wiz_Check_H10_1"><value>Dugme Scan</value></data>
+  <data name="Wiz_Check_H11_1"><value>WIA integracija</value></data>
+  <data name="Wiz_Check_H12_1"><value>TWAIN x64 i x86</value></data>
+  <data name="Wiz_Check_H13_1"><value>Stres: ponovljeni prolazi</value></data>
+  <data name="Wiz_Ask_H3_3"><value>Da li lampa skenera SADA svetli?</value></data>
+  <data name="Wiz_Ask_H10_1"><value>Pritisnite dugme Scan na skeneru. Da li se nešto desilo?</value></data>
+  <data name="Wiz_Zip_NoScript"><value>{0} nije pored programa.</value></data>
+  <data name="Wiz_Zip_NoPowerShell"><value>PowerShell se nije pokrenuo.</value></data>
+  <data name="Wiz_Zip_NoFile"><value>Skript je završio, ali ZIP nije nastao.</value></data>
+</root>

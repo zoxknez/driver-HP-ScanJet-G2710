@@ -60,9 +60,15 @@ public sealed class ScannerException : Exception
     /// <summary>Win32 kod ako greska potice iz Win32 poziva; inace 0.</summary>
     public uint Win32 { get; }
 
+    // Tehnicka poruka, na engleskom, za dnevnik i za izuzetak.
+    //
+    // Tekst koji CITA COVEK ne stoji ovde nego u G2710.Localization: Interop je
+    // tehnicki sloj i ne treba da zna na kom jeziku program govori. Ranije je
+    // ovde stajao srpski `Describe`, koji nije koristio niko osim sopstvenog
+    // testa - dakle prevod koji nikada nije stigao do ekrana.
     private static string BuildMessage(ScanStatus status, string detail, uint win32)
     {
-        var text = Describe(status);
+        var text = status.ToString();
         if (!string.IsNullOrWhiteSpace(detail))
         {
             text += ": " + detail;
@@ -74,26 +80,6 @@ public sealed class ScannerException : Exception
         return text;
     }
 
-    /// <summary>Objasnjenje na srpskom, za coveka koji skenira.</summary>
-    public static string Describe(ScanStatus status) => status switch
-    {
-        ScanStatus.Ok => "U redu",
-        ScanStatus.NotOpen => "Uredjaj nije otvoren",
-        ScanStatus.Timeout => "Uredjaj nije odgovorio na vreme",
-        ScanStatus.ShortTransfer => "Uredjaj je poslao manje podataka nego sto je trazeno",
-        ScanStatus.Stalled => "Veza sa uredjajem je zapela",
-        ScanStatus.Cancelled => "Prekinuto",
-        ScanStatus.TransportLost => "Veza sa skenerom je prekinuta tokom rada",
-        ScanStatus.DeviceNotFound => "Skener nije pronadjen",
-        ScanStatus.DeviceError => "Skener je odgovorio neispravno",
-        ScanStatus.Busy => "Skener trenutno koristi drugi program",
-        ScanStatus.SafetyViolation => "Ova radnja nije dozvoljena na ovom nivou bezbednosti",
-        ScanStatus.NotImplemented => "Ova mogucnost jos ne postoji",
-        ScanStatus.InvalidArgument => "Neispravna vrednost",
-        ScanStatus.InvalidState => "Uredjaj nije u stanju u kome se to moze uraditi",
-        ScanStatus.Internal => "Unutrasnja greska",
-        _ => "Nepoznat ishod",
-    };
 }
 
 /// <summary>

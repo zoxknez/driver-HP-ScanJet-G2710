@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using G2710.Interop;
+using G2710.Localization;
 
 namespace G2710.App;
 
@@ -30,7 +31,7 @@ public sealed record ResolutionChoice
     public string Note { get; init; } = string.Empty;
 
     /// <summary>Tekst u listi.</summary>
-    public string Label => $"{Dpi} dpi";
+    public string Label => Strings.Format("Res_Label", Dpi);
 
     /// <summary>
     /// Sta korisnik treba da zna pre nego sto izabere ovu vrednost.
@@ -50,12 +51,9 @@ public sealed record ResolutionChoice
             }
             var reason = Level switch
             {
-                ValidationLevel.ReferenceValidated =>
-                    "Ponaša se kao referentni drajver, ali još nije potvrđeno na uređaju.",
-                ValidationLevel.Implemented =>
-                    "Kod postoji, ali nije potvrđen ni na referenci ni na uređaju.",
-                ValidationLevel.NotImplemented =>
-                    "Nije implementirano.",
+                ValidationLevel.ReferenceValidated => Strings.Get("Res_Caveat_Reference"),
+                ValidationLevel.Implemented => Strings.Get("Res_Caveat_Implemented"),
+                ValidationLevel.NotImplemented => Strings.Get("Res_Caveat_NotImplemented"),
                 _ => string.Empty,
             };
             return string.IsNullOrEmpty(Note) ? reason : $"{reason} {Note}";

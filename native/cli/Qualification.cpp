@@ -32,9 +32,9 @@ CheckResult failed(std::string id, std::string name, SafetyLevel level, std::str
 CheckResult blocked(std::string id, std::string name, SafetyLevel level,
                     const SafetyGate& gate) {
     std::ostringstream detail;
-    detail << "trazi nivo " << toInt(level) << ", efektivni je " << toInt(gate.effective());
+    detail << "asks for level " << toInt(level) << ", effective is " << toInt(gate.effective());
     if (gate.effective() != gate.requested()) {
-        detail << " (plafon build-a je " << toInt(gate.ceiling()) << ")";
+        detail << " (the build ceiling is " << toInt(gate.ceiling()) << ")";
     }
     return {std::move(id), std::move(name), level, CheckOutcome::BlockedBySafetyLevel,
             detail.str(), {}};
@@ -75,15 +75,15 @@ void checkTransport(G2710Device& device, std::vector<CheckResult>* out) {
 
     if (identity.vendorId == profile::kUsbVendorId &&
         identity.productId == profile::kUsbProductId) {
-        out->push_back(passed("H1.1", "USB identitet", SafetyLevel::ReadOnly, detail.str()));
+        out->push_back(passed("H1.1", "USB identity", SafetyLevel::ReadOnly, detail.str()));
     } else {
-        detail << ", ocekivano " << profile::kUsbVendorId << ":" << profile::kUsbProductId;
-        out->push_back(failed("H1.1", "USB identitet", SafetyLevel::ReadOnly, detail.str()));
+        detail << ", expected " << profile::kUsbVendorId << ":" << profile::kUsbProductId;
+        out->push_back(failed("H1.1", "USB identity", SafetyLevel::ReadOnly, detail.str()));
     }
 
     auto pipes = device.transport().pipeConfiguration();
     if (!pipes) {
-        out->push_back(failed("H1.2", "Konfiguracija pipe-ova", SafetyLevel::ReadOnly,
+        out->push_back(failed("H1.2", "Pipe configuration", SafetyLevel::ReadOnly,
                               describe(pipes.error())));
         return;
     }
@@ -94,17 +94,17 @@ void checkTransport(G2710Device& device, std::vector<CheckResult>* out) {
     if (pipes.value().hasInterrupt) {
         pipeText << ", interrupt 0x" << static_cast<int>(pipes.value().interrupt);
     } else {
-        pipeText << ", BEZ interrupt pipe-a";
+        pipeText << ", NO interrupt pipe";
     }
 
     // Bez interrupt pipe-a dugmad ne mogu da rade. To nije pad enumeracije,
     // ali jeste nalaz koji H10 mora da zna unapred.
     if (pipes.value().bulkIn == 0 || pipes.value().bulkOut == 0) {
-        out->push_back(failed("H1.2", "Konfiguracija pipe-ova", SafetyLevel::ReadOnly,
+        out->push_back(failed("H1.2", "Pipe configuration", SafetyLevel::ReadOnly,
                               pipeText.str()));
     } else {
         out->push_back(
-            passed("H1.2", "Konfiguracija pipe-ova", SafetyLevel::ReadOnly, pipeText.str()));
+            passed("H1.2", "Pipe configuration", SafetyLevel::ReadOnly, pipeText.str()));
     }
 }
 
@@ -114,7 +114,7 @@ void checkRegisters(G2710Device& device, std::vector<CheckResult>* out) {
     // Citanje celog bank-a je najjaci dokaz da vendor control transferi rade.
     std::vector<std::byte> bank(profile::kRegisterBankLength);
     if (const Status read = registers.readBank(bank); !read) {
-        out->push_back(failed("H2.1", "Citanje registarskog bank-a", SafetyLevel::ReadOnly,
+        out->push_back(failed("H2.1", "Register bank read", SafetyLevel::ReadOnly,
                               describe(read.error())));
         return;
     }
@@ -124,26 +124,26 @@ void checkRegisters(G2710Device& device, std::vector<CheckResult>* out) {
     const bool allZero = std::all_of(bank.begin(), bank.end(),
                                      [](std::byte value) { return value == std::byte{0}; });
     std::ostringstream detail;
-    detail << profile::kRegisterBankLength << " bajtova sa 0x" << std::hex
+    detail << profile::kRegisterBankLength << " bytes from 0x" << std::hex
            << profile::kRegisterBankBase;
 
     if (allZero) {
-        detail << " - SVE NULE, transfer prolazi ali ne cita";
+        detail << " - ALL ZEROES: the transfer succeeds but reads nothing";
         out->push_back(
-            failed("H2.1", "Citanje registarskog bank-a", SafetyLevel::ReadOnly, detail.str()));
+            failed("H2.1", "Register bank read", SafetyLevel::ReadOnly, detail.str()));
     } else {
         out->push_back(
-            passed("H2.1", "Citanje registarskog bank-a", SafetyLevel::ReadOnly, detail.str()));
+            passed("H2.1", "Register bank read", SafetyLevel::ReadOnly, detail.str()));
     }
 
     const auto home = device.isHeadAtHome();
     if (!home) {
-        out->push_back(failed("H2.2", "Home senzor", SafetyLevel::ReadOnly,
+        out->push_back(failed("H2.2", "Home sensor", SafetyLevel::ReadOnly,
                               describe(home.error())));
     } else {
-        out->push_back(passed("H2.2", "Home senzor", SafetyLevel::ReadOnly,
-                              home.value() ? "glava je na home poziciji"
-                                           : "glava NIJE na home poziciji"));
+        out->push_back(passed("H2.2", "Home sensor", SafetyLevel::ReadOnly,
+                              home.value() ? "the head is at the home position"
+                                           : "the head is NOT at the home position"));
     }
 }
 
@@ -153,9 +153,9 @@ void checkLamp(G2710Device& device, std::vector<CheckResult>* out) {
     const SafetyGate& gate = device.safety();
 
     if (toInt(gate.effective()) < toInt(SafetyLevel::Lamp)) {
-        out->push_back(blocked("H3.1", "Paljenje lampe", SafetyLevel::Lamp, gate));
-        out->push_back(blocked("H3.2", "Status lampe", SafetyLevel::Lamp, gate));
-        out->push_back(blocked("H3.3", "Lampa vidljivo svetli", SafetyLevel::Lamp, gate));
+        out->push_back(blocked("H3.1", "Lamp switch-on", SafetyLevel::Lamp, gate));
+        out->push_back(blocked("H3.2", "Lamp status", SafetyLevel::Lamp, gate));
+        out->push_back(blocked("H3.3", "The lamp is visibly lit", SafetyLevel::Lamp, gate));
         return;
     }
 
@@ -164,33 +164,33 @@ void checkLamp(G2710Device& device, std::vector<CheckResult>* out) {
 
     if (const Status lit = lamp.setLamp(rts8822::LampKind::Flatbed, true); !lit) {
         out->push_back(
-            failed("H3.1", "Paljenje lampe", SafetyLevel::Lamp, describe(lit.error())));
-        out->push_back(blocked("H3.2", "Status lampe", SafetyLevel::Lamp, gate));
+            failed("H3.1", "Lamp switch-on", SafetyLevel::Lamp, describe(lit.error())));
+        out->push_back(blocked("H3.2", "Lamp status", SafetyLevel::Lamp, gate));
         return;
     }
     if (const Status pwm = lamp.setupPwm(rts8822::LampKind::Flatbed); !pwm) {
-        out->push_back(failed("H3.1", "Paljenje lampe", SafetyLevel::Lamp,
+        out->push_back(failed("H3.1", "Lamp switch-on", SafetyLevel::Lamp,
                               "PWM: " + describe(pwm.error())));
         return;
     }
-    out->push_back(passed("H3.1", "Paljenje lampe", SafetyLevel::Lamp, "komanda prihvacena"));
+    out->push_back(passed("H3.1", "Lamp switch-on", SafetyLevel::Lamp, "command accepted"));
 
     const auto status = device.lampStatus();
     if (!status) {
         out->push_back(
-            failed("H3.2", "Status lampe", SafetyLevel::Lamp, describe(status.error())));
+            failed("H3.2", "Lamp status", SafetyLevel::Lamp, describe(status.error())));
     } else if (!status.value().flatbedOn) {
-        out->push_back(failed("H3.2", "Status lampe", SafetyLevel::Lamp,
-                              "upisano ukljuceno, procitano iskljuceno"));
+        out->push_back(failed("H3.2", "Lamp status", SafetyLevel::Lamp,
+                              "written on, read back off"));
     } else {
         out->push_back(
-            passed("H3.2", "Status lampe", SafetyLevel::Lamp, "cita se kao ukljucena"));
+            passed("H3.2", "Lamp status", SafetyLevel::Lamp, "reads back as on"));
     }
 
     // Registar moze reci "ukljucena" a lampa ne svetli. Jedini nacin da se to
     // razdvoji je pogledati.
-    out->push_back(question("H3.3", "Lampa vidljivo svetli", SafetyLevel::Lamp,
-                            "Da li lampa skenera SADA svetli?"));
+    out->push_back(question("H3.3", "The lamp is visibly lit", SafetyLevel::Lamp,
+                            "Is the scanner lamp lit RIGHT NOW?"));
 }
 
 // --- H4: kretanje ------------------------------------------------------------
@@ -199,15 +199,15 @@ void checkMotion(G2710Device& device, std::vector<CheckResult>* out) {
     const SafetyGate& gate = device.safety();
 
     if (toInt(gate.effective()) < toInt(SafetyLevel::Motor)) {
-        out->push_back(blocked("H4.1", "Povratak na home", SafetyLevel::Motor, gate));
+        out->push_back(blocked("H4.1", "Return to home", SafetyLevel::Motor, gate));
         return;
     }
 
     // Kretanje glave trazi port Head_Relocate i Head_ParkHome, koji jos ne
     // postoji. Izmisljati ga znacilo bi pomerati tudji motor po pretpostavci -
     // upravo ono sto ceo projekat izbegava.
-    out->push_back(pending("H4.1", "Povratak na home", SafetyLevel::Motor,
-                           "ceka port Head_Relocate; do tada se glava ne pomera"));
+    out->push_back(pending("H4.1", "Return to home", SafetyLevel::Motor,
+                           "waiting on the Head_Relocate port; until then the head does not move"));
 }
 
 // --- H5 i H6: akvizicija -----------------------------------------------------
@@ -216,8 +216,8 @@ void checkAcquisition(G2710Device& device, std::vector<CheckResult>* out) {
     const SafetyGate& gate = device.safety();
 
     if (toInt(gate.effective()) < toInt(SafetyLevel::FullScan)) {
-        out->push_back(blocked("H5.1", "Probni prolaz, sivo", SafetyLevel::FullScan, gate));
-        out->push_back(blocked("H6.1", "Probni prolaz, boja", SafetyLevel::FullScan, gate));
+        out->push_back(blocked("H5.1", "Test pass, greyscale", SafetyLevel::FullScan, gate));
+        out->push_back(blocked("H6.1", "Test pass, colour", SafetyLevel::FullScan, gate));
         return;
     }
 
@@ -227,8 +227,8 @@ void checkAcquisition(G2710Device& device, std::vector<CheckResult>* out) {
         image::ColorMode mode;
     };
     const Probe probes[] = {
-        {"H5.1", "Probni prolaz, sivo", image::ColorMode::Gray},
-        {"H6.1", "Probni prolaz, boja", image::ColorMode::Color},
+        {"H5.1", "Test pass, greyscale", image::ColorMode::Gray},
+        {"H6.1", "Test pass, colour", image::ColorMode::Color},
     };
 
     rts8822::RegisterFile registers{device.transport()};
@@ -286,9 +286,9 @@ void checkAcquisition(G2710Device& device, std::vector<CheckResult>* out) {
         }
 
         std::ostringstream detail;
-        detail << delivered << " od " << session.expectedOutputLines() << " redova";
+        detail << delivered << " of " << session.expectedOutputLines() << " lines";
         if (delivered > 0 && !line.empty()) {
-            detail << ", prosek " << (sum / (static_cast<long long>(delivered) *
+            detail << ", average " << (sum / (static_cast<long long>(delivered) *
                                              static_cast<long long>(line.size())));
         }
 
@@ -296,7 +296,7 @@ void checkAcquisition(G2710Device& device, std::vector<CheckResult>* out) {
             out->push_back(failed(probe.id, probe.name, SafetyLevel::FullScan, detail.str()));
         } else if (sum == 0) {
             // Redovi stizu, ali su svi crni. Lampa ili senzor.
-            detail << " - SVE NULE";
+            detail << " - ALL ZEROES";
             out->push_back(failed(probe.id, probe.name, SafetyLevel::FullScan, detail.str()));
         } else {
             out->push_back(passed(probe.id, probe.name, SafetyLevel::FullScan, detail.str()));
@@ -314,7 +314,7 @@ void checkResolutions(G2710Device& device, std::vector<CheckResult>* out) {
         std::snprintf(id, sizeof(id), "H8.%d", dpi);
 
         char name[48] = {};
-        std::snprintf(name, sizeof(name), "%d dpi, boja", dpi);
+        std::snprintf(name, sizeof(name), "%d dpi, colour", dpi);
 
         if (toInt(gate.effective()) < toInt(SafetyLevel::FullScan)) {
             out->push_back(blocked(id, name, SafetyLevel::FullScan, gate));
@@ -361,11 +361,11 @@ void checkResolutions(G2710Device& device, std::vector<CheckResult>* out) {
         }
 
         std::ostringstream detail;
-        detail << "skenira na " << planned.value().nativeResolution << " dpi, " << delivered
-               << " redova";
+        detail << "scans at " << planned.value().nativeResolution << " dpi, " << delivered
+               << " lines";
         if (!planned.value().useHardwareAlignment &&
             planned.value().tableMode == image::ColorMode::Color) {
-            detail << ", softversko poravnanje (D3)";
+            detail << ", software alignment (D3)";
         }
 
         if (broke) {
@@ -383,32 +383,32 @@ void checkResolutions(G2710Device& device, std::vector<CheckResult>* out) {
 void checkRemaining(G2710Device& device, std::vector<CheckResult>* out) {
     const SafetyGate& gate = device.safety();
 
-    out->push_back(question("H10.1", "Dugme Scan", SafetyLevel::ReadOnly,
-                            "Pritisnite dugme Scan na skeneru. Da li se nesto desilo?"));
+    out->push_back(question("H10.1", "Scan button", SafetyLevel::ReadOnly,
+                            "Press the Scan button on the scanner. Did anything happen?"));
 
-    out->push_back(pending("H11.1", "WIA integracija", SafetyLevel::FullScan,
-                           "meri se iz Windows Scan aplikacije, ne iz ovog alata"));
-    out->push_back(pending("H12.1", "TWAIN x64 i x86", SafetyLevel::FullScan,
-                           "TWAIN Data Source jos nije izgradjen"));
+    out->push_back(pending("H11.1", "WIA integration", SafetyLevel::FullScan,
+                           "measured from the Windows Scan application, not from this tool"));
+    out->push_back(pending("H12.1", "TWAIN x64 and x86", SafetyLevel::FullScan,
+                           "The TWAIN Data Source has not been built yet"));
 
     if (toInt(gate.effective()) < toInt(SafetyLevel::FullScan)) {
-        out->push_back(blocked("H13.1", "Stres: ponovljeni prolazi", SafetyLevel::FullScan,
+        out->push_back(blocked("H13.1", "Stress: repeated passes", SafetyLevel::FullScan,
                                gate));
         return;
     }
-    out->push_back(pending("H13.1", "Stres: ponovljeni prolazi", SafetyLevel::FullScan,
-                           "pokrece se posebno, posle H6 - ne u prvom prolazu"));
+    out->push_back(pending("H13.1", "Stress: repeated passes", SafetyLevel::FullScan,
+                           "run separately, after H6 - not in the first pass"));
 }
 
 }  // namespace
 
 const char* toString(CheckOutcome outcome) noexcept {
     switch (outcome) {
-        case CheckOutcome::Pass:                 return "prosao";
-        case CheckOutcome::Fail:                 return "PAO";
-        case CheckOutcome::BlockedBySafetyLevel: return "nije pokrenut (plafon)";
-        case CheckOutcome::NotImplemented:       return "nije pokrenut (nema koda)";
-        case CheckOutcome::AsksTheUser:          return "pitanje za korisnika";
+        case CheckOutcome::Pass:                 return "passed";
+        case CheckOutcome::Fail:                 return "FAILED";
+        case CheckOutcome::BlockedBySafetyLevel: return "not run (ceiling)";
+        case CheckOutcome::NotImplemented:       return "not run (no code)";
+        case CheckOutcome::AsksTheUser:          return "a question for the user";
     }
     return "?";
 }

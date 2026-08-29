@@ -445,6 +445,56 @@ nepostojeću aplikaciju bio bi skelet.
 
 ---
 
+### ~~S11 · Dva jezika, engleski primaran~~ — **URAĐENO**  ·  `managed/G2710.Localization/`
+
+Do sada je sve govorilo samo srpski. Sada program govori engleski ili srpski, a
+korisnik bira **pri instalaciji**.
+
+**Zašto je engleski neutralni resurs, a ne satelit:** engleski je ugrađen u samu
+biblioteku, srpski se učitava pored nje. Kada satelit nedostaje — a nedostaje kad
+god paket nije potpun — program i dalje govori. Obrnut raspored bi dao prazan
+prozor.
+
+**Redosled odluke** (`Language.Decide`, mereno u testovima u oba smera):
+izričit izbor → ono što je instalater upisao u `HKLM\SOFTWARE\G2710` →
+`language.txt` pored programa (prenosivi ZIP nema registar) → jezik Windows-a
+ako je srpski → engleski.
+
+**Zapis i poruka nisu ista stvar.** `test-results.json`, `install-state.json` i
+`system-info.json` su **uvek na engleskom** — čita ih onaj kome se izveštaj
+šalje, a ne onaj ko ga pravi. Čarobnjak prevodi ono što stoji na ekranu, i to po
+**ID-u provere**; provera koju prevod još ne poznaje prikazuje se onako kako ju
+je alat nazvao, jer je engleski natpis bolji od praznog polja.
+
+**Nastalo:** `managed/G2710.Localization/` (`Language.cs`, `LocExtension.cs`, dva
+`.resx`), `managed/G2710.Localization.Tests/` (15), `installer/LanguageDlg.wxs`,
+`tools/license-to-rtf.ps1`, `tools/make-installer-art.ps1`.
+
+**Nađeno usput — četiri stvarna kvara, ne kozmetika:**
+
+1. **Izbor „English" pri instalaciji bio je isto što i ćutanje.** `IsSupported`
+   je odbacivao `"en"` jer engleski nije satelit — a instalater tu vrednost
+   upisuje uvek. Korisnik koji je izabrao engleski dobijao bi srpski čim mu je
+   Windows srpski. Test koji je to otkrio napisan je pre popravke i pao je.
+2. **Dijalog za izbor jezika se nije pojavljivao.** Prevodio se bez ijedne
+   greške i stajao je u dekompilovanom WXS-u, ali dugme „Install" na licencnom
+   dijalogu već nosi `EndDialog` na redu 2, a dodati `NewDialog` dobija veći
+   red. Mereno na sastavljenom MSI-ju; sada dijalog stoji u `InstallUISequence`
+   **pre** licence, a `verify-installer.ps1` proverava i redne brojeve.
+3. **Red sa dugmadima u aplikaciji se sekao.** Devet kontrola u jednom
+   `StackPanel`-u ne staje u 900 px — „Sačuvaj trag" i „Pregled" bili su
+   stisnuti na nekoliko piksela. Dužina natpisa zavisi od jezika, pa raspored
+   koji staje na jednom ne staje na drugom. Sada: alati levo (prelamaju se),
+   radnje desno (prikovane).
+4. **Polja isečka nisu imala natpise** — četiri neoznačena okvira sa razlikom
+   samo u tooltip-u. Natpisi su u resursima postojali od početka.
+
+**Provereno na ekranu, ne samo u testu:** obe aplikacije na oba jezika i MSI
+dijalog uslikani i pregledani; čarobnjak provezen kroz simulator do izveštaja u
+oba jezika (23 provere).
+
+---
+
 ## 6. Eskalacija plafona — kojim redom paketi idu
 
 Plafon se **ugrađuje u binarni fajl pri pakovanju** i ne može se podići na

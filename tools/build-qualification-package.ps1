@@ -5,7 +5,10 @@
 .DESCRIPTION
     Paket sadrzi tacno ono sto treba i nista vise:
 
-        PROCITAJ-ME.txt           uputstvo, na srpskom, bez zargona
+        README.txt                uputstvo na engleskom, bez zargona
+        PROCITAJ-ME.txt           isto to na srpskom
+        language.txt              jezik wizarda; ZIP se ne instalira, pa
+                                  izbor ne moze stajati u registru
         install.ps1               sertifikat + INF, nista drugo
         collect-diagnostics.ps1   sve nazad u jedan ZIP
         G2710.Qualification.exe   wizard
@@ -20,6 +23,11 @@
 .PARAMETER SafetyCeiling
     1..5. Prvi paket ide sa 1 ili 2; visi tek kada nizi prodje.
 
+.PARAMETER Language
+    Jezik paketa: en (podrazumevano) ili sr. Odredjuje na kom jeziku govori
+    wizard i koje uputstvo stoji prvo. Oba uputstva idu u ZIP u svakom slucaju -
+    onaj ko otvori paket cita ono koje razume, bez obzira sta je izabrano.
+
 .PARAMETER SkipDriver
     Preskace potpisivanje drajvera. Paket tada nosi samo wizard i g2710ctl -
     korisno dok se radi na wizardu, beskorisno za slanje.
@@ -33,6 +41,9 @@ param(
     [int]$SafetyCeiling = 1,
 
     [string]$OutputDirectory,
+
+    [ValidateSet('en', 'sr')]
+    [string]$Language = 'en',
 
     [switch]$SkipTests,
     [switch]$SkipDriver
@@ -89,10 +100,10 @@ Write-Host "      $($ceilingLine.Trim())"
 # Ispod nivoa 3 motorni put ne sme ni da postoji u binarnom fajlu.
 $motorLine = $info | Where-Object { $_ -match '^\s*Motor path\s' }
 if ($SafetyCeiling -lt 3) {
-    if ($motorLine -notmatch 'NIJE') {
+    if ($motorLine -notmatch 'NOT compiled') {
         throw "motorni kod je preveden uprkos plafonu $SafetyCeiling"
     }
-} elseif ($motorLine -match 'NIJE') {
+} elseif ($motorLine -match 'NOT compiled') {
     throw "motorni kod nedostaje iako ga plafon $SafetyCeiling dozvoljava"
 }
 Write-Host "      $($motorLine.Trim())"
@@ -162,13 +173,18 @@ if ($LASTEXITCODE -ne 0) { throw 'install.ps1 -SelfTest nije prosao; paket se ne
 Copy-Item (Join-Path $repo 'tools\package\install.ps1') $stageDir
 Copy-Item (Join-Path $repo 'tools\package\collect-diagnostics.ps1') $stageDir
 
-$motorNote = if ($SafetyCeiling -lt 3) {
+$motorNoteSr = if ($SafetyCeiling -lt 3) {
     'Ovaj paket NE POMERA glavu skenera - motorni deo u njemu nije ni ugradjen.'
 } else {
     'Ovaj paket sme da pomera glavu skenera.'
 }
+$motorNoteEn = if ($SafetyCeiling -lt 3) {
+    'This package DOES NOT MOVE the scanner head - the motor part is not even built into it.'
+} else {
+    'This package is allowed to move the scanner head.'
+}
 
-$installStep = if ($SkipDriver) {
+$installStepSr = if ($SkipDriver) {
     '(u ovom paketu nema drajvera - preskocite ovaj korak)'
 } else {
     @'
@@ -183,7 +199,87 @@ $installStep = if ($SkipDriver) {
 '@
 }
 
-$readme = @"
+$installStepEn = if ($SkipDriver) {
+    '(this package carries no driver - skip this step)'
+} else {
+    @'
+2. Install the driver, once:
+     - press the Windows key, type  powershell
+     - right-click "Windows PowerShell" -> "Run as administrator"
+     - copy this line and press Enter:
+
+       powershell -ExecutionPolicy Bypass -File "<path>\install.ps1"
+
+   If it says the scanner is not connected - that is fine, the driver went in
+   anyway.
+'@
+}
+
+# Uputstvo ide na OBA jezika, uvek.
+#
+# Paket se salje jednom coveku, ali ga cesto otvori neko drugi - i jedini fajl
+# koji objasnjava sta se dogadja ne sme biti na jeziku koji taj ne cita.
+# -Language bira samo cime program govori, ne sta se sme procitati.
+$readmeEn = @"
+HP ScanJet G2710 - scanner check
+================================
+
+What this is
+------------
+A program that checks whether the scanner works with the new driver. It changes
+no settings on the computer, switches off no protection, and takes nothing apart.
+
+Order
+-----
+1. Unpack the whole ZIP into one folder. Do not run the programs from inside
+   the ZIP.
+
+$installStepEn
+
+3. Connect the scanner with the USB cable and switch it on.
+   Close the lid. Leave the glass empty.
+
+4. Double-click  G2710.Qualification.exe
+
+   The program checks everything by itself and asks two questions the computer
+   cannot answer. It takes less than a minute.
+
+5. At the end click "Save the report".
+
+   The program collects the information about the computer and packs everything
+   up. On the desktop you will find  G2710-HardwareReport-<date>.zip
+   Send that one file back.
+
+   (If the program says the ZIP was not created, the report was still saved.
+   Then run  collect-diagnostics.ps1  - right-click, "Run with PowerShell" -
+   and it makes the same ZIP.)
+
+If something does not pass
+--------------------------
+That is all right, and it is the point. The report exists precisely so that it
+is visible WHAT does not pass. The scanner will not be damaged by it.
+
+How everything goes back as it was
+----------------------------------
+In the same PowerShell window, as administrator:
+
+  powershell -ExecutionPolicy Bypass -File "<path>\install.ps1" -Uninstall
+
+That removes both the driver and the certificate. Nothing else was added.
+
+About this package
+------------------
+Safety ceiling: $SafetyCeiling out of 5.
+$motorNoteEn
+
+Checks above the ceiling are marked as skipped in the report. That is intent,
+not a fault.
+
+Language: the program speaks $Language. To change it, open  language.txt
+next to the program and write  en  or  sr  in it.
+"@
+
+$readmeSr = @"
 HP ScanJet G2710 - provera skenera
 ==================================
 
@@ -196,7 +292,7 @@ Redosled
 --------
 1. Raspakujte ceo ZIP u jedan folder. Ne pokrecite programe iz ZIP-a.
 
-$installStep
+$installStepSr
 
 3. Prikljucite skener USB kablom i ukljucite ga.
    Zatvorite poklopac. Staklo ostavite prazno.
@@ -232,19 +328,27 @@ To uklanja i drajver i sertifikat. Nista drugo nije ni dodato.
 Napomena o ovom paketu
 ----------------------
 Plafon bezbednosti: $SafetyCeiling od 5.
-$motorNote
+$motorNoteSr
 
 Provere iznad plafona bice u izvestaju oznacene kao preskocene. To nije
 greska nego namera.
+
+Jezik: program govori $Language. Menja se tako sto se otvori  language.txt
+pored programa i u njega upise  en  ili  sr.
 "@
 
-$readme | Set-Content (Join-Path $stageDir 'PROCITAJ-ME.txt') -Encoding UTF8
+$readmeEn | Set-Content (Join-Path $stageDir 'README.txt') -Encoding UTF8
+$readmeSr | Set-Content (Join-Path $stageDir 'PROCITAJ-ME.txt') -Encoding UTF8
+
+# Wizard ovo cita pri pokretanju. Bez fajla bi paket poslat na srpskom
+# progovorio engleski cim bi ga neko otvorio na engleskom Windows-u.
+$Language | Set-Content (Join-Path $stageDir 'language.txt') -Encoding ASCII
 
 # --- 6. ZIP -----------------------------------------------------------------------
 
 Write-Host '[6/6] Pakujem'
 $stamp = Get-Date -Format 'yyyyMMdd'
-$zip = Join-Path $OutputDirectory "G2710-HardwareQualification-$stamp-ceiling$SafetyCeiling.zip"
+$zip = Join-Path $OutputDirectory "G2710-HardwareQualification-$stamp-ceiling$SafetyCeiling-$Language.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 
 Compress-Archive -Path (Join-Path $stageDir '*') -DestinationPath $zip

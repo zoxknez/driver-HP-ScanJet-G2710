@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+
+    <!-- StrExtension je MarkupExtension; WPF je potreban samo zbog njega. -->
+    <UseWPF>true</UseWPF>
+
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <AssemblyName>G2710.Localization</AssemblyName>
+    <RootNamespace>G2710.Localization</RootNamespace>
+
+    <!--
+      ENGLESKI JE NEUTRALNI RESURS.
+
+      Ova postavka govori runtime-u da su niske ugradjene u samu biblioteku na
+      engleskom, pa se za engleski NE trazi satelit. Bez nje bi program na
+      engleskom sistemu prvo pokusao da ucita `en` satelit, ne nasao ga, i tek
+      onda pao na neutralni - sto radi, ali svaki put uzalud trazi fajl kog
+      nema.
+    -->
+    <NeutralLanguage>en</NeutralLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator></Generator>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="G2710.Localization.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using G2710.Interop;
+using G2710.Localization;
 
 namespace G2710.App;
 
@@ -15,9 +16,9 @@ internal sealed class MainViewModel : Observable
     private ScannerTransport _transport = ScannerTransport.UsbScan;
     private ResolutionChoice? _resolutionChoice;
     private ScanColorMode _colorMode = ScanColorMode.Color;
-    private string _statusTitle = "Spremno za proveru";
-    private string _statusDetail = "Izaberite izvor, pa proverite vezu sa skenerom.";
-    private string _diagnostics = "Dijagnostika još nije pokrenuta.";
+    private string _statusTitle = Strings.Get("App_Status_Ready");
+    private string _statusDetail = Strings.Get("App_Status_Ready_Detail");
+    private string _diagnostics = Strings.Get("App_Diagnostics_Idle");
     private Scanner? _scanner;
     private Scanner? _activeScanner;
     private bool _isScanning;
@@ -117,9 +118,9 @@ internal sealed class MainViewModel : Observable
     /// <summary>Sta pise pored dugmeta, da se broj ne mora pogadjati.</summary>
     public string PagesSummary => _pages.Count switch
     {
-        0 => "Nema odloženih stranica.",
-        1 => "1 odložena stranica; izvoz u PDF daće 2 strane.",
-        _ => $"{_pages.Count} odloženih stranica; izvoz u PDF daće {_pages.Count + 1} strana.",
+        0 => Strings.Get("App_Pages_None"),
+        1 => Strings.Get("App_Pages_One"),
+        _ => Strings.Format("App_Pages_Many", _pages.Count, _pages.Count + 1),
     };
 
     /// <summary>
@@ -137,8 +138,8 @@ internal sealed class MainViewModel : Observable
         }
         _pages.Add(_lastImage);
         RaisePageState();
-        StatusTitle = "Stranica je odložena";
-        StatusDetail = PagesSummary + " Skenirajte sledeću, pa izvezite u PDF.";
+        StatusTitle = Strings.Get("App_Pages_Added");
+        StatusDetail = Strings.Format("App_Pages_Added_Detail", PagesSummary);
     }
 
     /// <summary>
@@ -219,9 +220,10 @@ internal sealed class MainViewModel : Observable
                 // blokira sledeci preview ili drugog klijenta.
                 _scanner.End();
             }
-            Diagnostics = $"Verzija: {AppVersion}\nABI: {Scanner.NativeAbiVersion >> 16}.{Scanner.NativeAbiVersion & 0xffff}\nPlafon build-a: {Scanner.BuildSafetyCeiling}\nMotorni put: {(_scanner is not null && Scanner.MotorPathCompiled ? "preveden" : "nije preveden")}\nPlan: {plan.WidthPixels} × {plan.Lines}, {plan.NativeResolution} dpi, shading: {(plan.ShadingApplied ? "da" : "ne")}";
-            StatusTitle = "Veza je proverena";
-            StatusDetail = plan.ShadingApplied ? "Skener je spreman." : "Skeniranje radi, ali kalibracija senzora još nije hardverski potvrđena.";
+            Diagnostics = BuildDiagnostics(plan);
+            StatusTitle = Strings.Get("App_Status_Checked");
+            StatusDetail = Strings.Get(plan.ShadingApplied
+                ? "App_Status_Checked_Ready" : "App_Status_Checked_NoShading");
         }
         catch (ScannerException exception)
         {
@@ -233,11 +235,38 @@ internal sealed class MainViewModel : Observable
         catch (Exception exception)
         {
             _scanner?.Dispose(); _scanner = null;
-            StatusTitle = "Skener nije spreman";
+            StatusTitle = Strings.Get("App_Status_NotReady");
             StatusDetail = exception.Message;
             Diagnostics = exception.ToString();
         }
         finally { WriteTraceCommand.RaiseCanExecuteChanged(); }
+    }
+
+    /// <summary>
+    /// Dijagnostika, na jeziku koji je korisnik izabrao.
+    /// </summary>
+    /// <remarks>
+    /// Nazivi polja se prevode, vrednosti ne: verzija i plafon su brojevi, a ne
+    /// recenice. Ono sto se salje nazad kao izvestaj mora ostati citljivo i
+    /// onome ko ne govori jezik korisnika.
+    /// </remarks>
+    private static string BuildDiagnostics(ScanGeometry plan)
+    {
+        uint abi = Scanner.NativeAbiVersion;
+        string motor = Strings.Get(Scanner.MotorPathCompiled
+            ? "App_Diagnostics_MotorPath_Yes" : "App_Diagnostics_MotorPath_No");
+        string shading = Strings.Get(plan.ShadingApplied ? "Common_Yes" : "Common_No");
+
+        return string.Join('\n', new[]
+        {
+            Strings.Get("App_Diagnostics_Version") + ": " + AppVersion,
+            Strings.Get("App_Diagnostics_Abi") + ": " + (abi >> 16) + "." + (abi & 0xffff),
+            Strings.Get("App_Diagnostics_Ceiling") + ": " + Scanner.BuildSafetyCeiling,
+            Strings.Get("App_Diagnostics_MotorPath") + ": " + motor,
+            Strings.Get("App_Diagnostics_Plan") + ": " + plan.WidthPixels + " × " +
+                plan.Lines + ", " + plan.NativeResolution + " dpi, " +
+                Strings.Get("App_Diagnostics_Shading") + ": " + shading,
+        });
     }
 
     private void WriteTrace()
@@ -245,36 +274,36 @@ internal sealed class MainViewModel : Observable
         if (_scanner is null) return;
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"G2710-trace-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
         _scanner.WriteTrace(path);
-        StatusDetail = $"Trag je sačuvan: {path}";
+        StatusDetail = Strings.Format("App_Status_TraceSaved", path);
     }
 
     private async Task ScanAsync()
     {
         IsScanning = true;
-        StatusTitle = "Skeniranje je u toku";
-        StatusDetail = "Pripremam skener…";
+        StatusTitle = Strings.Get("App_Status_Scanning");
+        StatusDetail = Strings.Get("App_Status_Preparing");
         try
         {
             var image = await Task.Run(() => RunScan(false)).ConfigureAwait(true);
             if (image is null)
             {
-                StatusTitle = "Skeniranje je prekinuto";
-                StatusDetail = "Delimična slika nije sačuvana.";
+                StatusTitle = Strings.Get("App_Status_Scan_Cancelled");
+                StatusDetail = Strings.Get("App_Status_Scan_Cancelled_Detail");
                 return;
             }
-            StatusTitle = "Skeniranje je završeno";
+            StatusTitle = Strings.Get("App_Status_Scan_Done");
             _lastImage = image;
             Raise(nameof(HasImage));
             ExportCommand.RaiseCanExecuteChanged();
             SetPreview(image);
-            StatusDetail = $"Primljeno je {image.Width} × {image.Height} piksela. Izaberite format izvoza u sledećem koraku.";
+            StatusDetail = Strings.Format("App_Status_Received", image.Width, image.Height);
         }
         catch (ScannerException exception)
         {
             SetScannerFailure(exception);
             Diagnostics = exception.ToString();
         }
-        catch (Exception exception) { StatusTitle = "Skeniranje nije uspelo"; StatusDetail = exception.Message; Diagnostics = exception.ToString(); }
+        catch (Exception exception) { StatusTitle = Strings.Get("App_Status_Scan_Failed"); StatusDetail = exception.Message; Diagnostics = exception.ToString(); }
         finally
         {
             IsScanning = false;
@@ -284,18 +313,18 @@ internal sealed class MainViewModel : Observable
     private async Task PreviewAsync()
     {
         IsScanning = true;
-        StatusTitle = "Preview je u toku";
-        StatusDetail = "Skeniram na 150 dpi…";
+        StatusTitle = Strings.Get("App_Status_Preview_Running");
+        StatusDetail = Strings.Get("App_Status_Preview_Detail");
         try
         {
             var image = await Task.Run(() => RunScan(true)).ConfigureAwait(true);
-            if (image is null) { StatusTitle = "Preview je prekinut"; StatusDetail = "Nije sačuvana delimična slika."; return; }
+            if (image is null) { StatusTitle = Strings.Get("App_Status_Preview_Cancelled"); StatusDetail = Strings.Get("App_Status_Scan_Cancelled_Detail"); return; }
             SetPreview(image);
-            StatusTitle = "Preview je spreman";
-            StatusDetail = "Izaberite oblast skeniranja na prikazu.";
+            StatusTitle = Strings.Get("App_Status_Preview_Ready");
+            StatusDetail = Strings.Get("App_Status_Preview_Ready_Detail");
         }
         catch (ScannerException exception) { SetScannerFailure(exception); Diagnostics = exception.ToString(); }
-        catch (Exception exception) { StatusTitle = "Preview nije uspeo"; StatusDetail = exception.Message; Diagnostics = exception.ToString(); }
+        catch (Exception exception) { StatusTitle = Strings.Get("App_Status_Preview_Failed"); StatusDetail = exception.Message; Diagnostics = exception.ToString(); }
         finally { IsScanning = false; }
     }
 
@@ -319,21 +348,20 @@ internal sealed class MainViewModel : Observable
             {
                 // Tih gubitak stranica je gori od odbijenog izvoza: korisnik bi
                 // dobio fajl koji izgleda ispravno a nosi samo poslednju sliku.
-                StatusTitle = "Izvoz nije uspeo";
-                StatusDetail = $"{PagesSummary} Više stranica podržava samo PDF - " +
-                               "izaberite PDF ili obrišite odložene stranice.";
+                StatusTitle = Strings.Get("App_Status_Export_Failed");
+                StatusDetail = Strings.Format("App_Pages_OnlyPdf", PagesSummary);
                 return;
             }
 
             ImageExport.Save(_lastImage, ExportFormat, path,
                              _pages.Count > 0 ? _pages : null);
 
-            StatusTitle = "Slika je izvezena";
+            StatusTitle = Strings.Get("App_Status_Exported");
             StatusDetail = _pages.Count > 0
-                ? $"{path} ({_pages.Count + 1} strana)"
+                ? Strings.Format("App_Export_Pages", path, _pages.Count + 1)
                 : path;
         }
-        catch (Exception exception) { StatusTitle = "Izvoz nije uspeo"; StatusDetail = exception.Message; }
+        catch (Exception exception) { StatusTitle = Strings.Get("App_Status_Export_Failed"); StatusDetail = exception.Message; }
     }
 
     private ScanImage? RunScan(bool preview)
@@ -388,21 +416,21 @@ internal sealed class MainViewModel : Observable
         {
             case ScanStatus.DeviceNotFound:
             case ScanStatus.TransportLost:
-                StatusTitle = "Skener nije pronađen";
-                StatusDetail = "Proverite USB kabl, napajanje i da li je uređaj uključen, pa pokušajte ponovo.";
+                StatusTitle = Strings.Get("Err_DeviceNotFound");
+                StatusDetail = Strings.Get("App_Fail_CheckCable");
                 break;
             case ScanStatus.Busy:
-                StatusTitle = "Skener je zauzet";
+                StatusTitle = Strings.Get("Err_Busy");
                 StatusDetail = owner is { Length: > 0 }
-                    ? $"Uređaj trenutno koristi: {owner}. Završite taj posao pa pokušajte ponovo."
-                    : "Drugi program trenutno koristi skener. Zatvorite ga pa pokušajte ponovo.";
+                    ? Strings.Format("App_Fail_BusyOwner", owner)
+                    : Strings.Get("App_Fail_BusyUnknown");
                 break;
             case ScanStatus.SafetyViolation:
-                StatusTitle = "Radnja nije dozvoljena";
-                StatusDetail = "Ovaj paket nema potreban bezbednosni plafon za traženu radnju.";
+                StatusTitle = Strings.Get("Err_SafetyViolation");
+                StatusDetail = Strings.Get("App_Fail_Ceiling");
                 break;
             default:
-                StatusTitle = "Skeniranje nije uspelo";
+                StatusTitle = Strings.Get("App_Status_Scan_Failed");
                 StatusDetail = exception.Message;
                 break;
         }

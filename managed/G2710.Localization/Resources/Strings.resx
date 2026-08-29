@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ENGLISH IS THE NEUTRAL RESOURCE.
+
+  It is compiled into the library itself, not into a satellite. If a satellite
+  is missing - which happens whenever a package is incomplete - the program
+  still speaks, in English. The other way round would leave an empty window.
+
+  Every key here must also exist in Strings.sr.resx; LocalizationTests holds
+  that, in both directions.
+-->
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- ===== shared ===== -->
+  <data name="Product_Name"><value>HP ScanJet G2710</value></data>
+  <data name="Button_Cancel"><value>Stop</value></data>
+  <data name="Button_Back"><value>Back</value></data>
+  <data name="Button_Retry"><value>Try again</value></data>
+  <data name="Button_Yes"><value>YES</value></data>
+  <data name="Button_No"><value>NO</value></data>
+
+  <!-- ===== application ===== -->
+  <data name="App_Subtitle"><value>Scanning and diagnostics</value></data>
+  <data name="App_Source"><value>Source</value></data>
+  <data name="App_Source_Usb"><value>Scanner (USB)</value></data>
+  <data name="App_Source_Simulator"><value>Simulator</value></data>
+  <data name="App_Resolution"><value>Resolution</value></data>
+  <data name="App_Mode"><value>Mode</value></data>
+  <data name="App_Mode_Color"><value>Colour</value></data>
+  <data name="App_Mode_Gray"><value>Greyscale</value></data>
+  <data name="App_Mode_Lineart"><value>Black and white</value></data>
+  <data name="App_Crop"><value>Crop (preview px):</value></data>
+  <data name="App_Crop_Left"><value>Left</value></data>
+  <data name="App_Crop_Top"><value>Top</value></data>
+  <data name="App_Crop_Width"><value>Width</value></data>
+  <data name="App_Crop_Height"><value>Height</value></data>
+  <data name="App_Crop_Hint"><value>(zeroes mean the whole bed)</value></data>
+  <data name="App_Preview_Hint"><value>Drag across the preview to choose the area for the final scan.</value></data>
+
+  <data name="App_Button_WriteTrace"><value>Save trace</value></data>
+  <data name="App_Button_Preview"><value>Preview</value></data>
+  <data name="App_Button_AddPage"><value>Add page</value></data>
+  <data name="App_Button_AddPage_Hint"><value>Set the current image aside as a page; exporting to PDF joins every page set aside.</value></data>
+  <data name="App_Button_ClearPages"><value>Clear pages</value></data>
+  <data name="App_Button_Export"><value>Export</value></data>
+  <data name="App_Button_Scan"><value>Scan</value></data>
+  <data name="App_Button_Check"><value>Check connection</value></data>
+
+  <data name="App_Status_Ready"><value>Ready to check</value></data>
+  <data name="App_Status_Ready_Detail"><value>Choose a source, then check the connection to the scanner.</value></data>
+  <data name="App_Status_Checked"><value>Connection checked</value></data>
+  <data name="App_Status_Checked_Ready"><value>The scanner is ready.</value></data>
+  <data name="App_Status_Checked_NoShading"><value>Scanning works, but sensor calibration has not been confirmed on hardware yet.</value></data>
+  <data name="App_Status_NotReady"><value>The scanner is not ready</value></data>
+  <data name="App_Status_Scanning"><value>Scanning</value></data>
+  <data name="App_Status_Preparing"><value>Preparing the scanner…</value></data>
+  <data name="App_Status_Scan_Cancelled"><value>Scanning was stopped</value></data>
+  <data name="App_Status_Scan_Cancelled_Detail"><value>The partial image was not saved.</value></data>
+  <data name="App_Status_Scan_Done"><value>Scanning finished</value></data>
+  <data name="App_Status_Scan_Failed"><value>Scanning failed</value></data>
+  <data name="App_Status_Preview_Running"><value>Preview in progress</value></data>
+  <data name="App_Status_Preview_Detail"><value>Scanning at 150 dpi…</value></data>
+  <data name="App_Status_Preview_Cancelled"><value>Preview was stopped</value></data>
+  <data name="App_Status_Preview_Ready"><value>Preview is ready</value></data>
+  <data name="App_Status_Preview_Ready_Detail"><value>Choose the scan area on the preview.</value></data>
+  <data name="App_Status_Preview_Failed"><value>Preview failed</value></data>
+  <data name="App_Status_Exported"><value>The image was exported</value></data>
+  <data name="App_Status_Export_Failed"><value>Export failed</value></data>
+  <data name="App_Status_TraceSaved"><value>Trace saved: {0}</value></data>
+  <data name="App_Status_Received"><value>Received {0} × {1} pixels. Choose the export format in the next step.</value></data>
+
+  <data name="App_Pages_None"><value>No pages set aside.</value></data>
+  <data name="App_Pages_One"><value>1 page set aside; exporting to PDF will give 2 pages.</value></data>
+  <data name="App_Pages_Many"><value>{0} pages set aside; exporting to PDF will give {1} pages.</value></data>
+  <data name="App_Pages_Added"><value>Page set aside</value></data>
+  <data name="App_Pages_Added_Detail"><value>{0} Scan the next one, then export to PDF.</value></data>
+  <data name="App_Pages_OnlyPdf"><value>{0} Only PDF carries more than one page — choose PDF or clear the pages set aside.</value></data>
+  <data name="App_Export_Pages"><value>{0} ({1} pages)</value></data>
+
+  <data name="App_Fail_CheckCable"><value>Check the USB cable, the power, and that the device is switched on, then try again.</value></data>
+  <data name="App_Fail_BusyOwner"><value>The device is currently used by: {0}. Finish that job, then try again.</value></data>
+  <data name="App_Fail_BusyUnknown"><value>Another program is using the scanner. Close it, then try again.</value></data>
+  <data name="App_Fail_Ceiling"><value>This package does not have the safety ceiling the requested action needs.</value></data>
+
+  <data name="App_Diagnostics_Idle"><value>Diagnostics have not been run yet.</value></data>
+  <data name="App_Diagnostics_Version"><value>Version</value></data>
+  <data name="App_Diagnostics_Abi"><value>ABI</value></data>
+  <data name="App_Diagnostics_Ceiling"><value>Build safety ceiling</value></data>
+  <data name="App_Diagnostics_MotorPath"><value>Motor path</value></data>
+  <data name="App_Diagnostics_MotorPath_Yes"><value>compiled</value></data>
+  <data name="App_Diagnostics_MotorPath_No"><value>not compiled</value></data>
+  <data name="App_Diagnostics_Plan"><value>Plan</value></data>
+  <data name="App_Diagnostics_Shading"><value>shading</value></data>
+  <data name="Common_Yes"><value>yes</value></data>
+  <data name="Common_No"><value>no</value></data>
+
+  <data name="App_Busy_Owner"><value>The scanner is currently used by: {0}</value></data>
+
+  <!-- Resolution warnings. These are what the driver says about itself; the
+       point is that an unverified value is never offered silently. -->
+  <data name="Res_Caveat_Reference"><value>Behaves like the reference driver, but has not been confirmed on the device yet.</value></data>
+  <data name="Res_Caveat_Implemented"><value>The code exists, but has been confirmed neither against the reference nor on the device.</value></data>
+  <data name="Res_Caveat_NotImplemented"><value>Not implemented.</value></data>
+  <data name="Res_Label"><value>{0} dpi</value></data>
+
+  <!-- ===== error text the user reads ===== -->
+  <data name="Err_Ok"><value>All right</value></data>
+  <data name="Err_NotOpen"><value>The device is not open</value></data>
+  <data name="Err_Timeout"><value>The device did not answer in time</value></data>
+  <data name="Err_ShortTransfer"><value>The device sent less data than was asked for</value></data>
+  <data name="Err_Stalled"><value>The connection to the device is stuck</value></data>
+  <data name="Err_Cancelled"><value>Stopped</value></data>
+  <data name="Err_TransportLost"><value>The connection to the scanner was lost while it was working</value></data>
+  <data name="Err_DeviceNotFound"><value>The scanner was not found</value></data>
+  <data name="Err_DeviceError"><value>The scanner answered incorrectly</value></data>
+  <data name="Err_Busy"><value>The scanner is currently used by another program</value></data>
+  <data name="Err_SafetyViolation"><value>This action is not allowed at this safety level</value></data>
+  <data name="Err_NotImplemented"><value>This is not available yet</value></data>
+  <data name="Err_InvalidArgument"><value>Invalid value</value></data>
+  <data name="Err_InvalidState"><value>The device is not in a state where that can be done</value></data>
+  <data name="Err_Internal"><value>Internal error</value></data>
+  <data name="Err_Unknown"><value>Unknown outcome</value></data>
+  <!-- ===== qualification wizard ===== -->
+  <data name="Wiz_Title"><value>HP ScanJet G2710 - check</value></data>
+  <data name="Wiz_Subtitle"><value>Scanner check</value></data>
+  <data name="Wiz_Version"><value>Version {0}</value></data>
+
+  <data name="Wiz_Step1"><value>Start</value></data>
+  <data name="Wiz_Step1_Detail"><value>What will be checked</value></data>
+  <data name="Wiz_Step2"><value>Check</value></data>
+  <data name="Wiz_Step2_Detail"><value>The scanner is being tested</value></data>
+  <data name="Wiz_Step3"><value>Questions</value></data>
+  <data name="Wiz_Step3_Detail"><value>Look at the scanner</value></data>
+  <data name="Wiz_Step4"><value>Report</value></data>
+  <data name="Wiz_Step4_Detail"><value>Save it and send it back</value></data>
+
+  <data name="Wiz_Button_Start"><value>Start the check</value></data>
+  <data name="Wiz_Button_Next"><value>Next</value></data>
+  <data name="Wiz_Button_Save"><value>Save the report</value></data>
+  <data name="Wiz_Button_OpenFolder"><value>Open the report folder</value></data>
+
+  <data name="Wiz_Head_Welcome"><value>Scanner check</value></data>
+  <data name="Wiz_Head_Running"><value>The check is running</value></data>
+  <data name="Wiz_Head_Questions"><value>A few questions</value></data>
+  <data name="Wiz_Head_Results"><value>Result</value></data>
+  <data name="Wiz_Sub_Welcome"><value>This program checks whether the scanner works with the new driver. Nothing on the computer is changed and the scanner is not taken apart.</value></data>
+  <data name="Wiz_Sub_Running"><value>The scanner is checked step by step. This takes less than a minute.</value></data>
+  <data name="Wiz_Sub_Questions"><value>The computer cannot answer these on its own - someone has to look at the scanner.</value></data>
+  <data name="Wiz_Sub_Results"><value>Save the report and send it back. It is the only way to see what passed on your machine and what did not.</value></data>
+
+  <data name="Wiz_Welcome_What"><value>What the program will do</value></data>
+  <data name="Wiz_Welcome_Step1"><value>Recognises the scanner and reads its settings. Nothing moves.</value></data>
+  <data name="Wiz_Welcome_Step2"><value>Switches the lamp on and checks whether that shows up in the settings.</value></data>
+  <data name="Wiz_Welcome_Step3"><value>Takes a few test images, at several resolutions.</value></data>
+  <data name="Wiz_Welcome_Step4"><value>Asks two questions the computer cannot answer.</value></data>
+  <data name="Wiz_Welcome_Before"><value>Before you start</value></data>
+  <data name="Wiz_Welcome_Before_1"><value>The scanner should be switched on and connected with the USB cable. Close the lid and leave the glass empty - the test images use the calibration strips at the edge of the glass.</value></data>
+  <data name="Wiz_Welcome_Before_2"><value>The program changes nothing on the computer and installs no driver. If something does not pass, the report will say so - the scanner will not be damaged by it.</value></data>
+  <data name="Wiz_Welcome_Settings"><value>Settings</value></data>
+  <data name="Wiz_Welcome_NoScanner"><value>Trial run without a scanner</value></data>
+  <data name="Wiz_Welcome_NoScanner_Hint"><value>Runs the same checks against the simulator. It is there so the program can be tried out before it is sent.</value></data>
+  <data name="Wiz_Welcome_HowFar"><value>How far it may go</value></data>
+  <data name="Wiz_Welcome_HowFar_Hint"><value>Higher means more thorough. A package may carry a lower ceiling, and then the higher levels are skipped - that is not an error.</value></data>
+  <data name="Wiz_Welcome_Chosen"><value>Chosen:</value></data>
+  <data name="Wiz_Welcome_OutOf"><value>out of 5</value></data>
+  <data name="Wiz_Welcome_HowLong"><value>How long it takes</value></data>
+  <data name="Wiz_Welcome_HowLong_Hint"><value>Less than a minute. The check can be stopped at any moment, and the scanner is left in a sound state.</value></data>
+
+  <data name="Wiz_Running_Hint"><value>The scanner is being tested. Do not unplug the cable while this lasts.</value></data>
+  <data name="Wiz_Running_WhatTool"><value>What the tool is doing</value></data>
+  <data name="Wiz_Running_Waiting"><value>Waiting for the first answer from the scanner...</value></data>
+  <data name="Wiz_Running_Empty"><value>The tool reported no checks at all</value></data>
+  <data name="Wiz_Running_Empty_Detail"><value>The program finished without an error, but the report is empty. That usually means the version of the tool does not match the version of this program.</value></data>
+
+  <data name="Wiz_Questions_Hint"><value>Look at the scanner while you answer. If you are not sure, answer NO - it is better for the report to say something was not checked than for it to claim the wrong thing.</value></data>
+
+  <data name="Wiz_Results_All"><value>All checks</value></data>
+  <data name="Wiz_Results_None"><value>There is not a single check to show.</value></data>
+  <data name="Wiz_Results_NotChecked"><value>The scanner has not been checked yet</value></data>
+  <data name="Wiz_Results_Device"><value>Device {0}</value></data>
+  <data name="Wiz_Results_AllPassed"><value>Everything that could be checked passed. ({0} checks)</value></data>
+  <data name="Wiz_Results_SomeFailed"><value>{0} checks out of {1} did not pass.</value></data>
+
+  <data name="Wiz_Status_Locating"><value>Looking for the tool...</value></data>
+  <data name="Wiz_Status_Checking"><value>Checking the scanner...</value></data>
+  <data name="Wiz_Status_NoChecks"><value>The tool reported no checks.</value></data>
+  <data name="Wiz_Status_Done"><value>Finished: {0} checks.</value></data>
+  <data name="Wiz_Status_Stopping"><value>Stopping...</value></data>
+  <data name="Wiz_Status_Saved"><value>The report has been saved.</value></data>
+  <data name="Wiz_Status_Collecting"><value>Collecting information about the computer...</value></data>
+  <data name="Wiz_Status_Ready"><value>Everything is ready. Send that one ZIP.</value></data>
+  <data name="Wiz_Status_NoZip"><value>The report was saved, but the ZIP was not created: {0}</value></data>
+  <data name="Wiz_Status_NoFolder"><value>The folder cannot be opened; the path is above.</value></data>
+
+  <data name="Wiz_Fail_NoTool"><value>The check tool was not found</value></data>
+  <data name="Wiz_Fail_NoTool_Detail"><value>g2710ctl.exe must sit next to this program. It was looked for in:</value></data>
+  <data name="Wiz_Fail_NoTool_Short"><value>g2710ctl.exe must sit next to this program.</value></data>
+  <data name="Wiz_Fail_Cancelled"><value>The check was stopped</value></data>
+  <data name="Wiz_Fail_Cancelled_Detail"><value>Nothing was left unfinished on the scanner. You can try again.</value></data>
+  <data name="Wiz_Fail_NotFound"><value>The scanner was not found</value></data>
+  <data name="Wiz_Fail_NotFound_Detail"><value>Check that the USB cable is plugged in and the scanner is switched on, then try again.</value></data>
+  <data name="Wiz_Fail_Busy"><value>Another program is using the scanner</value></data>
+  <data name="Wiz_Fail_Busy_Detail"><value>Close any scanning programs and try again.</value></data>
+  <data name="Wiz_Fail_NoStart"><value>The check tool did not start</value></data>
+  <data name="Wiz_Fail_NoStart_Detail"><value>Windows could not start g2710ctl.exe.</value></data>
+  <data name="Wiz_Fail_NoReport"><value>The check produced no report</value></data>
+  <data name="Wiz_Fail_NoReport_Detail"><value>The tool finished, but wrote no results.</value></data>
+  <data name="Wiz_Fail_NotSaved"><value>The report was not saved</value></data>
+  <data name="Wiz_Fail_ToolSaid"><value>What the tool printed:</value></data>
+
+  <data name="Wiz_Badge_Pass"><value>PASSED</value></data>
+  <data name="Wiz_Badge_Fail"><value>FAILED</value></data>
+  <data name="Wiz_Badge_Blocked"><value>SKIPPED</value></data>
+  <data name="Wiz_Badge_Pending"><value>WAITING</value></data>
+  <data name="Wiz_Badge_Question"><value>QUESTION</value></data>
+  <data name="Wiz_Why_Blocked"><value>The safety level of this package does not allow this check.</value></data>
+  <data name="Wiz_Why_Pending"><value>The part of the driver for this has not been written yet.</value></data>
+
+  <!-- Nazivi provera. Kljuc je ID iz izvestaja; izvestaj sam ostaje na
+       engleskom, a ovde se prevodi samo ono sto korisnik cita na ekranu. -->
+  <data name="Wiz_Check_H1_1"><value>USB identity</value></data>
+  <data name="Wiz_Check_H1_2"><value>Pipe configuration</value></data>
+  <data name="Wiz_Check_H2_1"><value>Register bank read</value></data>
+  <data name="Wiz_Check_H2_2"><value>Home sensor</value></data>
+  <data name="Wiz_Check_H3_1"><value>Lamp switch-on</value></data>
+  <data name="Wiz_Check_H3_2"><value>Lamp status</value></data>
+  <data name="Wiz_Check_H3_3"><value>The lamp is visibly lit</value></data>
+  <data name="Wiz_Check_H4_1"><value>Return to home</value></data>
+  <data name="Wiz_Check_H5_1"><value>Test pass, greyscale</value></data>
+  <data name="Wiz_Check_H6_1"><value>Test pass, colour</value></data>
+  <data name="Wiz_Check_H10_1"><value>Scan button</value></data>
+  <data name="Wiz_Check_H11_1"><value>WIA integration</value></data>
+  <data name="Wiz_Check_H12_1"><value>TWAIN x64 and x86</value></data>
+  <data name="Wiz_Check_H13_1"><value>Stress: repeated passes</value></data>
+  <data name="Wiz_Ask_H3_3"><value>Is the scanner lamp lit RIGHT NOW?</value></data>
+  <data name="Wiz_Ask_H10_1"><value>Press the Scan button on the scanner. Did anything happen?</value></data>
+  <data name="Wiz_Zip_NoScript"><value>{0} is not next to the program.</value></data>
+  <data name="Wiz_Zip_NoPowerShell"><value>PowerShell did not start.</value></data>
+  <data name="Wiz_Zip_NoFile"><value>The script finished, but no ZIP appeared.</value></data>
+</root>

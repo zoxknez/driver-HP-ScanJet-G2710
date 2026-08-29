@@ -59,14 +59,24 @@ if ($version -notmatch '^\d+\.\d+\.\d+$') {
     throw "VERSION nije oblika X.Y.Z: '$version'"
 }
 
+# Licenca za dijalog instalatera nastaje iz LICENSE, ne stoji kao drugi fajl.
+$licenseRtf = Join-Path $repo 'build\installer-license.rtf'
+& (Join-Path $repo 'tools\license-to-rtf.ps1') -Source (Join-Path $repo 'LICENSE') -Destination $licenseRtf
+if (-not (Test-Path $licenseRtf)) { throw 'RTF licenca nije nastala' }
+
+$installerArt = Join-Path $repo 'build\installer-art'
+& (Join-Path $repo 'tools\make-installer-art.ps1') -OutputDirectory $installerArt
+
 $msi = Join-Path $OutputDirectory "G2710-$version-x64.msi"
 $wix = (Get-Command wix -ErrorAction SilentlyContinue).Source
 if (-not $wix) { $wix = 'C:\Program Files\WiX Toolset v7.0\bin\wix.exe' }
 if (-not (Test-Path $wix)) { throw 'WiX CLI nije pronadjen; instalirajte WiXToolset.WiXCLI.' }
-& $wix build -arch x64 -d "AppDir=$publish" -d "DriverDir=$driver" `
+& $wix build -arch x64 -ext WixToolset.UI.wixext `
+    -d "AppDir=$publish" -d "DriverDir=$driver" `
     -d "Twain64Dir=$twain64" -d "Twain86Dir=$twain86" `
     -d "IncludeDevCertificate=$includeDevCertificate" -d "ProductVersion=$version" `
-    -o $msi (Join-Path $repo 'installer\Product.wxs')
+    -d "LicenseRtf=$licenseRtf" -d "InstallerArt=$installerArt" `
+    -o $msi (Join-Path $repo 'installer\Product.wxs') (Join-Path $repo 'installer\LanguageDlg.wxs')
 if ($LASTEXITCODE -ne 0) { throw 'WiX build nije uspeo' }
 if (-not (Test-Path $msi)) { throw 'MSI nije nastao' }
 $verification = @{ MsiPath = $msi; ExpectedVersion = $version }
