@@ -210,7 +210,7 @@ TEST(ArbiterCrossProcess, TheHelperProcessExists) {
 // stakla, lampa upaljena.
 //
 // Kod je to znao i pisalo je u komentaru ("sloj iznad mora izvrsiti HOME"), ali
-// se nije prijavljivalo naviše: WAIT_ABANDONED i WAIT_OBJECT_0 vodili su u isti
+// se nije prijavljivalo navise: WAIT_ABANDONED i WAIT_OBJECT_0 vodili su u isti
 // `break`, pa sloj iznad nije imao odakle da sazna.
 TEST(ArbiterCrossProcess, ADeadOwnerIsReportedToTheNextClient) {
     const std::string key = uniqueKey("abandoned");

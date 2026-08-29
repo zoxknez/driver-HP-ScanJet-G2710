@@ -54,7 +54,7 @@ public:
     /// prolaz zapocet. Isto stanje kao posle TransportLost - pozicija je
     /// NEPOZNATA i HOME je obavezan pre bilo kakvog kretanja.
     ///
-    /// Ranije se ovo nije prijavljivalo naviše: WAIT_ABANDONED i WAIT_OBJECT_0
+    /// Ranije se ovo nije prijavljivalo navise: WAIT_ABANDONED i WAIT_OBJECT_0
     /// vodili su u isti `break`, a komentar iznad njega je tvrdio da "sloj
     /// iznad mora izvrsiti HOME". Sloj iznad to nije imao kako da sazna.
     ///

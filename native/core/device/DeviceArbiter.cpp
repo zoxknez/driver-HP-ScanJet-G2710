@@ -202,7 +202,7 @@ Result<DataSession> DeviceArbiter::acquireData(std::chrono::milliseconds deadlin
 
     // WAIT_ABANDONED znaci da je prethodni drzalac pao bez oslobadjanja. Bravu
     // dobijamo, ali uredjaj je u nepoznatom stanju - i to se MORA proslediti
-    // naviše. Ranije su oba ishoda vodila u isti `break`, pa je zahtev iz
+    // navise. Ranije su oba ishoda vodila u isti `break`, pa je zahtev iz
     // komentara ("sloj iznad mora izvrsiti HOME") bio neispunjiv: nikakav
     // podatak o tome nije izlazio iz ove funkcije.
     bool previousOwnerDied = false;
