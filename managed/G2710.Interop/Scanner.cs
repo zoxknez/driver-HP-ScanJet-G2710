@@ -141,7 +141,6 @@ public sealed class Scanner : IDisposable
 
     // --- ugovor ---------------------------------------------------------
 
-    /// <summary>Verzija ABI-ja za koju je OVA strana izgradjena.</summary>
     /// <summary>
     /// Verzija ABI-ja za koju je OVA strana izgradjena.
     /// </summary>

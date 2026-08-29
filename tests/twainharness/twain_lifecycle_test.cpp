@@ -1,5 +1,6 @@
 #include "TwainDataSource.h"
 #include "SimTransport.h"
+#include "FailureInjector.h"
 #include "transport/ITransportProvider.h"
 
 #include <gtest/gtest.h>
@@ -10,12 +11,38 @@
 #include <thread>
 
 namespace {
+// Provajder koji pamti POSLEDNJI napravljen simulator.
+//
+// Bez toga se otkaz ne moze ubaciti: DS sam otvara uredjaj, pa test nema
+// nijedan drugi put do transporta koji je zaista u upotrebi.
+class RecordingProvider final : public g2710::ITransportProvider {
+public:
+    g2710::Result<std::unique_ptr<g2710::ITransport>> create(
+        const g2710::DeviceRef&) override {
+        auto transport = std::make_unique<g2710::sim::SimTransport>();
+        last = transport.get();
+        return std::unique_ptr<g2710::ITransport>(std::move(transport));
+    }
+    const char* name() const noexcept override { return "sim-recording"; }
+
+    g2710::sim::SimTransport* last = nullptr;
+};
+
+RecordingProvider* simulator() {
+    static RecordingProvider* recorder = nullptr;
+    static auto provider = [] {
+        auto owned = std::make_unique<RecordingProvider>();
+        recorder = owned.get();
+        return std::make_unique<g2710::TransportProvider::ScopedTestProvider>(std::move(owned));
+    }();
+    (void)provider;
+    return recorder;
+}
+
 TW_UINT16 call(TW_UINT32 dg, TW_UINT16 dat, TW_UINT16 msg, TW_MEMREF data = nullptr) {
     // Harness poziva potpuno isti DS kod, ali mu umesto fizickog USB uredjaja
     // daje simulator. To dokazuje stvarni Core transfer, ne sinteticki bajt.
-    static auto provider = std::make_unique<g2710::TransportProvider::ScopedTestProvider>(
-        std::make_unique<g2710::sim::SimTransportProvider>());
-    (void)provider;
+    (void)simulator();
     return G2710TwainEntry(nullptr, nullptr, dg, dat, msg, data);
 }
 
@@ -103,6 +130,115 @@ TEST(TwainLifecycle, ResetAfterTransferReleasesTheDataSession) {
     EXPECT_EQ(0, pending.Count);
     EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS));
     EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
+}
+
+// Prekid USRED prenosa.
+//
+// Postojeci testovi daju bafer veci od cele slike, pa prvi poziv odmah vrati
+// TWRC_XFERDONE i stanje ode pravo u TransferDone. Stanje Transferring - u
+// kome aplikacija zaista provede vecinu velikog skeniranja - nije dodirivao
+// nijedan test.
+//
+// To je bas stanje u kome korisnik pritiska "Otkazi": TWAIN za to propisuje
+// DAT_PENDINGXFERS / MSG_RESET. Prolaz koji se tada ne zatvori ostavlja cip da
+// skenira i glavu da se krece.
+TEST(TwainLifecycle, AbortingMidTransferIsAllowedAndClosesThePass) {
+    TW_IDENTITY id{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &id));
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS));
+
+    // Bafer namerno manji od slike: 64 px u boji je 192 bajta po redu, slika
+    // ima osam redova. U 600 bajtova staju tri - pa prenos ostaje NEDOVRSEN.
+    std::array<TW_UINT8, 600> pixels{};
+    TW_IMAGEMEMXFER transfer{};
+    transfer.Memory.TheMem = pixels.data();
+    transfer.Memory.Length = static_cast<TW_UINT32>(pixels.size());
+
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_IMAGE, DAT_IMAGEMEMXFER, MSG_GET, &transfer))
+        << "bafer je ipak primio celu sliku; test ne meri stanje Transferring";
+    ASSERT_GT(transfer.Rows, 0u);
+
+    TW_PENDINGXFERS pending{};
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_PENDINGXFERS, MSG_RESET, &pending))
+        << "aplikacija ne moze da prekine prenos koji traje";
+    EXPECT_EQ(0, pending.Count);
+
+    // Dokaz da je prolaz zaista zatvoren: sledeci prenos mora poceti od nule.
+    // Da je stari ostao otvoren, uredjaj bi bio zauzet ili bi se nastavilo
+    // tamo gde je stalo.
+    std::array<TW_UINT8, 8192> whole{};
+    TW_IMAGEMEMXFER again{};
+    again.Memory.TheMem = whole.data();
+    again.Memory.Length = static_cast<TW_UINT32>(whole.size());
+    EXPECT_EQ(TWRC_XFERDONE, call(DG_IMAGE, DAT_IMAGEMEMXFER, MSG_GET, &again));
+    EXPECT_EQ(0u, again.YOffset) << "prenos se nastavio umesto da pocne iznova";
+
+    TW_PENDINGXFERS done{};
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, &done));
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS));
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
+}
+
+// TWAIN dozvoljava i MSG_ENDXFER iz stanja 6, ne samo iz 7. Aplikacija time
+// kaze "dosta mi je ove stranice" bez odustajanja od sesije.
+TEST(TwainLifecycle, EndXferIsAllowedWhileATransferIsStillRunning) {
+    TW_IDENTITY id{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &id));
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS));
+
+    std::array<TW_UINT8, 600> pixels{};
+    TW_IMAGEMEMXFER transfer{};
+    transfer.Memory.TheMem = pixels.data();
+    transfer.Memory.Length = static_cast<TW_UINT32>(pixels.size());
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_IMAGE, DAT_IMAGEMEMXFER, MSG_GET, &transfer));
+
+    TW_PENDINGXFERS pending{};
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_PENDINGXFERS, MSG_ENDXFER, &pending));
+    EXPECT_EQ(0, pending.Count);
+
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS));
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
+}
+
+// Zaustavljanje cipa je i samo transfer i moze da padne.
+//
+// Prva verzija je pisala `(void)s.session->finish();` - pa bi TWAIN prijavio
+// uspesan prekid i kada cip nije zaustavljen. Aplikacija bi mislila da je
+// skener slobodan, a glava bi se i dalje kretala.
+//
+// Mutaciona provera je pokazala da to niko ne meri: uklanjanje `finish()` nije
+// oborilo nijedan test, jer destruktor sesije zatvori prolaz umesto njega. Dva
+// puta se spolja ne razlikuju kada sve prodje - razlikuju se samo kada NE
+// prodje, i to je ono sto ovaj test hvata.
+TEST(TwainLifecycle, AFailedCloseIsReportedInsteadOfBeingSwallowed) {
+    TW_IDENTITY id{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &id));
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_USERINTERFACE, MSG_ENABLEDS));
+
+    std::array<TW_UINT8, 600> pixels{};
+    TW_IMAGEMEMXFER transfer{};
+    transfer.Memory.TheMem = pixels.data();
+    transfer.Memory.Length = static_cast<TW_UINT32>(pixels.size());
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_IMAGE, DAT_IMAGEMEMXFER, MSG_GET, &transfer));
+
+    // Od ovog trenutka nijedan upis u registre ne prolazi - kao iscupan kabl.
+    // Zaustavljanje cipa je upis, pa mora pasti.
+    auto* sim = simulator()->last;
+    ASSERT_NE(nullptr, sim);
+    sim->faults().injectPermanent(g2710::sim::TransferKind::ControlOut,
+                                  g2710::ErrorCode::TransportLost);
+
+    TW_PENDINGXFERS pending{};
+    EXPECT_EQ(TWRC_FAILURE, call(DG_CONTROL, DAT_PENDINGXFERS, MSG_RESET, &pending))
+        << "prekid je prijavljen kao uspeh iako cip nije zaustavljen";
+
+    TW_STATUS status{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_STATUS, MSG_GET, &status));
+    EXPECT_EQ(TWCC_OPERATIONERROR, status.ConditionCode);
+
+    sim->faults().clear();
+    (void)call(DG_CONTROL, DAT_USERINTERFACE, MSG_DISABLEDS);
+    (void)call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id);
 }
 
 TEST(TwainLifecycle, NativeTransferUsesDsmMemoryAndReturnsAnRgbDib) {

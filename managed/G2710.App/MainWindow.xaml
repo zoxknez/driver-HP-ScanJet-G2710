@@ -70,6 +70,9 @@
             </Canvas>
           </Grid>
         </Border>
+        <TextBlock Grid.Row="4" VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                   Margin="0,0,0,6" Style="{StaticResource SmallText}"
+                   Text="{Binding PagesSummary}" />
         <TextBox Grid.Row="5" Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,16,0,0" />
       </Grid>
     </Border>
@@ -79,6 +82,13 @@
       <ComboBox Width="92" SelectedValue="{Binding ExportFormat}" SelectedValuePath="Tag" Margin="0,0,8,0">
         <ComboBoxItem Tag="Png" Content="PNG"/><ComboBoxItem Tag="Jpeg" Content="JPEG"/><ComboBoxItem Tag="Tiff8" Content="TIFF 8"/><ComboBoxItem Tag="Tiff16" Content="TIFF 16"/><ComboBoxItem Tag="Pdf" Content="PDF"/>
       </ComboBox>
+      <Button Content="Dodaj stranicu" Style="{StaticResource SecondaryButton}"
+              Command="{Binding AddPageCommand}" IsEnabled="{Binding HasImage}"
+              ToolTip="Odloži trenutnu sliku kao stranicu; izvoz u PDF spaja sve odložene."
+              Margin="0,0,8,0" />
+      <Button Content="Obriši stranice" Style="{StaticResource SecondaryButton}"
+              Command="{Binding ClearPagesCommand}" IsEnabled="{Binding HasPages}"
+              Margin="0,0,12,0" />
       <Button Content="Izvezi" Style="{StaticResource SecondaryButton}" Command="{Binding ExportCommand}" IsEnabled="{Binding HasImage}" Margin="0,0,12,0" />
       <Button Content="Prekini" Style="{StaticResource SecondaryButton}" Command="{Binding CancelCommand}" IsEnabled="{Binding IsScanning}" Margin="0,0,12,0" />
       <Button Content="Skeniraj" Style="{StaticResource PrimaryButton}" Command="{Binding ScanCommand}" IsEnabled="{Binding CanScan}" Margin="0,0,12,0" />

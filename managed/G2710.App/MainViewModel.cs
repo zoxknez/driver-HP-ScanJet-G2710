@@ -25,6 +25,13 @@ internal sealed class MainViewModel : Observable
     private ScanGeometry? _previewGeometry;
     private int _cropLeft, _cropTop, _cropWidth, _cropHeight;
     private ScanImage? _lastImage;
+
+    // Stranice prikupljene za visestranicni PDF.
+    //
+    // Izvozni sloj je od pocetka primao vise stranica, ali kroz UI nije bilo
+    // nijednog puta da se druga stranica doda - pa je mogucnost postojala samo
+    // u kodu. Ovo je taj put.
+    private readonly List<ScanImage> _pages = [];
     private ExportFormat _exportFormat = ExportFormat.Png;
 
     public MainViewModel()
@@ -45,6 +52,8 @@ internal sealed class MainViewModel : Observable
         PreviewCommand = new RelayCommand(async () => await PreviewAsync(), () => !_isScanning);
         CancelCommand = new RelayCommand(() => _activeScanner?.Cancel(), () => _isScanning);
         ExportCommand = new RelayCommand(Export, () => _lastImage is not null && !_isScanning);
+        AddPageCommand = new RelayCommand(AddPage, () => _lastImage is not null && !_isScanning);
+        ClearPagesCommand = new RelayCommand(ClearPages, () => _pages.Count > 0 && !_isScanning);
     }
 
     public ScannerTransport Transport { get => _transport; set => Set(ref _transport, value); }
@@ -98,6 +107,73 @@ internal sealed class MainViewModel : Observable
     public int CropHeight { get => _cropHeight; set => Set(ref _cropHeight, Math.Max(0, value)); }
     public ExportFormat ExportFormat { get => _exportFormat; set => Set(ref _exportFormat, value); }
     public bool HasImage => _lastImage is not null;
+
+    public RelayCommand AddPageCommand { get; }
+    public RelayCommand ClearPagesCommand { get; }
+
+    /// <summary>Koliko je stranica odlozeno za visestranicni PDF.</summary>
+    public int PageCount => _pages.Count;
+
+    /// <summary>Sta pise pored dugmeta, da se broj ne mora pogadjati.</summary>
+    public string PagesSummary => _pages.Count switch
+    {
+        0 => "Nema odloženih stranica.",
+        1 => "1 odložena stranica; izvoz u PDF daće 2 strane.",
+        _ => $"{_pages.Count} odloženih stranica; izvoz u PDF daće {_pages.Count + 1} strana.",
+    };
+
+    /// <summary>
+    /// Odloži tekuću sliku kao stranicu.
+    /// </summary>
+    /// <remarks>
+    /// Samo PDF nosi više stranica; ostali formati bi tiho izgubili sve osim
+    /// prve, pa se izvoz u njih odbija dok ima odloženih.
+    /// </remarks>
+    internal void AddPage()
+    {
+        if (_lastImage is null)
+        {
+            return;
+        }
+        _pages.Add(_lastImage);
+        RaisePageState();
+        StatusTitle = "Stranica je odložena";
+        StatusDetail = PagesSummary + " Skenirajte sledeću, pa izvezite u PDF.";
+    }
+
+    /// <summary>
+    /// Postavi sliku bez skeniranja. Samo za testove.
+    /// </summary>
+    /// <remarks>
+    /// Odlaganje stranica ne zavisi od uredjaja, a bez ovoga bi svaki test
+    /// morao da provoza ceo prolaz - pa bi merio skeniranje umesto brojanja
+    /// stranica.
+    /// </remarks>
+    internal void SetLastImageForTest(ScanImage image)
+    {
+        _lastImage = image;
+        Raise(nameof(HasImage));
+        AddPageCommand.RaiseCanExecuteChanged();
+        ExportCommand.RaiseCanExecuteChanged();
+    }
+
+    internal void ClearPages()
+    {
+        _pages.Clear();
+        RaisePageState();
+        StatusDetail = PagesSummary;
+    }
+
+    private void RaisePageState()
+    {
+        Raise(nameof(PageCount));
+        Raise(nameof(PagesSummary));
+        Raise(nameof(HasPages));
+        AddPageCommand.RaiseCanExecuteChanged();
+        ClearPagesCommand.RaiseCanExecuteChanged();
+    }
+
+    public bool HasPages => _pages.Count > 0;
     public bool IsScanning { get => _isScanning; private set { if (Set(ref _isScanning, value)) { Raise(nameof(CanScan)); ScanCommand.RaiseCanExecuteChanged(); PreviewCommand.RaiseCanExecuteChanged(); CancelCommand.RaiseCanExecuteChanged(); ExportCommand.RaiseCanExecuteChanged(); } } }
     public bool CanScan => !IsScanning;
 
@@ -226,9 +302,23 @@ internal sealed class MainViewModel : Observable
         {
             var extension = ExportFormat switch { ExportFormat.Png => "png", ExportFormat.Jpeg => "jpg", ExportFormat.Tiff8 or ExportFormat.Tiff16 => "tif", ExportFormat.Pdf => "pdf", _ => throw new ArgumentOutOfRangeException() };
             var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"G2710-scan-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}");
-            ImageExport.Save(_lastImage, ExportFormat, path);
+            if (_pages.Count > 0 && ExportFormat != ExportFormat.Pdf)
+            {
+                // Tih gubitak stranica je gori od odbijenog izvoza: korisnik bi
+                // dobio fajl koji izgleda ispravno a nosi samo poslednju sliku.
+                StatusTitle = "Izvoz nije uspeo";
+                StatusDetail = $"{PagesSummary} Više stranica podržava samo PDF - " +
+                               "izaberite PDF ili obrišite odložene stranice.";
+                return;
+            }
+
+            ImageExport.Save(_lastImage, ExportFormat, path,
+                             _pages.Count > 0 ? _pages : null);
+
             StatusTitle = "Slika je izvezena";
-            StatusDetail = path;
+            StatusDetail = _pages.Count > 0
+                ? $"{path} ({_pages.Count + 1} strana)"
+                : path;
         }
         catch (Exception exception) { StatusTitle = "Izvoz nije uspeo"; StatusDetail = exception.Message; }
     }

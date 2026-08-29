@@ -42,9 +42,19 @@ TW_UINT16 fail(TW_UINT16 condition) {
     return TWRC_FAILURE;
 }
 
-void endTransfer(Source& s) noexcept {
+// Zatvori prolaz i pusti uredjaj. Vraca false ako cip NIJE zaustavljen.
+//
+// Ishod se vraca, a ne odbacuje: zaustavljanje cipa je i samo transfer i moze
+// da padne. Prva verzija je pisala `(void)s.session->finish();` - pa bi TWAIN
+// prijavio uspeh i kada glava nastavlja da se krece.
+//
+// Destruktor sesije je i dalje mreza i zatvorice prolaz ako se ovde nije
+// stiglo. Zato se ova dva puta spolja ne razlikuju kada sve prodje - razlikuju
+// se samo kada NE prodje, i bas to je jedino sto se isplati meriti.
+bool endTransfer(Source& s) noexcept {
+    bool closed = true;
     if (s.session && s.session->started() && !s.session->finished()) {
-        (void)s.session->finish();
+        closed = static_cast<bool>(s.session->finish());
     }
     s.session.reset();
     s.registers.reset();
@@ -53,6 +63,7 @@ void endTransfer(Source& s) noexcept {
         s.device.reset();
     }
     s.deliveredLines = 0;
+    return closed;
 }
 
 bool beginTransfer(Source& s) {
@@ -387,15 +398,34 @@ TW_UINT16 TW_CALLINGSTYLE G2710TwainEntry(pTW_IDENTITY,
         s.state = State::Transferring;
         return TWRC_SUCCESS;
     }
-    if (dg == DG_CONTROL && dat == DAT_PENDINGXFERS && msg == MSG_ENDXFER && s.state == State::TransferDone) {
+    // ENDXFER i RESET moraju raditi i IZ STANJA 6, ne samo iz 7.
+    //
+    // Stanje Transferring je ono u kome aplikacija provede vecinu velikog
+    // skeniranja - svaki poziv vraca onoliko redova koliko stane u bafer - i
+    // to je tacno stanje u kome korisnik pritiska "Otkazi". TWAIN za prekid
+    // propisuje MSG_RESET, a za "dosta mi je ove stranice" MSG_ENDXFER.
+    //
+    // Prva verzija je oba primala samo iz TransferDone. Prekid usred prenosa
+    // je zato vracao TWCC_SEQERROR, endTransfer se nije zvao, i prolaz je
+    // ostajao otvoren - cip nastavlja da skenira, glava da se krece. Nijedan
+    // test to nije video jer su svi davali bafer veci od cele slike, pa se
+    // stanje Transferring nikada nije ni dosezalo.
+    if (dg == DG_CONTROL && dat == DAT_PENDINGXFERS && msg == MSG_ENDXFER &&
+        (s.state == State::Transferring || s.state == State::TransferDone)) {
         if (data) static_cast<pTW_PENDINGXFERS>(data)->Count = 0;
-        endTransfer(s); s.state = State::Enabled; return TWRC_SUCCESS;
+        const bool closed = endTransfer(s);
+        s.state = State::Enabled;
+        return closed ? TWRC_SUCCESS : fail(TWCC_OPERATIONERROR);
     }
     if (dg == DG_CONTROL && dat == DAT_PENDINGXFERS && msg == MSG_RESET &&
-        (s.state == State::Enabled || s.state == State::TransferDone)) {
+        (s.state == State::Enabled || s.state == State::Transferring ||
+         s.state == State::TransferDone)) {
         if (data) static_cast<pTW_PENDINGXFERS>(data)->Count = 0;
-        endTransfer(s);
+        const bool closed = endTransfer(s);
         s.state = State::Enabled;
+        if (!closed) {
+            return fail(TWCC_OPERATIONERROR);
+        }
         s.condition = TWCC_SUCCESS;
         return TWRC_SUCCESS;
     }
