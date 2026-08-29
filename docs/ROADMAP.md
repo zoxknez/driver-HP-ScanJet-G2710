@@ -439,9 +439,15 @@ nepostojeću aplikaciju bio bi skelet.
 ### S10 · Prvi paket koji zaista ide prijatelju
 
 - izbor plafona i redosled eskalacije (§6)
-- probni prolaz cele isporuke na ovoj mašini — isti postupak kao za
-  kvalifikacioni paket, koji je već jednom prošao
+- ~~probni prolaz cele isporuke na ovoj mašini~~ — **prošao**: pun MSI
+  (`build-installer.ps1` → InfVerif → Inf2Cat → signtool → `verify-installer.ps1`),
+  proizvodni ZIP sa oba uputstva, i kvalifikacioni ZIP na oba jezika
 - kratko uputstvo šta da javi ako nešto ne prođe
+
+**Zaključano usput:** pakovanje sada odbija da napravi ZIP ako wizard ne nosi
+oba prevoda. Otkaz je bio potpuno tih — paket bi se izgradio, radio, i govorio
+engleski onome kome je poslat na srpskom. Dokazano mutacijom: uklanjanje
+`Strings.sr.resx` obara pakovanje umesto da prođe.
 
 ---
 

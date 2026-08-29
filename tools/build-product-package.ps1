@@ -29,6 +29,9 @@ if (-not (Test-Path -LiteralPath $msi)) { throw "MSI nije nastao: $msi" }
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 New-Item -ItemType Directory -Path $stage | Out-Null
 Copy-Item -LiteralPath $msi -Destination $stage
+# Oba uputstva, uvek. Paket otvori i neko ko nije onaj kome je poslat, a jedini
+# fajl koji objasnjava sta se dogadja ne sme biti na jeziku koji taj ne cita.
+Copy-Item -LiteralPath (Join-Path $repo 'installer\README.en.md') -Destination (Join-Path $stage 'README.md')
 Copy-Item -LiteralPath (Join-Path $repo 'installer\README.md') -Destination (Join-Path $stage 'PROCITAJ-ME.md')
 $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $msi
 "$($hash.Hash)  $($hash.Path | Split-Path -Leaf)" | Set-Content -LiteralPath (Join-Path $stage 'SHA256SUMS.txt') -Encoding ascii

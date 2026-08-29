@@ -127,6 +127,35 @@ if ($LASTEXITCODE -ne 0) { throw 'wizard se nije izgradio' }
 Remove-Item (Join-Path $stageDir '*.pdb') -Force -ErrorAction SilentlyContinue
 Copy-Item $tool $stageDir
 
+# Oba jezika moraju STVARNO biti u paketu.
+#
+# Wizard se objavljuje kao jedan fajl, pa srpski satelit ne stoji pored njega
+# nego unutar njega. Zato se ne moze proveriti postojanjem foldera `sr`.
+#
+# Otkaz je tih: dovoljno je da neko doda <SatelliteResourceLanguages>en</...>
+# ili ukloni referencu na G2710.Localization, i paket se i dalje gradi, i dalje
+# radi, i dalje se pokrece - samo govori engleski onome kome je poslat na
+# srpskom. Nista ne pukne, pa se to primeti tek kod prijatelja.
+#
+# Bundle se ne kompresuje podrazumevano, pa niske stoje u fajlu doslovno.
+$wizardBytes = [System.IO.File]::ReadAllBytes((Join-Path $stageDir 'G2710.Qualification.exe'))
+$wizardText = [System.Text.Encoding]::UTF8.GetString($wizardBytes)
+#
+# Promenljiva petlje se NE sme zvati $language: imena su neosetljiva na
+# velicinu slova, pa bi to bio parametar $Language - koji nosi ValidateSet i
+# baca cim mu se dodeli nesto van skupa. Skript tada pukne na proveri, a poruka
+# govori o parametru koji korisnik nije ni dodirnuo.
+$probes = @{
+    'engleski' = 'Start the check'
+    'srpski'   = [char]0x005A + 'apo' + [char]0x010D + 'ni proveru'
+}
+foreach ($probe in $probes.Keys) {
+    if (-not $wizardText.Contains($probes[$probe])) {
+        throw "wizard ne nosi $probe prevod - paket bi govorio pogresnim jezikom"
+    }
+}
+Write-Host '      oba prevoda su u wizardu'
+
 # --- 4. drajver ----------------------------------------------------------------
 #
 # INF i katalog idu u ISTI direktorijum kao install.ps1, jer pnputil trazi
