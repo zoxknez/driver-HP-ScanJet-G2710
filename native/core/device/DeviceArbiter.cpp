@@ -70,10 +70,20 @@ DataSession::~DataSession() {
     release();
 }
 
+// Premestanje mora poneti SVA polja.
+//
+// Prva verzija previousOwnerDied_ je bila dodata samo u konstruktor; premestanje
+// je i dalje kopiralo dva stara polja. Sesija je nastajala sa ispravnom
+// zastavicom, a do pozivaoca stizala bez nje - arbitraza je videla WAIT_ABANDONED
+// i tiho ga izgubila jedan red kasnije. Mereno: unutar acquireData wait je
+// vracao 0x80, a previousOwnerDied() je bio false.
 DataSession::DataSession(DataSession&& other) noexcept
-    : mutex_(other.mutex_), owner_(other.owner_) {
+    : mutex_(other.mutex_),
+      owner_(other.owner_),
+      previousOwnerDied_(other.previousOwnerDied_) {
     other.mutex_ = nullptr;
     other.owner_ = nullptr;
+    other.previousOwnerDied_ = false;
 }
 
 DataSession& DataSession::operator=(DataSession&& other) noexcept {
@@ -81,8 +91,10 @@ DataSession& DataSession::operator=(DataSession&& other) noexcept {
         release();
         mutex_ = other.mutex_;
         owner_ = other.owner_;
+        previousOwnerDied_ = other.previousOwnerDied_;
         other.mutex_ = nullptr;
         other.owner_ = nullptr;
+        other.previousOwnerDied_ = false;
     }
     return *this;
 }
@@ -188,12 +200,19 @@ Result<DataSession> DeviceArbiter::acquireData(std::chrono::milliseconds deadlin
 
     const DWORD result = ::WaitForSingleObject(static_cast<HANDLE>(mutex_), timeout);
 
+    // WAIT_ABANDONED znaci da je prethodni drzalac pao bez oslobadjanja. Bravu
+    // dobijamo, ali uredjaj je u nepoznatom stanju - i to se MORA proslediti
+    // naviše. Ranije su oba ishoda vodila u isti `break`, pa je zahtev iz
+    // komentara ("sloj iznad mora izvrsiti HOME") bio neispunjiv: nikakav
+    // podatak o tome nije izlazio iz ove funkcije.
+    bool previousOwnerDied = false;
+
     switch (result) {
         case WAIT_OBJECT_0:
+            break;
+
         case WAIT_ABANDONED:
-            // WAIT_ABANDONED znaci da je prethodni drzalac pao bez oslobadjanja.
-            // Bravu dobijamo, ali uredjaj je u nepoznatom stanju - sloj iznad
-            // mora izvrsiti HOME pre bilo cega drugog.
+            previousOwnerDied = true;
             break;
 
         case WAIT_TIMEOUT: {
@@ -212,7 +231,7 @@ Result<DataSession> DeviceArbiter::acquireData(std::chrono::milliseconds deadlin
         text[length] = '\0';
     }
 
-    return DataSession(mutex_, this);
+    return DataSession(mutex_, this, previousOwnerDied);
 }
 
 std::string DeviceArbiter::currentOwner() const {

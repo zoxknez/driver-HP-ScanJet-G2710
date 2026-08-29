@@ -27,8 +27,10 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <cstdio>
 #include <chrono>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace g2710;
@@ -119,6 +121,20 @@ public:
         return static_cast<int>(code);
     }
 
+    // Ubij proces DOK jos drzi bravu.
+    //
+    // Ovim nastaje pravi napusteni mutex - isto ono sto se desi kada klijent
+    // pukne usred skeniranja. Ne moze se odglumiti unutar jednog procesa: dok
+    // je vlasnik ziv, Windows bravu ne oglasava napustenom.
+    void kill() {
+        if (process_ != nullptr) {
+            ::TerminateProcess(process_, 1);
+            ::WaitForSingleObject(process_, 5000);
+            ::CloseHandle(process_);
+            process_ = nullptr;
+        }
+    }
+
     std::string output() {
         std::string text;
         char buffer[256];
@@ -184,6 +200,92 @@ std::string tryCommand(const std::string& key, const char* client, int deadlineM
 TEST(ArbiterCrossProcess, TheHelperProcessExists) {
     ASSERT_NE(INVALID_FILE_ATTRIBUTES, ::GetFileAttributesA(holderPath()))
         << "nema " << holderPath();
+}
+
+// Klijent koji pukne drzeci uredjaj ostavlja glavu bilo gde.
+//
+// Windows bravu tada dodeljuje sledecem, i to je ispravno - inace bi jedan pad
+// zauvek zakljucao skener. Ali sledeci NE SME da nastavi kao da je uredjaj
+// zatecen uredan: prolaz je mozda bio u toku, glava je mogla ostati na sredini
+// stakla, lampa upaljena.
+//
+// Kod je to znao i pisalo je u komentaru ("sloj iznad mora izvrsiti HOME"), ali
+// se nije prijavljivalo naviše: WAIT_ABANDONED i WAIT_OBJECT_0 vodili su u isti
+// `break`, pa sloj iznad nije imao odakle da sazna.
+TEST(ArbiterCrossProcess, ADeadOwnerIsReportedToTheNextClient) {
+    const std::string key = uniqueKey("abandoned");
+    ReadyEvent ready{key + "-ready"};
+    ASSERT_TRUE(ready.valid());
+
+    // REDOSLED JE DEO POJAVE, ne udobnost testa.
+    //
+    // initialize() ide PRE nego sto drugi proces umre. Imenovani objekat zivi
+    // dok ga bar neko drzi otvorenim; ako umre jedini vlasnik, objekat nestaje
+    // i sledeci ga pravi iznova - nema sta da bude napusteno, pa nema ni
+    // WAIT_ABANDONED. Prvi pokusaj ovog testa je ubijao pomocni proces pre
+    // initialize() i padao je bas zato.
+    //
+    // To je i stvarno stanje kod korisnika: WIA servis i aplikacija oba drze
+    // svoje handle-ove dok rade, pa pad jednog drugi VIDI. Sto ujedno znaci i
+    // granicu koju priznajemo - vidi DeviceArbiter.h.
+    DeviceArbiter arbiter{key};
+    ASSERT_TRUE(arbiter.initialize());
+
+    Holder holder;
+    ASSERT_TRUE(holder.start(holdCommand(key, "WIA", 30000, ready.name())));
+    ASSERT_TRUE(ready.wait(10s)) << "pomocni proces nije uzeo bravu";
+
+    holder.kill();
+
+    auto session = arbiter.acquireData(2s, "posle-pada");
+    ASSERT_TRUE(session) << "brava mora biti dodeljena; jedan pad ne sme zakljucati skener";
+    EXPECT_TRUE(session.value().held());
+    EXPECT_TRUE(session.value().previousOwnerDied())
+        << "sledeci klijent ne zna da je prethodni pao, pa ce racunati poziciju od nule";
+
+    // Premestanje mora poneti i zastavicu.
+    //
+    // Ovo je pao dok je pisan: premestajuci konstruktor je kopirao dva stara
+    // polja i tiho ispustao trece. Arbitraza je videla WAIT_ABANDONED - mereno,
+    // 0x80 - a pozivalac je dobijao sesiju koja tvrdi da je sve bilo uredno.
+    // Uredjaj se premesta kroz najmanje jedan move (Result -> pozivalac), pa je
+    // put od otkrica do upotrebe isao bas tuda.
+    DataSession moved = std::move(session).value();
+    EXPECT_TRUE(moved.held());
+    EXPECT_TRUE(moved.previousOwnerDied()) << "zastavica se izgubila u move-u";
+}
+
+// Uredan prolaz NE sme izgledati kao pad.
+//
+// Bez ovoga bi zastavica mogla biti postavljena uvek, test iznad bi prolazio, a
+// svako skeniranje bi nepotrebno trazilo HOME.
+TEST(ArbiterCrossProcess, AnOrderlyHandoverIsNotReportedAsADeath) {
+    const std::string key = uniqueKey("orderly");
+    ReadyEvent ready{key + "-ready"};
+    ASSERT_TRUE(ready.valid());
+
+    DeviceArbiter arbiter{key};
+    ASSERT_TRUE(arbiter.initialize());
+
+    Holder holder;
+    ASSERT_TRUE(holder.start(holdCommand(key, "WIA", 300, ready.name())));
+    ASSERT_TRUE(ready.wait(10s));
+    ASSERT_EQ(kHolderOk, holder.wait(10s)) << "pomocni proces nije zavrsio uredno";
+
+    auto session = arbiter.acquireData(2s, "posle-urednog");
+    ASSERT_TRUE(session);
+    EXPECT_FALSE(session.value().previousOwnerDied());
+}
+
+// Prvi klijent uopste nema prethodnika.
+TEST(ArbiterCrossProcess, TheFirstClientHasNoPredecessor) {
+    const std::string key = uniqueKey("prvi");
+    DeviceArbiter arbiter{key};
+    ASSERT_TRUE(arbiter.initialize());
+
+    auto session = arbiter.acquireData(2s, "prvi");
+    ASSERT_TRUE(session);
+    EXPECT_FALSE(session.value().previousOwnerDied());
 }
 
 TEST(ArbiterCrossProcess, OnlyOneProcessGetsTheDataSession) {

@@ -125,6 +125,16 @@ Status G2710Device::begin() {
     }
     session_ = std::move(session).value();
 
+    // Prethodni klijent je pao drzeci uredjaj: glava moze biti bilo gde.
+    //
+    // Isto pravilo kao za TransportLost - pozicija se proglasava nepoznatom, a
+    // MotionGuard onda trazi HOME pre bilo kakvog kretanja. Bez ovoga bi
+    // sledeci klijent racunao poziciju od nule i pomerio glavu za onoliko
+    // koliko je mislio da je udaljena od pocetka.
+    if (session_.previousOwnerDied()) {
+        position_.invalidate();
+    }
+
     return machine_.transitionTo(DeviceState::Idle);
 }
 

@@ -555,6 +555,14 @@ identitet), pokrivenost svih šest ishoda `RunFailure` u čarobnjaku, otpornost
    da pored programa stoji biblioteka iz drugog izdanja. Sada se proverava u
    `App.OnStartup`, kroz koji se prolazi pre svakog native poziva, i poruka
    imenuje obe verzije. Snimljeno na ekranu sa uklonjenim `G2710.Native.dll`.
+8. **Pad tuđeg klijenta nije stizao do našeg koda.** `WAIT_ABANDONED` i
+   `WAIT_OBJECT_0` vodili su u isti `break`, a komentar iznad njega je tvrdio
+   da „sloj iznad mora izvršiti HOME" — sloj iznad to nije imao kako da sazna.
+   `DataSession` sada nosi `previousOwnerDied()`, a `G2710Device::begin()` na
+   osnovu toga proglašava poziciju glave nepoznatom, isto kao posle
+   `TransportLost`. Granica je zapisana u zaglavlju: napuštenost postoji samo
+   dok objekat brave živi, dakle kada je još neko bio priključen u trenutku
+   pada.
 
 Uz to: broj odloženih stranica premešten ispod prikaza (stajao bi preko slike),
 prazan prikaz sada govori šta se od korisnika očekuje, brojevi se formatiraju

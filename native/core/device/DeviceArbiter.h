@@ -47,12 +47,35 @@ public:
     bool held() const noexcept { return mutex_ != nullptr; }
     void release() noexcept;
 
+    /// Prethodni drzalac je UMRO ne pustivsi bravu.
+    ///
+    /// Windows bravu tada dodeljuje sledecem, ali uredjaj ostaje onako kako ga
+    /// je mrtav proces ostavio: glava moze biti bilo gde, lampa upaljena,
+    /// prolaz zapocet. Isto stanje kao posle TransportLost - pozicija je
+    /// NEPOZNATA i HOME je obavezan pre bilo kakvog kretanja.
+    ///
+    /// Ranije se ovo nije prijavljivalo naviše: WAIT_ABANDONED i WAIT_OBJECT_0
+    /// vodili su u isti `break`, a komentar iznad njega je tvrdio da "sloj
+    /// iznad mora izvrsiti HOME". Sloj iznad to nije imao kako da sazna.
+    ///
+    /// GRANICA KOJU PRIZNAJEMO, jer je bolje znati je nego se osloniti na nju:
+    /// napustenost postoji samo dok objekat brave ZIVI. Ako umre jedini proces
+    /// koji je drzi, imenovani objekat nestaje sa njim, a sledeci ga pravi
+    /// iznova - i nema sta da bude napusteno. Ovo je dakle tacno kada je jos
+    /// neko bio prikljucen u trenutku pada (WIA servis i aplikacija u isto
+    /// vreme, sto je i najcesci slucaj), a ne kada se program pokrene TEK POSLE
+    /// tudjeg pada. Za taj drugi slucaj jedini pouzdan odgovor je isti kao
+    /// posle TransportLost: pozicija se ionako ne pamti izmedju pokretanja.
+    bool previousOwnerDied() const noexcept { return previousOwnerDied_; }
+
 private:
     friend class DeviceArbiter;
-    DataSession(void* mutex, DeviceArbiter* owner) : mutex_(mutex), owner_(owner) {}
+    DataSession(void* mutex, DeviceArbiter* owner, bool previousOwnerDied)
+        : mutex_(mutex), owner_(owner), previousOwnerDied_(previousOwnerDied) {}
 
     void* mutex_ = nullptr;
     DeviceArbiter* owner_ = nullptr;
+    bool previousOwnerDied_ = false;
 };
 
 // Deljiv, read-only pristup. Ne uzima bravu - status upit ne sme blokirati
