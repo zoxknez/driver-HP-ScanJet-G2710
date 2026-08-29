@@ -22,8 +22,17 @@ Licenca: **GPL-2.0-or-later** — vidi [NOTICE-hp3900.md](NOTICE-hp3900.md).
 | G2710-9 WIA minidriver | `IStiUSD` + `IWiaMiniDrv` — čeka H11 na hardveru |
 | G2710-11 Kvalifikacioni paket | **završen** — wizard, instalacija, dijagnostika, ZIP |
 
+Sve offline kapije, jednim pozivom — isti ulaz koji koristi i CI:
+
 ```bash
-python tools/verify-reference-gates.py && python tools/verify-source-hygiene.py
+powershell -File tools/verify-all.ps1
+```
+
+Samo jeftine kapije (poreklo koda i higijena izvora, manje od sekunde) — ovo
+pokreću i skripte za pakovanje pre nego što bilo šta pošalju:
+
+```bash
+powershell -File tools/verify-all.ps1 -GatesOnly
 ```
 
 `docs/STATUS.md` se **generise**, ne odrzava — jedini je izvor istine o tome sta je

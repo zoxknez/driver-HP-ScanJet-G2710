@@ -1,0 +1,66 @@
+# Kapije se pokrecu same, na svakom guranju.
+#
+# Do sada nisu. verify-reference-gates.py u svom opisu kaze "Namenjeno CI-ju", a
+# CI nije postojao; verify-source-hygiene.py se pominjao samo u README-u, kao
+# nesto sto covek otkuca ako se seti. Rezultat je izmeren: tri ne-ASCII znaka su
+# usla u izvor i prosla kroz commit.
+#
+# Dva posla, namerno odvojena:
+#
+#   gates  trazi samo Python. Ovo su kapije faze G2710-0 - poreklo koda i
+#          higijena izvora - i one MORAJU prolaziti uvek. Provera porekla je
+#          licencno pitanje, ne stilsko: GPL-2.0 port sme da bude port, ali
+#          izvor koji ukljucuje referencu nije port nego kopija.
+#
+#   build  trazi cmake, MSVC i .NET. Ovo je prvi put da se gradi igde osim na
+#          razvojnoj masini, pa moze pasti iz razloga koji nemaju veze sa kodom
+#          (nedostajuca SDK komponenta na slici). Ako padne, to je podatak koji
+#          do sada nismo imali.
+#
+# Potpisivanje NIJE ovde: trazi WDK i privatni kljuc. Ostaje na razvojnoj
+# masini, gde ga proverava driver/sign/sign-package.ps1.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gates:
+    name: Kapije (poreklo koda, higijena)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Kapije
+        shell: pwsh
+        run: ./tools/verify-all.ps1 -GatesOnly
+
+  build:
+    name: Prevodjenje i testovi
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Obe arhitekture: TWAIN se isporucuje i kao x86, a Global\ arbitraza mora
+      # raditi izmedju njih. Konfiguracija je odvojena od gradjenja da bi se u
+      # dnevniku videlo koje od to dvoje pada.
+      - name: Konfiguracija x64
+        run: cmake -S . -B build
+      - name: Konfiguracija x86
+        run: cmake -S . -B build-x86 -A Win32
+
+      - name: Sve kapije
+        shell: pwsh
+        run: ./tools/verify-all.ps1

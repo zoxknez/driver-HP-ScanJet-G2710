@@ -563,6 +563,16 @@ identitet), pokrivenost svih šest ishoda `RunFailure` u čarobnjaku, otpornost
    `TransportLost`. Granica je zapisana u zaglavlju: napuštenost postoji samo
    dok objekat brave živi, dakle kada je još neko bio priključen u trenutku
    pada.
+9. **Kapije su postojale, a niko ih nije zvao.** `verify-reference-gates.py` u
+   svom opisu piše „Namenjeno CI-ju" — a CI nije postojao; `.github/workflows/`
+   nije postojao uopšte, iako ga MASTER plan traži u fazi G2710-1.
+   `verify-source-hygiene.py` pominjao se samo u README-u, kao nešto što čovek
+   otkuca ako se seti. Posledica je izmerena istog dana: tri ne-ASCII znaka su
+   ušla u izvor i prošla kroz commit. Provera porekla je uz to **licencno**
+   pitanje, a paket koji ide prijatelju pravio se bez nje. Sada postoji
+   `tools/verify-all.ps1` — jedan ulaz sa ispravnim izlaznim kodom, koji zovu i
+   CI i obe skripte za pakovanje; paket se ne pravi ako kapija padne (dokazano
+   mutacijom).
 
 Uz to: broj odloženih stranica premešten ispod prikaza (stajao bi preko slike),
 prazan prikaz sada govori šta se od korisnika očekuje, brojevi se formatiraju

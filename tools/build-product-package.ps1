@@ -16,6 +16,15 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
+
+# Poreklo koda i higijena izvora, pre nego sto bilo sta krene u paket.
+#
+# Ove kapije su postojale a niko ih nije zvao; provera porekla je licencno
+# pitanje - GPL-2.0 port sme da bude port, ali izvor koji ukljucuje referencu
+# nije port nego kopija. Paket koji odlazi sa ove masine ne sme se napraviti
+# pre nego sto se to potvrdi.
+& (Join-Path $repo 'tools\verify-all.ps1') -GatesOnly
+if ($LASTEXITCODE -ne 0) { throw 'kapije ne prolaze - paket se ne pravi' }
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $repo 'dist' }
 $stage = Join-Path $OutputDirectory 'G2710-product-stage'
 $msiOutput = Join-Path $OutputDirectory 'msi'
