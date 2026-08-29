@@ -545,6 +545,16 @@ identitet), pokrivenost svih šest ishoda `RunFailure` u čarobnjaku, otpornost
    Sada CMake čita `VERSION`, verzijski resurs se generiše za sva četiri fajla,
    TWAIN identitet dolazi iz istog broja, a dva testa drže INF i `VERSION`
    spojene u oba smera.
+7. **Provera ABI verzije se mogla preskočiti.** Zvala se tek na „Proveri vezu",
+   a dugme „Skeniraj" je aktivno od prve sekunde (`CanScan` gleda samo da li
+   skeniranje već traje), pa je prvi poziv u biblioteku mogao proći
+   neproveren — baš ono od čega provera čuva. Njen sopstveni komentar je
+   tvrdio da se zove pri pokretanju. Uz to, `AbiMismatchException` nije
+   `ScannerException`, pa je padala u opšti `catch` i prikazivala se kao
+   **„skener nije spreman"** — korisnik bi proveravao kabl, a problem je bio
+   da pored programa stoji biblioteka iz drugog izdanja. Sada se proverava u
+   `App.OnStartup`, kroz koji se prolazi pre svakog native poziva, i poruka
+   imenuje obe verzije. Snimljeno na ekranu sa uklonjenim `G2710.Native.dll`.
 
 Uz to: broj odloženih stranica premešten ispod prikaza (stajao bi preko slike),
 prazan prikaz sada govori šta se od korisnika očekuje, brojevi se formatiraju

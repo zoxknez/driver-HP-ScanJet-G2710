@@ -205,7 +205,8 @@ internal sealed class MainViewModel : Observable
         _scanner = null;
         try
         {
-            Scanner.CheckAbiVersion();
+            // ABI se proverava pri pokretanju procesa (App.OnStartup), jer je
+            // dugme "Skeniraj" aktivno i pre nego sto se ovde dodje.
             _scanner = Scanner.Open(new ScannerOptions { Transport = Transport, RequestedSafetyLevel = 1, ClientName = "G2710.App", RecordTrace = true });
             _scanner.Identify();
             _scanner.Begin();

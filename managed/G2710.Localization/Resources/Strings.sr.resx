@@ -268,4 +268,6 @@
   <data name="Wiz_Zip_NoScript"><value>{0} nije pored programa.</value></data>
   <data name="Wiz_Zip_NoPowerShell"><value>PowerShell se nije pokrenuo.</value></data>
   <data name="Wiz_Zip_NoFile"><value>Skript je završio, ali ZIP nije nastao.</value></data>
+  <data name="App_Fatal_NoLibrary"><value>Program ne može da nađe svoju biblioteku za skener (G2710.Native.dll), ili fajl ne odgovara ovom programu. Instalacija nije potpuna - instalirajte paket ponovo.</value></data>
+  <data name="App_Fatal_AbiMismatch"><value>Program i biblioteka za skener su iz različitih izdanja: program očekuje {0}, a biblioteka prijavljuje {1}. Ništa neće raditi dok oba ne budu iz istog paketa. Instalirajte paket ponovo.</value></data>
 </root>
