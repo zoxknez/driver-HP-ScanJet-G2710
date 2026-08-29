@@ -2,12 +2,36 @@
 
 #include "G2710Profile.generated.h"
 
+#include <windows.h>
+
+#include <string>
+#include <string_view>
+
 namespace g2710 {
 namespace {
 
-// Kljuc arbitraze mora biti stabilan za dati model. Isti za sve klijente,
-// inace bi svaki zakljucao svoj objekat.
-std::string arbiterKeyForG2710() {
+// Id procesa. Izdvojeno da se <windows.h> ne bi prosirivao kroz zaglavlje.
+unsigned long currentProcessId() noexcept { return ::GetCurrentProcessId(); }
+
+// Kljuc arbitraze mora biti stabilan za dati UREDJAJ. Isti za sve klijente,
+// inace bi svaki zakljucao svoj objekat i svi bi mislili da poseduju skener.
+//
+// Ali simulator NIJE deljeni skener. Fizicki uredjaj je jedan i o njega se
+// zaista otimaju WIA servis, TWAIN i aplikacija; simulator postoji unutar
+// procesa koji ga je napravio, i dva procesa koja ga koriste ne dele nista.
+//
+// Prvo je i simulator dobijao isti kljuc. Posledica: dva test projekta
+// pokrenuta paralelno otimala su se o istu bravu, pa je ceo paket testova pao
+// na istek roka - iako svaki projekat sam prolazi. Ista greska bi pogodila i
+// coveka koji drzi otvorenu aplikaciju u rezimu simulatora dok pokrece wizard.
+//
+// Mehanizam ostaje ISTI - isti Global\ objekat, isti kod - menja se samo ime
+// uredjaja, sto je tacno ono cemu kljuc i sluzi.
+std::string arbiterKeyForG2710(const ITransport& transport) {
+    const char* name = transport.name();
+    if (name != nullptr && std::string_view(name) == "sim") {
+        return "03F0-2805-sim-" + std::to_string(currentProcessId());
+    }
     return "03F0-2805";
 }
 
@@ -16,7 +40,7 @@ std::string arbiterKeyForG2710() {
 G2710Device::G2710Device(std::unique_ptr<ITransport> transport, DeviceOptions options)
     : transport_(std::move(transport)),
       options_(std::move(options)),
-      arbiter_(arbiterKeyForG2710()),
+      arbiter_(arbiterKeyForG2710(*transport_)),
       chip_(*transport_, options_.safety) {}
 
 G2710Device::~G2710Device() {

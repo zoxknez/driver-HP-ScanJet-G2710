@@ -99,6 +99,10 @@ public:
     std::string currentOwner() const { return arbiter_.currentOwner(); }
     ArbiterScope arbiterScope() const noexcept { return arbiter_.scope(); }
 
+    // Ime objekta brave. Dijagnostika mora moci da kaze o KOJI uredjaj se
+    // klijenti otimaju - simulator i fizicki skener nisu isti uredjaj.
+    const std::wstring& arbiterMutexName() const noexcept { return arbiter_.mutexName(); }
+
     // --- citanja nivoa 1 --------------------------------------------------
 
     Result<bool> isHeadAtHome();

@@ -29,7 +29,10 @@
 [CmdletBinding()]
 param(
     [switch]$Uninstall,
-    [switch]$Quiet
+    [switch]$Quiet,
+
+    # Proveri tabelu izlaznih kodova i izadji. Ne dodiruje racunar.
+    [switch]$SelfTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -41,6 +44,89 @@ $cer  = Join-Path $here 'g2710-dev.cer'
 function Say {
     param([string]$Text, [string]$Color = 'Gray')
     if (-not $Quiet) { Write-Host $Text -ForegroundColor $Color }
+}
+
+# Sta pnputil zapravo kaze svojim izlaznim kodom.
+#
+# Izdvojeno u funkciju da se moze PROVERITI bez pokretanja instalacije - vidi
+# -SelfTest. Ova tabela je logika koja se moze pogresiti, a njen otkaz se ne
+# vidi ovde nego na tudjoj masini, usred instalacije koja pukne bez objasnjenja.
+function Get-PnputilOutcome {
+    param([Parameter(Mandatory)][int]$ExitCode)
+
+    switch ($ExitCode) {
+        0 {
+            return [pscustomobject]@{
+                Ok = $true; Reboot = $false; Text = 'drajver instaliran'
+            }
+        }
+        259 {
+            # ERROR_NO_MORE_ITEMS: paket je dodat, ali nijedan prikljucen
+            # uredjaj mu ne odgovara. Kada skener nije prikljucen to je
+            # OCEKIVAN ishod, ne greska.
+            return [pscustomobject]@{
+                Ok = $true; Reboot = $false
+                Text = 'drajver je u DriverStore-u, ali skener nije prikljucen'
+            }
+        }
+        3010 {
+            # ERROR_SUCCESS_REBOOT_REQUIRED. Instalacija je USPELA; Windows
+            # samo trazi restart da bi je dovrsio.
+            #
+            # Prva verzija je ovo tretirala kao gresku i vracala 3010 dalje.
+            # MSI custom action ima Return="check", pa bi cela instalacija
+            # pukla - na svakoj masini na kojoj Windows zatrazi restart, i ni
+            # na jednoj ovde.
+            return [pscustomobject]@{
+                Ok = $true; Reboot = $true
+                Text = 'drajver instaliran; Windows trazi restart da ga dovrsi'
+            }
+        }
+        default {
+            return [pscustomobject]@{
+                Ok = $false; Reboot = $false
+                Text = "pnputil je vratio $ExitCode"
+            }
+        }
+    }
+}
+
+function Invoke-SelfTest {
+    # `$script:` i pri inicijalizaciji, ne samo pri uvecavanju.
+    #
+    # Prva verzija je pisala `$failures = 0` - lokalno u funkciji - a Check je
+    # uvecavao `$script:failures`, koja tada nije ni postojala. Poredjenje
+    # `$null -eq 0` je netacno, pa je self-test prijavljivao pad iako je svih
+    # deset provera proslo. Alat koji laze o sebi je gori od alata koga nema.
+    $script:failures = 0
+    function Check($label, $condition) {
+        if ($condition) { Write-Host "  ok   $label" }
+        else { Write-Host "  PAD  $label" -ForegroundColor Red; $script:failures++ }
+    }
+
+    $ok = Get-PnputilOutcome -ExitCode 0
+    Check 'kod 0 je uspeh'            ($ok.Ok -and -not $ok.Reboot)
+
+    $none = Get-PnputilOutcome -ExitCode 259
+    Check 'kod 259 nije greska'       ($none.Ok -and -not $none.Reboot)
+    Check '259 kaze da skenera nema'  ($none.Text -match 'nije prikljucen')
+
+    $reboot = Get-PnputilOutcome -ExitCode 3010
+    Check 'kod 3010 je uspeh'         ($reboot.Ok)
+    Check '3010 trazi restart'        ($reboot.Reboot)
+    Check '3010 pominje restart'      ($reboot.Text -match 'restart')
+
+    foreach ($bad in 1, 5, 87, 1603) {
+        $outcome = Get-PnputilOutcome -ExitCode $bad
+        Check "kod $bad je greska"    (-not $outcome.Ok)
+    }
+
+    if ($script:failures -eq 0) {
+        Write-Host 'Tabela izlaznih kodova je ispravna.' -ForegroundColor Green
+        return 0
+    }
+    Write-Host "$script:failures provera nije proslo" -ForegroundColor Red
+    return 1
 }
 
 function Assert-Administrator {
@@ -125,6 +211,10 @@ function Get-InstalledOemInf {
 
 # --- glavni tok ---------------------------------------------------------------
 
+if ($SelfTest) {
+    exit (Invoke-SelfTest)
+}
+
 Assert-Administrator
 
 Say ''
@@ -199,17 +289,12 @@ $output = & pnputil /add-driver $inf /install 2>&1
 $code = $LASTEXITCODE
 $output | ForEach-Object { Say "      $_" }
 
-# 259 = ERROR_NO_MORE_ITEMS: paket je dodat, ali nijedan prikljucen uredjaj mu
-# ne odgovara. Kada skener nije prikljucen to je OCEKIVAN ishod, ne greska -
-# i acceptance gate faze G2710-11 trazi bas da se tako i prijavi.
-if ($code -eq 0) {
-    Say '      drajver instaliran' 'Green'
-} elseif ($code -eq 259) {
-    Say '      drajver je u DriverStore-u, ali skener nije prikljucen' 'Yellow'
-} else {
-    Say "      pnputil je vratio $code" 'Red'
+$outcome = Get-PnputilOutcome -ExitCode $code
+if (-not $outcome.Ok) {
+    Say "      $($outcome.Text)" 'Red'
     exit $code
 }
+Say "      $($outcome.Text)" $(if ($outcome.Reboot) { 'Yellow' } else { 'Green' })
 
 Say '[3/3] Trazim skener'
 $device = Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue |
@@ -224,11 +309,17 @@ $device = Get-PnpDevice -PresentOnly -ErrorAction SilentlyContinue |
     testSigning      = $testSigning
     certThumbprint   = $thumbprint
     pnputilExitCode  = $code
+    rebootRequired   = $outcome.Reboot
     deviceFound      = [bool]$device
     deviceStatus     = if ($device) { "$($device.Status)" } else { 'nije prikljucen' }
 } | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $here 'install-state.json') -Encoding UTF8
 
 Say ''
+if ($outcome.Reboot) {
+    Say 'Windows trazi restart da bi drajver bio dovrsen.' 'Yellow'
+    Say 'Restartujte racunar pre nego sto pokrenete proveru.'
+    Say ''
+}
 if ($device) {
     Say "Skener je pronadjen: $($device.FriendlyName)" 'Green'
     Say "Stanje: $($device.Status)"

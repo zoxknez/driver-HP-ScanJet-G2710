@@ -5,6 +5,8 @@
 // nas - a \\.\Usbscan0 je deljeno ime.
 
 #include "G2710Profile.generated.h"
+#include <windows.h>
+
 #include "SimTransport.h"
 #include "device/G2710Device.h"
 #include "transport/ITransportProvider.h"
@@ -59,6 +61,40 @@ protected:
 };
 
 }  // namespace
+
+// Simulator NIJE deljeni skener.
+//
+// Fizicki uredjaj je jedan i o njega se zaista otimaju WIA servis, TWAIN i
+// aplikacija - zato arbitraza i postoji. Simulator zivi unutar procesa koji ga
+// je napravio; dva procesa koja ga koriste ne dele nista.
+//
+// Prvo su oba dobijala isti kljuc. Posledica: dva test projekta pokrenuta
+// paralelno otimala su se o istu bravu i CEO paket testova je pao na istek
+// roka, iako svaki projekat sam prolazi. Ista greska bi pogodila i coveka koji
+// drzi otvorenu aplikaciju u rezimu simulatora dok pokrece wizard.
+TEST(DeviceArbitration, TheSimulatorIsNotTheSharedScanner) {
+    TransportProvider::ScopedTestProvider guard{std::make_unique<sim::SimTransportProvider>()};
+
+    DeviceOptions options;
+    options.safety = SafetyGate{SafetyLevel::ReadOnly};
+    options.clientName = "kljuc-test";
+
+    auto device = G2710Device::open(DeviceRef::defaultUsbScan(), options);
+    ASSERT_TRUE(device);
+
+    // Kljuc mora nositi id procesa - inace dva procesa dele bravu koju nemaju
+    // zasto da dele.
+    const std::wstring name = device.value()->arbiterMutexName();
+    const std::wstring expected = L"-sim-" + std::to_wstring(::GetCurrentProcessId());
+
+    EXPECT_NE(std::wstring::npos, name.find(expected))
+        << "simulator koristi kljuc fizickog uredjaja";
+
+    // A mehanizam ostaje isti: i dalje Global\, i dalje ista arbitraza.
+    EXPECT_EQ(0u, name.find(L"Global\\"));
+    EXPECT_EQ(ArbiterScope::Global, device.value()->arbiterScope());
+}
+
 
 TEST_F(Lifecycle, OpenDoesNotClaimTheDeviceYet) {
     // Otvaranje i zauzimanje su odvojeni koraci: prvo moze uspeti a drugo ne.

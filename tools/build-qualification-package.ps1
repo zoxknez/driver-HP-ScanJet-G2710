@@ -151,6 +151,14 @@ if ($SkipDriver) {
 # --- 5. skriptovi i uputstvo ------------------------------------------------------
 
 Write-Host '[5/6] Skriptovi i uputstvo'
+
+# Tabela izlaznih kodova pnputil-a je logika koja se moze pogresiti, a njen
+# otkaz se ne vidi ovde nego na tudjoj masini - usred instalacije koja pukne
+# bez objasnjenja. Zato se proverava PRE nego sto skript udje u paket.
+& powershell -NoProfile -ExecutionPolicy Bypass `
+    -File (Join-Path $repo 'tools\package\install.ps1') -SelfTest | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'install.ps1 -SelfTest nije prosao; paket se ne pravi' }
+
 Copy-Item (Join-Path $repo 'tools\package\install.ps1') $stageDir
 Copy-Item (Join-Path $repo 'tools\package\collect-diagnostics.ps1') $stageDir
 
