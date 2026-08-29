@@ -99,6 +99,7 @@ MANAGED_SUITES = {
     "ScanWorkflowTests": "G2710-8",
     # Prevodi zive u managed/G2710.Localization i prvi ih koristi aplikacija.
     "LocalizationTests": "G2710-8",
+    "ScannerFailureTests": "G2710-8",
     # xUnit za Theory prikazuje samo metod i argumente, bez imena klase.
     "Exports_8_bit_raster": "G2710-8",
 }

@@ -92,7 +92,14 @@ try {
     # Svaki red se ispisuje kao JEDAN objekat. Bez -NoEnumerate PowerShell
     # razmota niz polja u zaseban izlaz po polju, pa red prestane da bude red.
     function Read-Table([string]$sql) {
-        $view = $database.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $database, @($sql))
+        # Tabela koje nema NIJE greska alata nego odgovor: nema nijednog reda.
+        # Bez ovoga bi provera pukla porukom o COM izuzetku umesto da kaze sta
+        # tacno nedostaje u paketu.
+        try {
+            $view = $database.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $database, @($sql))
+        } catch {
+            return
+        }
         [void]$view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null)
         while ($true) {
             $record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)
@@ -145,6 +152,23 @@ try {
     if ($written.Count -eq 0) { throw 'MSI ne upisuje izabrani jezik u HKLM\SOFTWARE\G2710.' }
     if ($written[0][4] -ne '[G2710LANGUAGE]') {
         throw ("U registar se upisuje '{0}', a ne izbor sa dijaloga." -f $written[0][4])
+    }
+
+    # Deinstalacija mora odneti i sam kljuc, ne samo vrednost u njemu.
+    #
+    # MSI uklanja vrednost uvek; prazan kljuc iza nje ostaje osim ako mu se to
+    # izricito ne kaze. Zaostao kljuc bio bi jedini trag koji prezivi
+    # deinstalaciju, a pravilo ovog projekta je da posle uklanjanja ne ostane
+    # nista.
+    #
+    # Trazi se u tabeli `Registry`, ne u `RemoveRegistry`. Prva verzija ove
+    # provere gledala je u RemoveRegistry i pukla jer te tabele u paketu nema:
+    # WiX brisanje kljuca upisuje kao red u Registry sa imenom "-", sto je
+    # dokumentovani MSI zapis za "obrisi kljuc kada se komponenta ukloni".
+    $removesKey = @(@(Read-Table 'SELECT * FROM `Registry`') |
+        Where-Object { $_[2] -eq 'SOFTWARE\G2710' -and $_[3] -eq '-' })
+    if ($removesKey.Count -eq 0) {
+        throw 'Deinstalacija ne uklanja HKLM\SOFTWARE\G2710; kljuc bi ostao za sobom.'
     }
     Write-Host 'MSI struktura i sadrzaj su provereni.' -ForegroundColor Green
 } finally {

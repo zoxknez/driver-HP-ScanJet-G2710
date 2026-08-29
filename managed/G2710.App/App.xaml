@@ -1,6 +1,7 @@
 <Application x:Class="G2710.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="clr-namespace:G2710.App"
              StartupUri="MainWindow.xaml">
   <Application.Resources>
     <ResourceDictionary>
@@ -8,6 +9,7 @@
         <ResourceDictionary Source="Theme/Palette.xaml" />
         <ResourceDictionary Source="Theme/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
+      <app:NullToVisibleConverter x:Key="NullToVisible" />
     </ResourceDictionary>
   </Application.Resources>
 </Application>

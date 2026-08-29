@@ -410,29 +410,49 @@ internal sealed class MainViewModel : Observable
         catch { return null; }
     }
 
-    private void SetScannerFailure(ScannerException exception, string? owner = null)
+    /// <summary>Kvar sa native strane, onako kako ga korisnik cita.</summary>
+    /// <remarks>
+    /// NASLOV se uvek prevodi, i to po IMENU statusa - ne po spisku slucajeva.
+    ///
+    /// Ranije su tri statusa imala svoj slucaj, a svih ostalih dvanaest je
+    /// padalo u `default` i prikazivalo `exception.Message` - tehnicku nisku
+    /// napravljenu za dnevnik ("Timeout: ... win32=1460"). Prevodi za svih
+    /// petnaest su ceo taj put postojali u resursima; trinaest ih niko nije
+    /// trazio. Korisnik kome skener ne odgovori dobijao je red iz dnevnika
+    /// umesto recenice.
+    ///
+    /// DETALJ je savet kada ga imamo, inace tehnicka poruka: naslov kaze STA
+    /// se desilo na jeziku korisnika, detalj daje ono sto treba onome ko to
+    /// popravlja. Ceo <c>exception.ToString()</c> ide u dijagnostiku.
+    /// </remarks>
+    internal void SetScannerFailure(ScannerException exception, string? owner = null)
     {
-        switch (exception.Status)
+        ArgumentNullException.ThrowIfNull(exception);
+
+        StatusTitle = TitleFor(exception.Status);
+        StatusDetail = exception.Status switch
         {
-            case ScanStatus.DeviceNotFound:
-            case ScanStatus.TransportLost:
-                StatusTitle = Strings.Get("Err_DeviceNotFound");
-                StatusDetail = Strings.Get("App_Fail_CheckCable");
-                break;
-            case ScanStatus.Busy:
-                StatusTitle = Strings.Get("Err_Busy");
-                StatusDetail = owner is { Length: > 0 }
-                    ? Strings.Format("App_Fail_BusyOwner", owner)
-                    : Strings.Get("App_Fail_BusyUnknown");
-                break;
-            case ScanStatus.SafetyViolation:
-                StatusTitle = Strings.Get("Err_SafetyViolation");
-                StatusDetail = Strings.Get("App_Fail_Ceiling");
-                break;
-            default:
-                StatusTitle = Strings.Get("App_Status_Scan_Failed");
-                StatusDetail = exception.Message;
-                break;
-        }
+            ScanStatus.DeviceNotFound or ScanStatus.TransportLost =>
+                Strings.Get("App_Fail_CheckCable"),
+            ScanStatus.Busy => owner is { Length: > 0 }
+                ? Strings.Format("App_Fail_BusyOwner", owner)
+                : Strings.Get("App_Fail_BusyUnknown"),
+            ScanStatus.SafetyViolation => Strings.Get("App_Fail_Ceiling"),
+            _ => exception.Message,
+        };
+    }
+
+    /// <summary>
+    /// Prevedeni naslov za status. Status bez prevoda vraca opsti tekst, a ne
+    /// ime iz enum-a.
+    /// </summary>
+    /// <remarks>
+    /// Kljuc se sklapa iz imena statusa, pa se novi status ne moze dodati a da
+    /// se prevod zaboravi tiho - <c>EveryScannerStatusHasHumanText</c> to drzi.
+    /// </remarks>
+    internal static string TitleFor(ScanStatus status)
+    {
+        string text = Strings.Get("Err_" + status);
+        return text.StartsWith('[') ? Strings.Get("Err_Unknown") : text;
     }
 }

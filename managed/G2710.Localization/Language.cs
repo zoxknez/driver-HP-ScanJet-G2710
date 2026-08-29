@@ -265,6 +265,13 @@ public static class Strings
     }
 
     /// <summary>Tekst sa umetnutim vrednostima.</summary>
+    /// <remarks>
+    /// Formatira se jezikom KOJIM PROGRAM GOVORI, a ne regionalnim postavkama
+    /// racunara. Inace bi engleska recenica dobila srpske razdelnike na
+    /// srpskom Windows-u - recenica na jednom jeziku, brojevi na drugom.
+    /// Danas su sve vrednosti celi brojevi, pa se razlika ne vidi; vidi se
+    /// prvog dana kada neko umetne decimalni broj ili datum.
+    /// </remarks>
     public static string Format(string key, params object?[] arguments) =>
-        string.Format(CultureInfo.CurrentCulture, Get(key), arguments);
+        string.Format(Language.Current, Get(key), arguments);
 }

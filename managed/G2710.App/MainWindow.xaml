@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:G2710.Localization;assembly=G2710.Localization"
-        Title="HP ScanJet G2710" Height="680" Width="980" MinHeight="560" MinWidth="760"
+        Title="HP ScanJet G2710" Height="800" Width="980" MinHeight="700" MinWidth="760"
         WindowStartupLocation="CenterScreen" Background="{StaticResource SurfaceSunken}">
   <Grid Margin="32">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -12,7 +12,21 @@
     </StackPanel>
     <Border Grid.Row="1" Margin="0,24,0,24" Padding="20" Background="{StaticResource Surface}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="8">
       <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <!-- Pregled uzima ono sto pretekne, dijagnostika ima svoj minimum.
+             Ranije je bilo obrnuto: pregled je imao fiksnih 170 px a
+             dijagnostika `*`. Kartici nikada nije preticalo toliko, pa je
+             pregled bio isecen na oko 75 px, a prozor za dijagnostiku - koji je
+             ceo smisao dugmeta "Sacuvaj trag" - nije se video uopste. Nista
+             nije prijavljivalo gresku; WPF je jednostavno isekao ono sto ne
+             staje. -->
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*" MinHeight="170"/>
+          <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
         <TextBlock Text="{Binding StatusTitle}" Style="{StaticResource HeadingText}" />
         <TextBlock Grid.Row="1" Text="{Binding StatusDetail}" TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,8,0,20" />
         <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -71,22 +85,35 @@
           </StackPanel>
           <TextBlock Text="{loc:Str App_Crop_Hint}" Style="{StaticResource SmallText}" VerticalAlignment="Bottom" Margin="10,0,0,4" />
         </StackPanel>
-        <Border Grid.Row="4" Margin="0,24,0,0" Height="170" Background="{StaticResource SurfaceSunken}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+        <Border Grid.Row="4" Margin="0,24,0,0" MinHeight="170" Background="{StaticResource SurfaceSunken}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
           <Grid x:Name="PreviewSurface" Background="Transparent"
                 MouseLeftButtonDown="PreviewSurface_MouseLeftButtonDown"
                 MouseMove="PreviewSurface_MouseMove"
                 MouseLeftButtonUp="PreviewSurface_MouseLeftButtonUp"
                 ToolTip="{loc:Str App_Preview_Hint}">
+            <!-- Uputstvo stoji U prikazu dok je prazan, ne samo u tooltip-u.
+                 Prazan sivi okvir ne kaze da se po njemu moze prevlaciti, a
+                 tooltip trazi da korisnik vec pretpostavi da tu nesto ima. -->
+            <TextBlock Text="{loc:Str App_Preview_Hint}" Style="{StaticResource MutedText}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" MaxWidth="420" Margin="24"
+                       Visibility="{Binding PreviewImage, Converter={StaticResource NullToVisible}}" />
             <Image x:Name="PreviewControl" Source="{Binding PreviewImage}" Stretch="Uniform" />
             <Canvas x:Name="CropCanvas" Background="Transparent">
               <Rectangle x:Name="CropRectangle" Visibility="Collapsed" Stroke="{StaticResource Accent}" StrokeThickness="2" Fill="#334AA3DF" />
             </Canvas>
           </Grid>
         </Border>
-        <TextBlock Grid.Row="4" VerticalAlignment="Bottom" HorizontalAlignment="Right"
-                   Margin="0,0,0,6" Style="{StaticResource SmallText}"
-                   Text="{Binding PagesSummary}" />
-        <TextBox Grid.Row="5" Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,16,0,0" />
+        <!-- Broj odlozenih stranica stoji ISPOD pregleda, ne u njemu.
+             Ranije je bio uglavljen u donji desni ugao prikaza, pa bi cim
+             stigne slika stajao preko nje. -->
+        <StackPanel Grid.Row="5">
+          <TextBlock HorizontalAlignment="Right" Margin="0,8,2,0"
+                     Style="{StaticResource SmallText}" Text="{Binding PagesSummary}" />
+          <TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True"
+                   FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap"
+                   VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" Height="96" />
+        </StackPanel>
       </Grid>
     </Border>
     <!-- Alati levo, radnje desno.

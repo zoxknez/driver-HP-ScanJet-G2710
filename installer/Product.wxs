@@ -3,6 +3,10 @@
   <Package Name="HP ScanJet G2710" Manufacturer="G2710 Project" Version="$(var.ProductVersion)" UpgradeCode="A1B2C3D4-94E2-4A8A-928A-1234567890AB" Scope="perMachine">
     <MajorUpgrade DowngradeErrorMessage="A newer version of HP ScanJet G2710 is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    <!-- Paket je potpisan sopstvenim sertifikatom. Onaj ko ga zatekne u spisku
+         programa mora moci da sazna odakle je dosao, bez pitanja ikoga. -->
+    <Property Id="ARPURLINFOABOUT"
+              Value="https://github.com/zoxknez/driver-HP-ScanJet-G2710" />
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="HP ScanJet G2710">
         <Component Id="ApplicationFiles" Guid="BCA7D65D-5D39-4A46-9E77-B031A8C4E714">
@@ -28,6 +32,13 @@
         <Component Id="LanguageChoice" Guid="9E1B7A24-38D6-4F0C-BC55-7A2E4D8F6013">
           <RegistryValue Root="HKLM" Key="SOFTWARE\G2710" Name="Language"
                          Type="string" Value="[G2710LANGUAGE]" KeyPath="yes" />
+          <!-- Vrednost MSI uklanja sam; prazan KLJUC iza nje ne mora. Ostavljen
+               kljuc je jedini trag koji bi preziveo deinstalaciju, a pravilo
+               ovog projekta je da posle uklanjanja ne ostane nista - mereno, ne
+               pretpostavljeno. Ovim prestaje da zavisi od implicitnog
+               ponasanja. -->
+          <RemoveRegistryKey Root="HKLM" Key="SOFTWARE\G2710"
+                             Action="removeOnUninstall" />
         </Component>
         <Directory Id="DRIVERFOLDER" Name="driver">
           <Component Id="DriverPackage" Guid="7D720503-F9D4-4543-96D7-5B3C868A3110">
