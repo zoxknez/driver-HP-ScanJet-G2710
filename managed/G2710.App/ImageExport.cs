@@ -100,7 +100,14 @@ public static class ImageExport
         objects[0] = Encoding.ASCII.GetBytes("<< /Type /Catalog /Pages 2 0 R >>");
         objects.Insert(1, Encoding.ASCII.GetBytes($"<< /Type /Pages /Count {pageNumbers.Count} /Kids [{string.Join(" ", pageNumbers.ConvertAll(n => $"{n + 1} 0 R"))}] >>"));
         using var file = File.Create(path);
-        file.Write(Encoding.ASCII.GetBytes("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"));
+        WriteAscii(file, "%PDF-1.4\n");
+
+        // Binarni marker se piše KAO BAJTOVI, ne kroz ASCII enkoder.
+        //
+        // Encoding.ASCII svaki znak iznad 0x7F pretvara u '?'. Marker je zato
+        // izlazio kao "%????" — četiri upitnika umesto bajtova koji alatima
+        // kažu da je fajl binaran. Izmereno, ne pretpostavljeno.
+        file.Write([(byte)'%', 0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n']);
         var offsets = new List<long> { 0 };
         for (var index = 0; index < objects.Count; index++)
         {
@@ -113,7 +120,23 @@ public static class ImageExport
         WriteAscii(file, $"trailer\n<< /Size {objects.Count + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
     }
 
-    private static byte[] Deflate(byte[] bytes) { using var target = new MemoryStream(); using (var stream = new DeflateStream(target, CompressionLevel.Optimal, true)) stream.Write(bytes); return target.ToArray(); }
+    // ZLibStream, a NE DeflateStream.
+    //
+    // PDF `/FlateDecode` je zlib (RFC 1950): dva bajta zaglavlja i Adler-32 na
+    // kraju. DeflateStream daje goli deflate (RFC 1951), bez oba. Blagi čitači
+    // progledaju kroz prste, stroži odbiju sliku — pa se otkaz vidi tek na
+    // tuđem računaru, sa drugim čitačem.
+    //
+    // Izmereno: tok je počinjao bajtom 0x73 umesto 0x78.
+    private static byte[] Deflate(byte[] bytes)
+    {
+        using var target = new MemoryStream();
+        using (var stream = new ZLibStream(target, CompressionLevel.Optimal, true))
+        {
+            stream.Write(bytes);
+        }
+        return target.ToArray();
+    }
     private static byte[] StreamObject(string dictionary, byte[] content) => Encoding.ASCII.GetBytes($"<< {dictionary} /Length {content.Length} >>\nstream\n").Concat(content).Concat(Encoding.ASCII.GetBytes("\nendstream")).ToArray();
     private static void WriteAscii(Stream stream, string value) => stream.Write(Encoding.ASCII.GetBytes(value));
 }

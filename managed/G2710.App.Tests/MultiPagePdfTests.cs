@@ -110,6 +110,74 @@ public sealed class MultiPagePdfTests
         Assert.False(File.Exists(path), "fajl je napravljen iako je izvoz odbijen");
     }
 
+    // --- format samog fajla ---------------------------------------------
+    //
+    // PDF writer je nas, bez spoljne biblioteke. Ono sto se u njemu moze
+    // pogresiti ne vidi se u broju strana nego u bajtovima - i ne kod nas nego
+    // u citacu koji je stroziji od onog kojim smo probali.
+
+    [Fact]
+    public void The_binary_marker_really_contains_high_bytes()
+    {
+        // PDF zaglavlje nosi komentar sa bajtovima iznad 0x7F. On postoji da bi
+        // alati znali da je fajl BINARAN; ako se zapise kroz ASCII enkoder,
+        // svaki takav bajt postane '?' i marker vise ne znaci nista.
+        string path = TempPdf();
+        try
+        {
+            ImageExport.Save(Page(0x40), ExportFormat.Pdf, path);
+            byte[] bytes = File.ReadAllBytes(path);
+
+            Assert.Equal((byte)'%', bytes[0]);
+
+            // Drugi red pocinje sa '%' pa slede binarni bajtovi.
+            int marker = Array.IndexOf(bytes, (byte)'\n') + 1;
+            Assert.Equal((byte)'%', bytes[marker]);
+
+            byte[] high = bytes[(marker + 1)..(marker + 5)];
+            Assert.All(high, b => Assert.True(b > 0x7F,
+                $"binarni marker sadrzi 0x{b:X2} umesto bajta iznad 0x7F"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void FlateDecode_streams_are_really_zlib()
+    {
+        // PDF /FlateDecode je ZLIB (RFC 1950) - dva bajta zaglavlja i Adler-32
+        // na kraju - a ne goli deflate (RFC 1951). Blagi citaci progledaju kroz
+        // prste; stroziji odbiju sliku. To je otkaz koji se vidi tek na tudjem
+        // racunaru, sa drugim citacem.
+        string path = TempPdf();
+        try
+        {
+            ImageExport.Save(Page(0x40), ExportFormat.Pdf, path);
+            byte[] bytes = File.ReadAllBytes(path);
+            string text = Encoding.Latin1.GetString(bytes);
+
+            int dictionary = text.IndexOf("/FlateDecode", StringComparison.Ordinal);
+            Assert.True(dictionary > 0, "nema FlateDecode toka");
+
+            int start = text.IndexOf("stream\n", dictionary, StringComparison.Ordinal)
+                        + "stream\n".Length;
+
+            // Prvi bajt zlib zaglavlja je CMF; za deflate sa prozorom 32K to je
+            // 0x78. Drugi je FLG, i (CMF*256 + FLG) mora biti deljivo sa 31.
+            byte cmf = bytes[start];
+            byte flg = bytes[start + 1];
+
+            Assert.Equal(0x78, cmf);
+            Assert.Equal(0, (cmf * 256 + flg) % 31);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     // --- put kroz aplikaciju --------------------------------------------
 
     [Fact]
