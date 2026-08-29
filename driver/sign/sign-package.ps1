@@ -66,6 +66,47 @@ if (-not $inf) {
     throw "Nema .inf fajla u $PackageDir"
 }
 
+# Ikone koje INF obecava moraju stvarno biti u DLL-u.
+#
+# Ovo se ne moze proveriti ni iz izvora ni iz INF-a - jedino iz sastavljenog
+# fajla. Izmereno je jednom da ih nema nijedne, dok resursne skripte nije ni
+# bilo; a i kada su dodate, INF ih je trazio rednim brojem umesto ID-om, pa ih
+# Windows opet nije nalazio. Nijedan od ta dva kvara ne prijavljuje gresku:
+# INF se overava, paket se potpisuje, drajver se instalira. Samo je slika u
+# kartici "Dogadjaji" prazna.
+#
+# Zato se ovde meri isto ono sto radi i Windows: ExtractIconEx nad DLL-om, sa
+# brojem prepisanim iz INF-a.
+$wiaDll = Get-ChildItem -Path $PackageDir -Filter 'G2710.Wia.dll' | Select-Object -First 1
+if ($wiaDll) {
+    if (-not ('IconProbe' -as [type])) {
+        Add-Type -Namespace '' -Name 'IconProbe' -MemberDefinition @'
+[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+public static extern uint ExtractIconEx(string file, int index, IntPtr[] large, IntPtr[] small, uint count);
+[DllImport("user32.dll")]
+public static extern bool DestroyIcon(IntPtr icon);
+'@
+    }
+
+    $infText = Get-Content -LiteralPath $inf.FullName -Raw
+    $iconReferences = [regex]::Matches($infText, 'Events\\(\w+),Icon,,"[^"]*G2710\.Wia\.dll,(-?\d+)"')
+    if ($iconReferences.Count -eq 0) {
+        throw 'INF ne pominje nijednu ikonu dugmadi; Events podkljuc je nepotpun.'
+    }
+    foreach ($reference in $iconReferences) {
+        $button = $reference.Groups[1].Value
+        $index = [int]$reference.Groups[2].Value
+        $handles = New-Object IntPtr[] 1
+        $found = [IconProbe]::ExtractIconEx($wiaDll.FullName, $index, $handles, $null, 1)
+        if ($found -lt 1 -or $handles[0] -eq [IntPtr]::Zero) {
+            throw ("Dugme {0}: INF trazi ikonu {1}, a G2710.Wia.dll je nema. " -f $button, $index) +
+                  'Nenegativan broj je REDNI BROJ ikone; ID resursa se pise negativnim brojem.'
+        }
+        [void][IconProbe]::DestroyIcon($handles[0])
+    }
+    Write-Host ("      ikone dugmadi: {0} od {0} nadjeno" -f $iconReferences.Count)
+}
+
 Write-Host "=== 1/4  InfVerif ==="
 # Napomena: /w (universal driver) rezim odbija HKCR AddReg, koji nam treba za
 # COM registraciju WIA minidriver-a. Vidi docs/SIGNING.md - odluka o universal

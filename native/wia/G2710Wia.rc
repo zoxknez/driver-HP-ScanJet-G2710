@@ -1,0 +1,17 @@
+// Ikone za fizicka dugmad skenera.
+//
+// Brojevi MORAJU odgovarati Icon vrednostima u driver/g2710.inf:
+//
+//     HKR,Events\Scan,Icon,,"%13%\G2710.Wia.dll,101"
+//
+// Windows ih prikazuje u kartici "Dogadjaji" na osobinama uredjaja. Ranije
+// ovog fajla nije bilo, pa je INF pokazivao na resurse kojih u DLL-u nema -
+// izmereno ExtractIconEx-om: nula ikona. Windows tada crta prazno mesto.
+//
+// Sami .ico fajlovi nastaju iz tools/make-button-icons.ps1 u build direktorijum
+// i nisu u repozitorijumu; RC ih nalazi preko include putanje koju postavlja
+// native/wia/CMakeLists.txt.
+
+101 ICON "Scan.ico"
+102 ICON "Copy.ico"
+103 ICON "Pdf.ico"

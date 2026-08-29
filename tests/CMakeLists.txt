@@ -87,7 +87,8 @@ target_include_directories(g2710_unit_tests PRIVATE
     ${CMAKE_SOURCE_DIR}/native/wia
     ${CMAKE_SOURCE_DIR}/native/cli)
 target_compile_definitions(g2710_unit_tests PRIVATE
-    G2710_INF_PATH="${CMAKE_SOURCE_DIR}/driver/g2710.inf")
+    G2710_INF_PATH="${CMAKE_SOURCE_DIR}/driver/g2710.inf"
+    G2710_WIA_RC_PATH="${CMAKE_SOURCE_DIR}/native/wia/G2710Wia.rc")
 gtest_discover_tests(g2710_unit_tests)
 
 # --- golden register sequence testovi --------------------------------------

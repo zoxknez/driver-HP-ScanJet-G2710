@@ -90,21 +90,30 @@ HKR,,ICMProfiles,,"sRGB Color Space Profile.icm"
 ; iz wiadef.h. native/wia/G2710Usd.cpp mora vracati BAS ove vrednosti;
 ; tests/unit/wia_events_test.cpp drzi tu saglasnost.
 
+; Ikone se pisu NEGATIVNIM brojem.
+;
+; Za Windows je `fajl,N` sa nenegativnim N REDNI BROJ ikone, a ne njen ID
+; resursa; ID se trazi negativnim brojem. Ranije je ovde stajalo ",101" -
+; drajver koji ima tri ikone nema ikonu sa rednim brojem 101, pa je Windows u
+; kartici "Dogadjaji" crtao prazno mesto.
+;
+; Izmereno ExtractIconEx-om na sastavljenom DLL-u: -101/-102/-103 daju ikone,
+; 101 ne daje nista. Brojevi odgovaraju resursima u native/wia/G2710Wia.rc.
 [G2710.Events]
 HKR,Events\Scan,,,%G2710.ScanEventGuid%
 HKR,Events\Scan,Name,,"Scan"
 HKR,Events\Scan,Desc,,%G2710.ScanButton%
-HKR,Events\Scan,Icon,,"%13%\G2710.Wia.dll,101"
+HKR,Events\Scan,Icon,,"%13%\G2710.Wia.dll,-101"
 
 HKR,Events\Copy,,,%G2710.CopyEventGuid%
 HKR,Events\Copy,Name,,"Copy"
 HKR,Events\Copy,Desc,,%G2710.CopyButton%
-HKR,Events\Copy,Icon,,"%13%\G2710.Wia.dll,102"
+HKR,Events\Copy,Icon,,"%13%\G2710.Wia.dll,-102"
 
 HKR,Events\Pdf,,,%G2710.PdfEventGuid%
 HKR,Events\Pdf,Name,,"Pdf"
 HKR,Events\Pdf,Desc,,%G2710.PdfButton%
-HKR,Events\Pdf,Icon,,"%13%\G2710.Wia.dll,103"
+HKR,Events\Pdf,Icon,,"%13%\G2710.Wia.dll,-103"
 
 ; ------------------------------------------------------------------ stringovi -
 

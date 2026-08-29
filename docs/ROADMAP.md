@@ -506,6 +506,44 @@ oba jezika (23 provere).
 
 ---
 
+### ~~S12 · Duboka revizija posle prevođenja~~ — **URAĐENO**
+
+Traženo je da se pogleda ima li još nečega. Ima — i nijedan nalaz nije bio
+vidljiv kao greška; svi su bili tihi.
+
+**Provereno i nađeno čisto:** nazivi koje Windows prikazuje (INF, TWAIN
+identitet), pokrivenost svih šest ishoda `RunFailure` u čarobnjaku, otpornost
+`language.txt` na BOM/velika slova/razmake, i `toString(ErrorCode)`.
+
+**Nađeno i popravljeno:**
+
+1. **Aplikacija je koristila 3 od 16 prevedenih poruka o grešci.** Ostalih
+   dvanaest statusa padalo je u `default` i prikazivalo tehničku nisku iz
+   dnevnika. Naslov se sada sklapa iz *imena* statusa, pa se novi status ne
+   može dodati bez prevoda.
+2. **Prikaz je bio isečen, dijagnostika nevidljiva.** Pregled je imao fiksnih
+   170 px a dijagnostika `*`; kartici toliko nikada nije preticalo. WPF ne
+   prijavljuje ništa — samo iseče.
+3. **TWAIN je na `MSG_QUERYSUPPORT` vraćao uspeh sa praznim pokazivačem.**
+   Aplikacija koja radi ono što standard nalaže zaključavala bi nulu. U celom
+   repozitorijumu nije bilo nijednog testa za tu poruku. Uz to su tri mesta
+   davala tri odgovora o istoj mogućnosti; sada je spisak jedan.
+4. **Ikone dugmadi nisu postojale, a INF ih je i tražio pogrešno.** Mereno
+   `ExtractIconEx`-om: nula ikona u DLL-u. Posle dodavanja resursa i dalje
+   ništa — `fajl,101` je za Windows *redni broj*, a ne ID; ID se piše
+   negativnim brojem. Sada `-101/-102/-103`, ikone se generišu iz skripte, a
+   potpisivanje paketa meri isto ono što meri i Windows.
+5. **Deinstalacija je ostavljala ključ u registru** (`HKLM\SOFTWARE\G2710`).
+
+Uz to: broj odloženih stranica premešten ispod prikaza (stajao bi preko slike),
+prazan prikaz sada govori šta se od korisnika očekuje, brojevi se formatiraju
+jezikom kojim program govori, paket u spisku programa vodi na svoj
+repozitorijum, a kvalifikaciono uputstvo unapred kaže da Windows Scan još neće
+raditi — bez toga bi prva stvar koju prijatelj proba izgledala kao pokvaren
+drajver.
+
+---
+
 ## 6. Eskalacija plafona — kojim redom paketi idu
 
 Plafon se **ugrađuje u binarni fajl pri pakovanju** i ne može se podići na

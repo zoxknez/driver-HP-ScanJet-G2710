@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <fstream>
 #include <set>
 #include <string>
@@ -63,7 +64,87 @@ std::string infGuid(const std::string& key) {
     return {};
 }
 
+// Cita `HKR,Events\<name>,Icon,,"%13%\G2710.Wia.dll,<broj>"` iz INF-a.
+// Vraca broj onako kako je zapisan, sa znakom.
+int infIconReference(const std::string& eventName) {
+    std::ifstream file(G2710_INF_PATH);
+    if (!file) {
+        return 0;
+    }
+    const std::string needle = "Events\\" + eventName + ",Icon";
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.find(needle) == std::string::npos) {
+            continue;
+        }
+        const std::size_t comma = line.rfind(',');
+        const std::size_t quote = line.find('"', comma);
+        if (comma == std::string::npos || quote == std::string::npos) {
+            continue;
+        }
+        return std::atoi(line.substr(comma + 1, quote - comma - 1).c_str());
+    }
+    return 0;
+}
+
+// Cita `<broj> ICON "<fajl>"` iz resursne skripte.
+std::set<int> resourceScriptIconIds() {
+    std::set<int> ids;
+    std::ifstream file(G2710_WIA_RC_PATH);
+    if (!file) {
+        return ids;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '/' || line.find(" ICON ") == std::string::npos) {
+            continue;
+        }
+        ids.insert(std::atoi(line.c_str()));
+    }
+    return ids;
+}
+
 }  // namespace
+
+// Ikone: INF, resursna skripta i Windows-ov nacin trazenja moraju se slagati.
+//
+// Ovo je nastalo iz stvarnog kvara. INF je pokazivao na "G2710.Wia.dll,101", a
+// za Windows je nenegativan broj iza zareza REDNI BROJ ikone, ne njen ID.
+// Drajver sa tri ikone nema ikonu broj 101, pa je kartica "Dogadjaji" na
+// osobinama uredjaja crtala prazno mesto. U DLL-u tada ionako nije bilo
+// nijedne ikone - resursne skripte uopste nije bilo.
+//
+// Ni jedno ni drugo nije prijavilo gresku: INF se overava, drajver se
+// instalira, sve radi. Samo je slika prazna.
+TEST(WiaEvents, IconsAreReferencedByResourceIdNotByIndex) {
+    for (const char* name : {"Scan", "Copy", "Pdf"}) {
+        const int reference = infIconReference(name);
+        EXPECT_LT(reference, 0)
+            << name << ": INF trazi ikonu rednim brojem " << reference
+            << "; ID resursa se pise negativnim brojem";
+    }
+}
+
+TEST(WiaEvents, EveryIconTheInfAsksForExistsInTheResourceScript) {
+    const std::set<int> ids = resourceScriptIconIds();
+    ASSERT_FALSE(ids.empty()) << "resursna skripta nema nijednu ikonu";
+
+    for (const char* name : {"Scan", "Copy", "Pdf"}) {
+        const int reference = infIconReference(name);
+        ASSERT_NE(reference, 0) << name << ": INF nema Icon liniju";
+        EXPECT_EQ(ids.count(std::abs(reference)), 1u)
+            << name << ": INF trazi ID " << std::abs(reference)
+            << ", a G2710Wia.rc ga ne definise";
+    }
+}
+
+TEST(WiaEvents, EachButtonHasItsOwnIcon) {
+    std::set<int> seen;
+    for (const char* name : {"Scan", "Copy", "Pdf"}) {
+        EXPECT_TRUE(seen.insert(infIconReference(name)).second)
+            << name << ": dva dugmeta dele istu ikonu";
+    }
+}
 
 // Broj dugmadi u kodu i u profilu mora biti isti. Ako se razidju, jedno od dva
 // je zastarelo - a profil je generisan, pa je to kod.

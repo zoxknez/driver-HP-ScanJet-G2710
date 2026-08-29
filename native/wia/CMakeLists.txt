@@ -12,7 +12,29 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     return()
 endif()
 
+# Ikone dugmadi nastaju iz skripte, u build direktorijum.
+#
+# INF pokazuje na G2710.Wia.dll,101/102/103; dok ovog koraka nije bilo, ti
+# resursi nisu postojali - mereno ExtractIconEx-om na sastavljenom DLL-u.
+set(G2710_ICON_DIR "${CMAKE_BINARY_DIR}/button-icons")
+set(G2710_ICONS
+    "${G2710_ICON_DIR}/Scan.ico"
+    "${G2710_ICON_DIR}/Copy.ico"
+    "${G2710_ICON_DIR}/Pdf.ico")
+
+add_custom_command(
+    OUTPUT ${G2710_ICONS}
+    COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_SOURCE_DIR}/tools/make-button-icons.ps1"
+            -OutputDirectory "${G2710_ICON_DIR}"
+    DEPENDS "${CMAKE_SOURCE_DIR}/tools/make-button-icons.ps1"
+    COMMENT "Pravim ikone dugmadi u ${G2710_ICON_DIR}"
+    VERBATIM
+)
+add_custom_target(g2710_wia_icons DEPENDS ${G2710_ICONS})
+
 add_library(g2710_wia SHARED
+    G2710Wia.rc
     G2710Wia.cpp
     G2710Usd.cpp
     G2710MiniDrv.cpp
@@ -23,6 +45,11 @@ add_library(g2710_wia SHARED
     WiaEvents.cpp
     G2710Wia.def
 )
+
+add_dependencies(g2710_wia g2710_wia_icons)
+
+# RC nalazi .ico preko include putanje; sami fajlovi su u build direktorijumu.
+target_include_directories(g2710_wia PRIVATE "${G2710_ICON_DIR}")
 
 set_target_properties(g2710_wia PROPERTIES
     OUTPUT_NAME "G2710.Wia"
