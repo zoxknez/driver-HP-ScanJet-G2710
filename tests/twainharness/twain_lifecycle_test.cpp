@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <ios>
 #include <cstdlib>
 #include <memory>
 #include <thread>
@@ -309,6 +310,105 @@ TEST(TwainCapabilities, UsesTheDsmAllocatorAndDoesNotAdvertiseUnqualifiedDpi) {
     TW_STATUS status{};
     ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_STATUS, MSG_GET, &status));
     EXPECT_EQ(TWCC_CAPUNSUPPORTED, status.ConditionCode);
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
+}
+
+// MSG_QUERYSUPPORT je prvo pitanje koje ozbiljna TWAIN aplikacija postavi.
+//
+// Prva verzija je vracala TWRC_SUCCESS sa hContainer = nullptr. Aplikacija koja
+// radi ono sto standard nalaze - proveri povratni kod, pa zakljuca kontejner -
+// zakljucavala bi nulu. Nijedan nas prolaz to nije primecivao, jer nijedan
+// nije zvao QUERYSUPPORT. Videlo bi se tek u tudjem programu, kao pad skenera
+// koji "ne radi sa ovim drajverom".
+TEST(TwainCapabilities, QuerySupportAnswersWithARealContainer) {
+    TW_IDENTITY id{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &id));
+    TW_ENTRYPOINT entry{};
+    entry.Size = sizeof(entry);
+    entry.DSM_MemAllocate = allocate; entry.DSM_MemFree = release;
+    entry.DSM_MemLock = lock; entry.DSM_MemUnlock = unlock;
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_ENTRYPOINT, MSG_GET, &entry));
+
+    // Tip se pise izricito: TWAIN konstante su `int`, pa bi lista bez tipa
+    // deducirala int i suzavanje bi bilo upozorenje (kod nas: greska).
+    constexpr std::array<TW_UINT16, 5> kAnswering{
+        CAP_SUPPORTEDCAPS, ICAP_XFERMECH, ICAP_UNITS, ICAP_PIXELTYPE, ICAP_BITDEPTH};
+    for (TW_UINT16 supported : kAnswering) {
+        TW_CAPABILITY cap{};
+        cap.Cap = supported;
+        ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_CAPABILITY, MSG_QUERYSUPPORT, &cap))
+            << "cap 0x" << std::hex << supported;
+        ASSERT_EQ(TWON_ONEVALUE, cap.ConType) << "cap 0x" << std::hex << supported;
+        ASSERT_NE(nullptr, cap.hContainer) << "cap 0x" << std::hex << supported;
+        auto* one = static_cast<pTW_ONEVALUE>(lock(cap.hContainer));
+        ASSERT_NE(nullptr, one);
+        EXPECT_EQ(TWTY_INT32, one->ItemType);
+        EXPECT_EQ(static_cast<TW_UINT32>(TWQC_GET | TWQC_GETCURRENT | TWQC_GETDEFAULT),
+                  one->Item)
+            << "cap 0x" << std::hex << supported;
+        unlock(cap.hContainer); release(cap.hContainer);
+    }
+
+    // Rezolucija se prepoznaje, ali dok H8 ne prodje nema nijednu operaciju.
+    // Nula je odgovor koji aplikacija sme da procita; null kontejner nije.
+    constexpr std::array<TW_UINT16, 2> kNotYet{ICAP_XRESOLUTION, ICAP_YRESOLUTION};
+    for (TW_UINT16 unqualified : kNotYet) {
+        TW_CAPABILITY cap{};
+        cap.Cap = unqualified;
+        ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_CAPABILITY, MSG_QUERYSUPPORT, &cap));
+        ASSERT_NE(nullptr, cap.hContainer);
+        auto* one = static_cast<pTW_ONEVALUE>(lock(cap.hContainer));
+        ASSERT_NE(nullptr, one);
+        EXPECT_EQ(0u, one->Item) << "rezolucija ne sme obecati nijednu operaciju";
+        unlock(cap.hContainer); release(cap.hContainer);
+    }
+
+    // Mogucnost koju uopste ne poznajemo i dalje pada, i ne alocira nista.
+    TW_CAPABILITY unknown{};
+    unknown.Cap = ICAP_BRIGHTNESS;
+    EXPECT_EQ(TWRC_FAILURE, call(DG_CONTROL, DAT_CAPABILITY, MSG_QUERYSUPPORT, &unknown));
+    EXPECT_EQ(nullptr, unknown.hContainer);
+
+    EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
+}
+
+// Ono sto QUERYSUPPORT obeca, MSG_GET mora i da isporuci - i obrnuto.
+//
+// Tri mesta su ranije odgovarala na isto pitanje: spisak u CAP_SUPPORTEDCAPS,
+// uslov u isAdvertisedCapability, i switch u MSG_GET. Rezolucija je u jednom
+// bila podrzana a u druga dva nije.
+TEST(TwainCapabilities, WhatQuerySupportPromisesTheGetDelivers) {
+    TW_IDENTITY id{};
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_OPENDS, &id));
+    TW_ENTRYPOINT entry{};
+    entry.Size = sizeof(entry);
+    entry.DSM_MemAllocate = allocate; entry.DSM_MemFree = release;
+    entry.DSM_MemLock = lock; entry.DSM_MemUnlock = unlock;
+    ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_ENTRYPOINT, MSG_GET, &entry));
+
+    constexpr std::array<TW_UINT16, 7> kKnown{
+        CAP_SUPPORTEDCAPS, ICAP_XFERMECH, ICAP_UNITS, ICAP_PIXELTYPE,
+        ICAP_BITDEPTH, ICAP_XRESOLUTION, ICAP_YRESOLUTION};
+    for (TW_UINT16 which : kKnown) {
+        TW_CAPABILITY query{};
+        query.Cap = which;
+        ASSERT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_CAPABILITY, MSG_QUERYSUPPORT, &query));
+        auto* one = static_cast<pTW_ONEVALUE>(lock(query.hContainer));
+        ASSERT_NE(nullptr, one);
+        const bool promised = (one->Item & TWQC_GET) != 0;
+        unlock(query.hContainer); release(query.hContainer);
+
+        TW_CAPABILITY get{};
+        get.Cap = which;
+        const TW_UINT16 result = call(DG_CONTROL, DAT_CAPABILITY, MSG_GET, &get);
+        EXPECT_EQ(promised, result == TWRC_SUCCESS)
+            << "cap 0x" << std::hex << which << " se ne slaze sam sa sobom";
+        if (result == TWRC_SUCCESS) {
+            EXPECT_NE(nullptr, get.hContainer);
+            release(get.hContainer);
+        }
+    }
+
     EXPECT_EQ(TWRC_SUCCESS, call(DG_CONTROL, DAT_IDENTITY, MSG_CLOSEDS, &id));
 }
 }  // namespace

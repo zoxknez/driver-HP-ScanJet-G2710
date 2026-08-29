@@ -283,6 +283,14 @@ $installStepEn
    Then run  collect-diagnostics.ps1  - right-click, "Run with PowerShell" -
    and it makes the same ZIP.)
 
+Windows Scan and Paint will not work yet
+----------------------------------------
+If you open Windows Scan, Fax and Scan, or Paint, the scanner will look "not
+ready". That is on purpose, not a fault: the driver offers those programs only
+what has already been confirmed on real hardware, and so far nothing has. The
+check you are running is exactly what confirms it. Please do not report that as
+a problem - report what the check itself says.
+
 If something does not pass
 --------------------------
 That is all right, and it is the point. The report exists precisely so that it
@@ -340,6 +348,14 @@ $installStepSr
    (Ako program javi da ZIP nije napravljen, izvestaj je ipak sacuvan.
    Tada pokrenite  collect-diagnostics.ps1  - desni klik, "Run with
    PowerShell" - i on ce napraviti isti ZIP.)
+
+Windows Scan i Paint jos nece raditi
+------------------------------------
+Ako otvorite Windows Scan, Fax and Scan ili Paint, skener ce izgledati kao da
+"nije spreman". To je namerno, a ne kvar: drajver tim programima nudi samo ono
+sto je vec potvrdjeno na pravom hardveru, a do sada nije potvrdjeno nista.
+Provera koju pokrecete je upravo ono cime se to potvrdjuje. Nemojte to
+prijavljivati kao problem - prijavite ono sto sama provera kaze.
 
 Ako nesto ne prodje
 -------------------

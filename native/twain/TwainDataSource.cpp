@@ -214,34 +214,74 @@ void imageLayout(pTW_IMAGELAYOUT out) {
     out->FrameNumber = 1;
 }
 
-bool isAdvertisedCapability(TW_UINT16 capability) {
-    // Dok H8 ne prodje, Capabilities namerno ne oglasava nijednu rezoluciju.
-    // Ipak podrzavamo bezbedan minimum potreban da DSM upita izvor.
-    return capability == CAP_SUPPORTEDCAPS || capability == ICAP_XFERMECH || capability == ICAP_UNITS ||
-           capability == ICAP_PIXELTYPE || capability == ICAP_BITDEPTH ||
+// Mogucnosti koje zaista odgovaraju na MSG_GET.
+//
+// Jedan spisak, tri odgovora: CAP_SUPPORTEDCAPS ga vraca aplikaciji,
+// MSG_QUERYSUPPORT iz njega izvodi masku operacija, a MSG_GET po njemu odlucuje
+// da li uopste ima sta da vrati. Dok su bila tri odvojena mesta, ona su davala
+// tri razlicita odgovora o istoj stvari.
+constexpr TW_UINT16 kSupportedCapabilities[] = {
+    ICAP_XFERMECH, ICAP_UNITS, ICAP_PIXELTYPE, ICAP_BITDEPTH};
+
+bool isSupportedCapability(TW_UINT16 capability) {
+    for (TW_UINT16 supported : kSupportedCapabilities) {
+        if (supported == capability) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isKnownCapability(TW_UINT16 capability) {
+    // Rezolucija se PREPOZNAJE ali se ne podrzava - dok H8 ne prodje nijedna
+    // vrednost nije hardverski potvrdjena. Razlika je vazna: na poznatu a
+    // nepodrzanu mogucnost odgovaramo maskom bez ijedne operacije, sto je
+    // jasnije aplikaciji od "ne znam sta je to".
+    return capability == CAP_SUPPORTEDCAPS || isSupportedCapability(capability) ||
            capability == ICAP_XRESOLUTION || capability == ICAP_YRESOLUTION;
 }
 
 TW_UINT16 capability(TW_UINT16 message, pTW_CAPABILITY cap) {
-    if (!cap || !isAdvertisedCapability(cap->Cap)) return fail(TWCC_BADCAP);
+    if (!cap || !isKnownCapability(cap->Cap)) return fail(TWCC_BADCAP);
+
+    auto& entry = source().entryPoint;
+    if (!entry.DSM_MemAllocate || !entry.DSM_MemLock || !entry.DSM_MemUnlock) {
+        source().condition = TWCC_CAPBADOPERATION;
+        return TWRC_DATANOTAVAILABLE;
+    }
+
+    // MSG_QUERYSUPPORT mora vratiti TW_ONEVALUE sa maskom TWQC_* operacija.
+    //
+    // Prva verzija je vracala TWRC_SUCCESS sa hContainer = nullptr. Aplikacija
+    // koja radi ono sto standard nalaze - proveri kod, pa zakljuca kontejner -
+    // zakljucavala bi nulu. To se ne vidi ni u jednom nasem prolazu, nego u
+    // tudjem programu, kao pad skenera koji "ne radi sa ovim drajverom".
+    //
+    // Nula operacija je ISPRAVAN odgovor za rezoluciju: mogucnost postoji u
+    // standardu, ovaj build je ne nudi, i aplikacija to sme da procita umesto
+    // da pogadja.
     if (message == MSG_QUERYSUPPORT) {
-        cap->ConType = TWON_DONTCARE16;
-        cap->hContainer = nullptr; // DSM ne sme oslobadjati memoriju koju nismo alocirali.
+        const TW_HANDLE handle = entry.DSM_MemAllocate(sizeof(TW_ONEVALUE));
+        if (!handle) return fail(TWCC_LOWMEMORY);
+        auto* one = static_cast<pTW_ONEVALUE>(entry.DSM_MemLock(handle));
+        if (!one) { if (entry.DSM_MemFree) entry.DSM_MemFree(handle); return fail(TWCC_LOWMEMORY); }
+        one->ItemType = TWTY_INT32;
+        one->Item = (cap->Cap == CAP_SUPPORTEDCAPS || isSupportedCapability(cap->Cap))
+                        ? (TWQC_GET | TWQC_GETCURRENT | TWQC_GETDEFAULT)
+                        : 0;
+        entry.DSM_MemUnlock(handle);
+        cap->ConType = TWON_ONEVALUE;
+        cap->hContainer = handle;
         source().condition = TWCC_SUCCESS;
         return TWRC_SUCCESS;
     }
     if (message != MSG_GET && message != MSG_GETCURRENT && message != MSG_GETDEFAULT) {
         return fail(TWCC_CAPBADOPERATION);
     }
-    auto& entry = source().entryPoint;
-    if (!entry.DSM_MemAllocate || !entry.DSM_MemLock || !entry.DSM_MemUnlock) {
-        source().condition = TWCC_CAPBADOPERATION;
-        return TWRC_DATANOTAVAILABLE;
-    }
     TW_UINT32 value = 0;
     TW_UINT16 type = TWTY_UINT16;
     if (cap->Cap == CAP_SUPPORTEDCAPS) {
-        constexpr TW_UINT16 supported[] = {ICAP_XFERMECH, ICAP_UNITS, ICAP_PIXELTYPE, ICAP_BITDEPTH};
+        const auto& supported = kSupportedCapabilities;
         const TW_HANDLE handle = entry.DSM_MemAllocate(
             static_cast<TW_UINT32>(sizeof(TW_ARRAY) + sizeof(supported) - sizeof(TW_UINT8)));
         if (!handle) return fail(TWCC_LOWMEMORY);
