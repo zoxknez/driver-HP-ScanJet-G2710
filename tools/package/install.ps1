@@ -91,6 +91,37 @@ function Get-PnputilOutcome {
     }
 }
 
+# Stanje Secure Boot-a, iz registra pa tek onda iz cmdlet-a.
+#
+# Prva verzija je zvala samo Confirm-SecureBootUEFI i svaki neuspeh tumacila
+# kao "legacy BIOS". Izmereno pri stvarnoj MSI instalaciji: pod LocalSystem-om
+# cmdlet padne i na masini koja JESTE UEFI - pa je install-state.json tvrdio
+# "nema (legacy BIOS)" za racunar sa UEFI-jem i iskljucenim Secure Boot-om.
+#
+# Ta niska ide u izvestaj po kome se ocenjuje H1-A. Netacan zapis je gori od
+# praznog: prazan se vidi, netacan se ne vidi.
+#
+# Kljuc SecureBoot\State postoji SAMO na UEFI masinama, pa njegovo odsustvo
+# jeste odgovor - a ne nagadjanje. Isti kljuc cita i collect-diagnostics.ps1.
+function Get-SecureBootState {
+    try {
+        $state = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\State' `
+                                  -Name UEFISecureBootEnabled -ErrorAction Stop
+        return $(if ($state.UEFISecureBootEnabled -eq 1) { 'ukljucen' } else { 'iskljucen' })
+    } catch {
+        # Kljuca nema. To je ili legacy BIOS ili nedostupan registar; cmdlet
+        # ume da razluci kada uopste moze da se izvrsi.
+    }
+
+    try {
+        return $(if (Confirm-SecureBootUEFI) { 'ukljucen' } else { 'iskljucen' })
+    } catch [System.PlatformNotSupportedException] {
+        return 'nema (legacy BIOS)'
+    } catch {
+        return 'nepoznato'
+    }
+}
+
 function Invoke-SelfTest {
     # `$script:` i pri inicijalizaciji, ne samo pri uvecavanju.
     #
@@ -254,9 +285,7 @@ if (-not (Test-Path $inf)) { throw "Nema g2710.inf pored skripta ($here)" }
 # jedino koje moze da procita bcdedit. collect-diagnostics.ps1 se pokrece
 # duplim klikom i to ne moze - zato zapis ostaje ovde, pored skripta, i on ga
 # kasnije pokupi.
-$secureBoot = try {
-    if (Confirm-SecureBootUEFI) { 'ukljucen' } else { 'iskljucen' }
-} catch { 'nema (legacy BIOS)' }
+$secureBoot = Get-SecureBootState
 
 $memoryIntegrity = try {
     $guard = Get-CimInstance -ClassName Win32_DeviceGuard `
@@ -264,8 +293,19 @@ $memoryIntegrity = try {
     if ($guard.SecurityServicesRunning -contains 2) { 'ukljucen' } else { 'iskljucen' }
 } catch { 'nepoznato' }
 
+# TESTSIGNING iz bcdedit-a, sa RAZLOGOM kada se ne moze pročitati.
+#
+# Izmereno: elevirano `bcdedit /enum {current}` vraća 0 i radi, ali pod
+# LocalSystem-om iz MSI custom action-a vrati nenulti kod. Odgovor je tada
+# pošteno "nepoznato" - ali gola reč "nepoznato" u izveštaju po kome se ocenjuje
+# H1-A tera onoga ko ga čita da nagađa je li reč o grešci ili o ograničenju.
+#
+# Odsustvo reda `testsigning Yes` znači ISKLJUČENO; bcdedit ispisuje samo
+# vrednosti koje odstupaju od podrazumevanih. Neuspeh poziva NIJE isto što i
+# odsustvo tog reda, i ta dva se ne smeju stopiti.
 $bcd = & bcdedit /enum '{current}' 2>&1 | Out-String
-$testSigning = if ($LASTEXITCODE -ne 0) { 'nepoznato' }
+$bcdCode = $LASTEXITCODE
+$testSigning = if ($bcdCode -ne 0) { "nepoznato (bcdedit je vratio $bcdCode)" }
                elseif ($bcd -match '(?im)^\s*testsigning\s+Yes') { 'ukljucen' }
                else { 'iskljucen' }
 
