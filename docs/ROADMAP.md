@@ -573,6 +573,16 @@ identitet), pokrivenost svih šest ishoda `RunFailure` u čarobnjaku, otpornost
    `tools/verify-all.ps1` — jedan ulaz sa ispravnim izlaznim kodom, koji zovu i
    CI i obe skripte za pakovanje; paket se ne pravi ako kapija padne (dokazano
    mutacijom).
+10. **Izveštaj nije govorio odakle je došao.** Prolaz na simulatoru i prolaz na
+    skeneru davali su *identičan* JSON — isti `PASS`, isti uređaj `03F0-2805`,
+    nijedan trag o transportu. A čarobnjak ima dugme „Proba bez skenera" koje
+    pravi baš takav izveštaj i nudi da se pošalje nazad. Ceo model tri statusa
+    stoji na toj razlici. Put `qualification/test-results.json` → treća kolona
+    do sada nikada nije bio pokrenut; pokrenut je prvi put ovde (u privremenoj
+    kopiji, pa vraćen — simulirani rezultati ne smeju ostati tamo gde izgledaju
+    kao potvrda). `g2710ctl` sada upisuje `transport`, a `generate-status.py`
+    naglas kaže kada izveštaj nije sa skenera — i kada je iz starijeg alata koji
+    to polje uopšte nije imao.
 
 Uz to: broj odloženih stranica premešten ispod prikaza (stajao bi preko slike),
 prazan prikaz sada govori šta se od korisnika očekuje, brojevi se formatiraju

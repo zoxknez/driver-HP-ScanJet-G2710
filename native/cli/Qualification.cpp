@@ -454,12 +454,15 @@ std::vector<CheckResult> runQualification(G2710Device& device) {
 }
 
 std::string formatReport(const std::vector<CheckResult>& results, const std::string& deviceId,
-                         const std::string& timestamp, const SafetyGate& gate) {
+                         const std::string& timestamp, const SafetyGate& gate,
+                         const std::string& transport) {
     const QualificationSummary summary = summarise(results);
 
     std::ostringstream json;
     json << "{\n";
     json << "  \"device\": \"" << deviceId << "\",\n";
+    // Odmah posle uredjaja, da se vidi i kada neko samo baci pogled na fajl.
+    json << "  \"transport\": \"" << transport << "\",\n";
     json << "  \"timestamp\": \"" << timestamp << "\",\n";
     json << "  \"safetyCeiling\": " << toInt(gate.ceiling()) << ",\n";
     json << "  \"effectiveLevel\": " << toInt(gate.effective()) << ",\n";

@@ -240,7 +240,7 @@ TEST_F(QualificationTest, ReportContainsEveryCheck) {
 
     const std::vector<CheckResult> results = runQualification(*device);
     const std::string report =
-        formatReport(results, "03F0-2805", "2026-08-21T10:00:00", device->safety());
+        formatReport(results, "03F0-2805", "2026-08-21T10:00:00", device->safety(), "sim");
 
     for (const CheckResult& result : results) {
         EXPECT_NE(report.find("\"" + result.id + "\""), std::string::npos)
@@ -259,10 +259,36 @@ TEST_F(QualificationTest, ReportCarriesBothCeilingAndEffectiveLevel) {
 
     const std::vector<CheckResult> results = runQualification(*device);
     const std::string report =
-        formatReport(results, "03F0-2805", "2026-08-21T10:00:00", device->safety());
+        formatReport(results, "03F0-2805", "2026-08-21T10:00:00", device->safety(), "sim");
 
     EXPECT_NE(report.find("\"safetyCeiling\":"), std::string::npos);
     EXPECT_NE(report.find("\"effectiveLevel\": 2"), std::string::npos);
+}
+
+// Izvestaj MORA reci odakle je dosao.
+//
+// Bez toga se prolaz na simulatoru i prolaz na skeneru ne razlikuju ni po cemu:
+// isti JSON, isti PASS, isti uredjaj "03F0-2805". Ceo model tri statusa stoji
+// na toj razlici, a carobnjak ima dugme "Proba bez skenera" koje pravi bas
+// takav izvestaj i nudi da se posalje nazad.
+//
+// generate-status.py na osnovu ovog polja odbija da simulatorski prolaz
+// predstavi kao hardversku potvrdu; ako polje nestane odavde, tamo se gubi
+// jedini nacin da se to primeti.
+TEST_F(QualificationTest, ReportSaysWhereItCameFrom) {
+    auto device = open(SafetyLevel::FullScan);
+    ASSERT_NE(device, nullptr);
+
+    const std::vector<CheckResult> results = runQualification(*device);
+
+    for (const char* transport : {"sim", "usbscan"}) {
+        const std::string report =
+            formatReport(results, "03F0-2805", "2026-08-21T10:00:00", device->safety(),
+                         transport);
+        EXPECT_NE(report.find(std::string("\"transport\": \"") + transport + "\""),
+                  std::string::npos)
+            << "izvestaj ne kaze da je nastao preko " << transport;
+    }
 }
 
 TEST_F(QualificationTest, ReportWordsAreStableAcrossOutcomes) {

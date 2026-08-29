@@ -370,6 +370,30 @@ def render(tests, grouped, capabilities, hardware):
 
     lines.append("## Hardverska kvalifikacija")
     lines.append("")
+
+    # Izvestaj sa SIMULATORA nije hardverska kvalifikacija.
+    #
+    # Do skoro se to nije ni moglo razlikovati: prolaz na simulatoru i prolaz na
+    # skeneru davali su isti JSON, isti PASS, isti uredjaj "03F0-2805". A
+    # carobnjak ima dugme "Proba bez skenera" koje pravi bas takav izvestaj i
+    # nudi da se posalje nazad. Sada izvestaj nosi `transport`, pa se razlika
+    # vidi - i ovde se izgovara naglas, umesto da tabela cuti i izgleda kao
+    # potvrda.
+    if hardware is not None:
+        transport = hardware.get("transport")
+        if transport is None:
+            lines.append("**Izvestaj ne kaze odakle je dosao.** Stariji `g2710ctl` "
+                         "nije upisivao `transport`, pa se ne moze utvrditi da li je "
+                         "nastao na skeneru ili na simulatoru. NE vazi kao hardverska "
+                         "potvrda; ponovite proveru novijim paketom.")
+            lines.append("")
+        elif transport != "usbscan":
+            lines.append("**Izvestaj je sa simulatora (`transport: %s`), ne sa "
+                         "skenera.** Prikazan je zato sto pokazuje da alat radi, ali "
+                         "NE vazi kao hardverska potvrda i ne oglasava nijednu "
+                         "mogucnost." % transport)
+            lines.append("")
+
     if hardware is None:
         lines.append("Nema izvestaja. Ocekuje se `qualification/test-results.json` "
                      "iz paketa koji se salje na testiranje; do tada je treca kolona "

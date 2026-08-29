@@ -8,7 +8,7 @@ Uredjaj: `03F0:2805`
 
 ## Testovi
 
-**759/772 prolazi, 13 preskoceno.**
+**760/773 prolazi, 13 preskoceno.**
 
 Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer ponuda nema nijednu hardverski potvrdjenu rezoluciju; ista provera se izvrsava u kvalifikacionom build-u (`wia_qualification`).
 
@@ -25,7 +25,7 @@ Preskoceni testovi nisu pali. U izdanju se provera WIA vrednosti preskace jer po
 | G2710-8 | C ABI, Interop i aplikacija | **PASS** | 161/161 | - |
 | G2710-9 | WIA minidriver | **PASS** | 60/60 | 13 |
 | G2710-10 | TWAIN Data Source | **PASS** | 14/14 | - |
-| G2710-11 | Kvalifikacioni paket | **PASS** | 64/64 | - |
+| G2710-11 | Kvalifikacioni paket | **PASS** | 65/65 | - |
 
 ## Rezolucije
 

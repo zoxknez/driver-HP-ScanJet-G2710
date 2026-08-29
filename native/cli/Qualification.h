@@ -89,8 +89,22 @@ std::vector<CheckResult> runQualification(G2710Device& device);
 
 // Izvestaj u JSON. `deviceId` i `timestamp` dolaze spolja jer ih modul ne sme
 // izmisljati - testovi bi tada bili nedeterministicki.
+// Izvestaj MORA reci odakle je dosao.
+//
+// Bez toga se prolaz na simulatoru i prolaz na skeneru ne razlikuju ni po cemu:
+// isti JSON, isti PASS, isti uredjaj "03F0-2805". A ceo model tri statusa stoji
+// na toj razlici - HARDWARE_VALIDATED znaci "potvrdjeno na uredjaju", ne
+// "potvrdjeno negde". Carobnjak ima dugme "Proba bez skenera" koje pravi bas
+// takav izvestaj i nudi da se posalje.
+// Izvestaj MORA reci odakle je dosao.
+//
+// Bez toga se prolaz na simulatoru i prolaz na skeneru ne razlikuju ni po cemu:
+// isti JSON, isti PASS, isti uredjaj "03F0-2805". A ceo model tri statusa stoji
+// na toj razlici - HARDWARE_VALIDATED znaci "potvrdjeno na uredjaju", ne
+// "potvrdjeno negde". Carobnjak ima dugme "Proba bez skenera" koje pravi bas
+// takav izvestaj i nudi da se posalje.
 std::string formatReport(const std::vector<CheckResult>& results,
                          const std::string& deviceId, const std::string& timestamp,
-                         const SafetyGate& gate);
+                         const SafetyGate& gate, const std::string& transport);
 
 }  // namespace g2710::cli

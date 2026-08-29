@@ -790,7 +790,7 @@ int cmdQualify(G2710Device& scanner, const Options& options) {
     // Izvestaj se pise UVEK, i kad nesto padne - tada je najpotrebniji.
     const std::string report =
         cli::formatReport(results, deviceIdentityString(scanner.identity()), nowIso8601(),
-                          scanner.safety());
+                          scanner.safety(), options.transport);
 
     std::string reportPath = options.outputPath;
     if (reportPath.empty()) {
