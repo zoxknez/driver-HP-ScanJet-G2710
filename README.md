@@ -90,7 +90,7 @@ Jedna komanda pravi ZIP koji se šalje: wizard, `g2710ctl`, potpisan drajver,
 `install.ps1`, `collect-diagnostics.ps1` i uputstvo na srpskom.
 
 ```bash
-powershell -File tools/build-qualification-package.ps1 -SafetyCeiling 2
+powershell -File tools/build-qualification-package.ps1 -SafetyCeiling 1 -Language sr
 ```
 
 **Plafon bezbednosti se ugrađuje u binarni fajl, ne čita se pri pokretanju.**

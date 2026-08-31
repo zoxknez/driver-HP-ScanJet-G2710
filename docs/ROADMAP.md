@@ -443,11 +443,12 @@ nepostojeću aplikaciju bio bi skelet.
   (`build-installer.ps1` → InfVerif → Inf2Cat → signtool → `verify-installer.ps1`),
   proizvodni ZIP sa oba uputstva, i kvalifikacioni ZIP na oba jezika
 - kratko uputstvo šta da javi ako nešto ne prođe
-- **nemereno, i to se zna:** živ install/uninstall ciklus pravog MSI-ja sa
-  brisanjem `HKLM\SOFTWARE\G2710`. Pravilo je da se čist uninstall *meri*;
-  zasad je provereno samo na MSI tabelama (`Registry` red sa imenom `-`).
-  Traži elevaciju, pa čeka odluku — ili se meri ovde, ili prvi put kod
-  prijatelja uz `install.ps1 -Uninstall`.
+- ~~živ install/uninstall ciklus pravog MSI-ja~~ — **izmeren** 29. avgusta:
+  instalacija je proverena nad fajlovima, DriverStore-om, sertifikatima i
+  `HKLM\SOFTWARE\G2710`, a deinstalacija je sve merene stavke vratila u početno
+  stanje. Ponovljivi elevated acceptance ostaje u
+  `tools/verify-msi-install.ps1`; ne pokreće se iz redovnog build-a jer menja
+  sistemsko stanje.
 
 **Zaključano usput:** pakovanje sada odbija da napravi ZIP ako wizard ne nosi
 oba prevoda. Otkaz je bio potpuno tih — paket bi se izgradio, radio, i govorio
